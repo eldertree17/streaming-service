@@ -1,0 +1,631 @@
+/* Watch Page Styles */
+
+/* General Layout */
+.container {
+  padding: 0;
+  max-width: 100%;
+}
+
+.watch-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 1rem;
+  z-index: 100;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+}
+
+.back-button {
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.watch-content {
+  padding: 0 1rem;
+}
+
+/* Video Player */
+.video-player-container {
+  margin-top: 60px;
+  width: 100%;
+  position: relative;
+}
+
+.video-player {
+  width: 100%;
+  height: 0;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  position: relative;
+  background-color: #000;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.video-thumbnail {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.play-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60px;
+  height: 60px;
+  background-color: rgba(255, 69, 0, 0.8);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.play-button i {
+  color: white;
+  font-size: 24px;
+}
+
+/* Movie Details */
+.movie-details {
+  margin-top: 1.5rem;
+}
+
+#movie-title {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+  color: white;
+}
+
+.movie-meta {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
+.genre-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.genre {
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 0.3rem 0.8rem;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  color: #ddd;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  width: 100%; /* Ensure it takes full width */
+}
+
+.action-buttons button {
+  padding: 0.7rem 1.2rem;
+  border-radius: 8px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  margin: 0 0.5rem; /* Add some margin between buttons */
+}
+
+.btn-play {
+  background-color: white;
+  color: black;
+}
+
+.btn-download {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.btn-buy {
+  background-color: #FF4500;
+  color: white;
+}
+
+.movie-description {
+  color: #ddd;
+  line-height: 1.5;
+  margin-bottom: 2rem;
+}
+
+/* Section Styles */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.section-header h2 {
+  font-size: 1.3rem;
+  color: white;
+}
+
+.see-all-btn {
+  background: none;
+  border: none;
+  color: #FF4500;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+/* Carousel Styles */
+.cast-carousel,
+.rewards-carousel,
+.similar-carousel {
+  display: flex;
+  overflow-x: auto;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  scrollbar-width: none; /* Firefox */
+}
+
+.cast-carousel::-webkit-scrollbar,
+.rewards-carousel::-webkit-scrollbar,
+.similar-carousel::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+.cast-item,
+.reward-item,
+.similar-item {
+  min-width: 120px;
+  text-align: center;
+}
+
+.cast-item img,
+.reward-item img,
+.similar-item img {
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.cast-name,
+.reward-name,
+.similar-title {
+  font-size: 0.9rem;
+  color: white;
+  margin-top: 0.5rem;
+  margin-bottom: 0.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cast-role,
+.reward-description,
+.similar-year {
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+/* Comments Section */
+.comments-section {
+  margin-bottom: 2rem;
+}
+
+.comment-input-container {
+  margin-bottom: 1.5rem;
+}
+
+#comment-input {
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 20px;
+  padding: 0.7rem 1rem;
+  color: white;
+  resize: none;
+  height: 40px;
+  min-height: unset;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.comment-actions {
+  display: none;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+/* When comment input is focused, show these styles */
+#comment-input:focus {
+  height: 80px;
+  border-radius: 12px;
+}
+
+.comment-actions-left {
+  display: flex;
+  align-items: center;
+}
+
+.comment-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-emoji {
+  background-color: transparent;
+  color: #aaa;
+  font-size: 1.2rem;
+  padding: 0.5rem;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-comment {
+  background-color: #FF4500;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-cancel {
+  background-color: transparent;
+  color: #aaa;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+}
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.comment {
+  display: flex;
+  flex-direction: column;
+}
+
+.comment > .comment-avatar,
+.comment > .comment-content {
+  display: inline-block;
+  vertical-align: top;
+}
+
+.comment-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.comment-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.comment-content {
+  flex: 1;
+}
+
+.comment-author {
+  font-weight: bold;
+  color: white;
+  margin-bottom: 0.2rem;
+}
+
+.comment-time {
+  font-size: 0.8rem;
+  color: #aaa;
+  margin-bottom: 0.5rem;
+}
+
+.comment-text {
+  color: #ddd;
+  line-height: 1.4;
+  margin-bottom: 0.5rem;
+}
+
+.comment-actions-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.comment-action {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #aaa;
+  font-size: 0.8rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.comment-action:hover {
+  color: #FF4500;
+}
+
+.comment-action.active {
+  color: #FF4500;
+}
+
+/* Delete button styling */
+.comment-action.delete-action {
+  margin-left: auto;
+  color: #aaa;
+}
+
+.comment-action.delete-action:hover {
+  color: #ff4500;
+}
+
+/* Reply form styling */
+.reply-form {
+  margin-top: 1rem;
+  margin-left: 1.5rem;
+  display: none;
+}
+
+.reply-form textarea {
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 20px;
+  padding: 0.7rem 1rem;
+  color: white;
+  resize: none;
+  height: 40px;
+  min-height: unset;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.reply-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.btn-reply-submit {
+  background-color: #FF4500;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-reply-cancel {
+  background-color: transparent;
+  color: #aaa;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+}
+
+/* Nested replies styling */
+.replies-container {
+  margin-top: 1rem;
+  margin-left: 1rem; /* Reduced from 3rem to 1.5rem */
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.reply {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+/* Modal styling */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.modal-content {
+  background-color: #1a1a1a;
+  margin: 5% auto;
+  width: 90%;
+  max-width: 600px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #333;
+}
+
+.modal-header h2 {
+  color: white;
+  margin: 0;
+  font-size: 2rem;
+}
+
+.close-modal {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 2rem;
+  cursor: pointer;
+}
+
+.modal-body {
+  padding: 1.5rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Cast grid in modal - 2 columns */
+.cast-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.cast-grid .cast-item {
+  width: 100%;
+  min-width: unset;
+  margin-right: 0;
+}
+
+.cast-grid .cast-item img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1/1;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.cast-grid .cast-name {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: white;
+  margin-top: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.cast-grid .cast-role {
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+/* Rewards grid in modal - 2 columns */
+.rewards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.rewards-grid .reward-item {
+  width: 100%;
+  min-width: unset;
+  margin-right: 0;
+}
+
+.rewards-grid .reward-item img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1/1;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.rewards-grid .reward-name {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: white;
+  margin-top: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.rewards-grid .reward-description {
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.all-comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Title with like/dislike buttons */
+.title-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+#movie-title {
+  margin: 0;
+  margin-right: auto;
+}
+
+.title-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.title-like-btn, .title-dislike-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+}
+
+.title-like-btn.active {
+  color: #FF4500;
+}
+
+.title-dislike-btn.active {
+  color: #FF4500;
+}
+
+.like-count {
+  font-size: 1rem;
+}
+
+/* Responsive adjustments */
+@media (min-width: 768px) {
+  /* Both cast and rewards grids stay at 2 columns even on larger screens */
+  .cast-grid,
+  .rewards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .action-buttons {
+    justify-content: flex-start;
+  }
+}

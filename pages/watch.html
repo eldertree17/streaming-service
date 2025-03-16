@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watch - StreamFlix</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/watch.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header with back button -->
+        <header class="watch-header">
+            <button id="back-button" class="back-button">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+        </header>
+
+        <!-- Main content -->
+        <main class="watch-content">
+            <!-- Video player section -->
+            <section class="video-player-container">
+                <div class="video-player">
+                    <img src="https://images.unsplash.com/photo-1536440136628-849c177e76a1" alt="Movie Thumbnail" class="video-thumbnail">
+                    <div class="play-button">
+                        <i class="fas fa-play"></i>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Movie details section -->
+            <section class="movie-details">
+                <div class="title-row">
+                    <h1 id="movie-title">Inception</h1>
+                    <div class="title-actions">
+                        <button class="title-like-btn">
+                            <i class="fas fa-thumbs-up"></i>
+                            <span class="like-count">1.5K</span>
+                        </button>
+                        <button class="title-dislike-btn">
+                            <i class="fas fa-thumbs-down"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="movie-meta">
+                    <span class="year">2010</span>
+                    <span class="rating">PG-13</span>
+                    <span class="duration">2h 28m</span>
+                    <span class="quality">HD</span>
+                </div>
+                <div class="genre-tags">
+                    <span class="genre">Sci-Fi</span>
+                    <span class="genre">Action</span>
+                    <span class="genre">Adventure</span>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn-play">
+                        <i class="fas fa-play"></i> Play
+                    </button>
+                    <button class="btn-download">
+                        <i class="fas fa-compact-disc"></i> Seed
+                      </button>
+                    <button class="btn-buy">
+                        <i class="fas fa-shopping-cart"></i> Buy
+                    </button>
+                </div>
+                <div class="movie-description">
+                    <p>A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a C.E.O.</p>
+                </div>
+            </section>
+
+            <!-- Cast section -->
+            <section class="cast-section">
+                <div class="section-header">
+                    <h2>Cast</h2>
+                    <button class="see-all-btn" data-modal="cast-modal">See All</button>
+                </div>
+                <div class="cast-carousel">
+                    <!-- Cast members will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Rewards section -->
+            <section class="rewards-section">
+                <div class="section-header">
+                    <h2>Rewards</h2>
+                    <button class="see-all-btn" data-modal="rewards-modal">See All</button>
+                </div>
+                <div class="rewards-carousel">
+                    <!-- Rewards will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Similar movies section -->
+            <section class="similar-section">
+                <div class="section-header">
+                    <h2>Similar Movies</h2>
+                    <button class="see-all-btn">See All</button>
+                </div>
+                <div class="similar-carousel">
+                    <!-- Similar movies will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Comments section -->
+            <section class="comments-section">
+                <div class="section-header">
+                    <h2>Comments</h2>
+                    <button class="see-all-btn" data-modal="comments-modal">See All</button>
+                </div>
+                <div class="comment-input-container">
+                    <textarea id="comment-input" placeholder="Add a comment..."></textarea>
+                    <div class="comment-actions" id="comment-actions">
+                        <div class="comment-actions-left">
+                            <button class="btn-emoji"><i class="far fa-smile"></i></button>
+                        </div>
+                        <div class="comment-actions-right">
+                            <button class="btn-cancel">Cancel</button>
+                            <button class="btn-comment">Comment</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="comments-list">
+                    <!-- Comments will be populated by JavaScript -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal for Cast -->
+    <div id="cast-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Cast</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="cast-grid">
+                    <!-- Cast members will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Rewards -->
+    <div id="rewards-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Rewards</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="rewards-grid">
+                    <!-- Rewards will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Comments -->
+    <div id="comments-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>All Comments</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="all-comments-list">
+                    <!-- All comments will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/watch.js"></script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search - Streaming Service</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/search.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Search Bar -->
+        <div class="search-bar">
+            <div class="back-button" id="back-button">
+              <i class="fas fa-arrow-left"></i>
+            </div>
+            <div class="search-field active">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search for movies or TV shows" id="search-input">
+                <i class="fas fa-microphone voice-icon"></i>
+            </div>
+        </div>
+        
+        <!-- Content Type Tabs -->
+        <div class="content-type-tabs">
+            <div class="content-tab active" data-type="movies">
+                <i class="fas fa-film"></i>
+                <p>Movies</p>
+            </div>
+            <div class="content-tab" data-type="tvshows">
+                <i class="fas fa-tv"></i>
+                <p>TV Shows</p>
+            </div>
+            <div class="content-tab" data-type="games">
+                <i class="fas fa-gamepad"></i>
+                <p>Games</p>
+            </div>
+        </div>
+        
+        <!-- Genre Pills -->
+        <div class="genre-pills">
+            <div class="genre-pill">Action</div>
+            <div class="genre-pill">Drama</div>
+            <div class="genre-pill">Comedy</div>
+            <div class="genre-pill">Horror</div>
+            <div class="genre-pill">Sci-Fi</div>
+        </div>
+        
+        <!-- Search Results Grid (initially hidden) -->
+        <div class="search-results" id="search-results">
+            <!-- Will be populated by JavaScript when user types -->
+        </div>
+        
+        <!-- Category Container -->
+        <div id="category-container">
+            <!-- Categories will be populated by JavaScript -->
+        </div>
+        
+        <!-- Navigation Bar -->
+        <div class="nav-bar">
+            <a href="../index.html" class="nav-item active">
+                <i class="fas fa-home"></i>
+                <p>Home</p>
+            </a>
+            <a href="activity.html" class="nav-item">
+                <i class="fas fa-compact-disc"></i>
+                <p>Activity</p>
+            </a>
+            <a href="account.html" class="nav-item">
+                <i class="fas fa-user"></i>
+                <p>Account</p>
+            </a>
+        </div>
+    </div>
+    
+    <script src="../js/main.js"></script>
+    <script src="../js/search.js"></script>
+</body>
+</html>

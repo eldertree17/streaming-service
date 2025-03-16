@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account - StreamFlix</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/account.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-content">
+                <h1>My collection</h1>
+                <div class="settings-icon">
+                    <i class="fas fa-cog"></i>
+                </div>
+            </div>
+            <div class="search-container" id="search-trigger">
+                <div class="search-field">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search other streamers...">
+                    <i class="fas fa-microphone voice-icon"></i>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="profile-section">
+                <div class="profile-info">
+                    <div class="profile-image">
+                        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330" alt="Profile Image">
+                    </div>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <span class="stat-number">120</span>
+                            <span class="stat-label">DVDs</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">1.2K</span>
+                            <span class="stat-label">Followers</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">340</span>
+                            <span class="stat-label">Following</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="profile-details">
+                    <h2 class="username">Evelyn Hawthorne</h2>
+                    <p class="bio">Movie enthusiast and collector.</p>
+                </div>
+                
+                <button class="follow-button">Follow</button>
+            </div>
+
+            <div class="collection-section">
+                <div class="section-header">
+                    <h3>Movies</h3>
+                </div>
+                <div class="collection-grid" id="movies-grid">
+                    <!-- Movies will be populated by JavaScript -->
+                </div>
+
+                <div class="section-header">
+                    <h3>TV Shows</h3>
+                </div>
+                <div class="collection-grid" id="tvshows-grid">
+                    <!-- TV Shows will be populated by JavaScript -->
+                </div>
+
+                <div class="section-header">
+                    <h3>Games</h3>
+                </div>
+                <div class="collection-grid" id="games-grid">
+                    <!-- Games will be populated by JavaScript -->
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="nav-bar">
+            <div class="nav-item">
+                <a href="../index.html">
+                    <i class="fas fa-home"></i>
+                    <p>Home</p>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="activity.html">
+                    <i class="fas fa-compact-disc"></i>
+                    <p>Activity</p>
+                </a>
+            </div>
+            <div class="nav-item active">
+                <a href="account.html">
+                    <i class="fas fa-user"></i>
+                    <p>Account</p>
+                </a>
+            </div>
+        </nav>
+    </div>
+
+    <script src="../js/account.js"></script>
+</body>
+</html>
