@@ -11,22 +11,31 @@ function setupMovieItemClicks() {
           return;
         }
         
-        // Get movie title from the card
-        const titleElement = this.querySelector('p, h2, .title-container h2, .card-info p');
-        let movieTitle = 'Inception'; // Default fallback
+        // Check if we have a content ID (from API)
+        const contentId = this.dataset.contentId;
         
-        if (titleElement) {
-          movieTitle = titleElement.textContent.trim();
-          console.log('Clicked on movie:', movieTitle);
+        if (contentId) {
+          console.log('Clicked on content with ID:', contentId);
+          // Navigate to the content page with the ID (use clean URL format)
+          window.location.href = 'pages/watch?id=' + contentId;
+        } else {
+          // Fallback to the old method using title
+          const titleElement = this.querySelector('p, h2, .title-container h2, .card-info p');
+          let movieTitle = 'Inception'; // Default fallback
           
-          // Navigate to the watch page with the movie title as a parameter
-          window.location.href = 'pages/watch.html?movie=' + encodeURIComponent(movieTitle);
+          if (titleElement) {
+            movieTitle = titleElement.textContent.trim();
+            console.log('Clicked on movie:', movieTitle);
+            
+            // Navigate to the watch page with the movie title as a parameter (use clean URL format)
+            window.location.href = 'pages/watch?movie=' + encodeURIComponent(movieTitle);
+          }
         }
       });
     });
     
     console.log('Movie click handlers set up for', movieItems.length, 'items');
-  }
+}
   
   // Add interactivity to the Netflix-like interface
   document.addEventListener('DOMContentLoaded', function() {
@@ -116,9 +125,49 @@ function setupMovieItemClicks() {
       // Set up search navigation
       setupSearchNavigation();
   });
+
+  // Function to update hero content with featured content from API
+async function updateHeroContent() {
+    try {
+        // Fetch content from the API
+        const contentData = await getAllContent();
+        
+        // If no content is returned or there's an error, use fallback data
+        if (!contentData || contentData.length === 0) {
+            console.log("No content found in API for hero, using fallback data");
+            useFallbackHeroContent();
+            return;
+        }
+        
+        // Select a random content item for the hero
+        const randomIndex = Math.floor(Math.random() * contentData.length);
+        const featured = contentData[randomIndex];
+        
+        // Update the hero card
+        const heroCard = document.querySelector('.featured-card');
+        if (heroCard) {
+            heroCard.innerHTML = `
+                <div class="badge">Trending</div>
+                <img src="${featured.posterImage}" alt="${featured.title}">
+                <div class="likes"><i class="fas fa-thumbs-up"></i> ${featured.likes || 0}</div>
+                <div class="title-container">
+                    <h2>${featured.title}</h2>
+                </div>
+            `;
+            
+            // Store the content ID as a data attribute for navigation
+            heroCard.dataset.contentId = featured._id;
+        }
+        
+    } catch (error) {
+        console.error("Error fetching content for hero:", error);
+        useFallbackHeroContent();
+    }
+}
   
-  // Function to update hero content with random featured content
-  function updateHeroContent() {
+    // Fallback function for hero content
+    function useFallbackHeroContent() {
+        // Your existing updateHeroContent code here
       const featuredContent = [
           { title: "The Witcher", likes: "20", img: "https://images.unsplash.com/photo-1626197031507-c17099753214" },
           { title: "Stranger Things", likes: "18", img: "https://images.unsplash.com/photo-1534809027769-b00d750a6bac" },
@@ -256,10 +305,88 @@ function setupMovieItemClicks() {
       console.log("Generated 25 category sections with random titles");
   }
   
-  // Function to populate carousels with 15 movies each
-  function populateCarousels() {
-      // Sample movie and TV show data with better images
+  // Function to populate carousels with content from the API
+async function populateCarousels() {
+    try {
+        // Fetch content from the API
+        const contentData = await getAllContent();
+        
+        // If no content is returned or there's an error, use fallback data
+        if (!contentData || contentData.length === 0) {
+            console.log("No content found in API, using fallback data");
+            useFallbackContent();
+            return;
+        }
+        
+        // Get all content rows
+        const contentRows = document.querySelectorAll('.content-row');
+        
+        if (contentRows.length === 0) {
+            console.error("No content rows found. Check your HTML structure.");
+            return;
+        }
+        
+        // Update each content row with movies
+        contentRows.forEach((row) => {
+            // Clear existing content
+            row.innerHTML = '';
+            
+            // Shuffle the content data to get random selection
+            const shuffledContent = [...contentData].sort(() => 0.5 - Math.random());
+            
+            // Add content items to the row (up to 15 or as many as available)
+            const itemCount = Math.min(15, shuffledContent.length);
+            for (let i = 0; i < itemCount; i++) {
+                const content = shuffledContent[i];
+                
+                const card = document.createElement('div');
+                card.className = 'content-card';
+                
+                card.innerHTML = `
+                    <img src="${content.posterImage}" alt="${content.title}">
+                    <div class="card-info">
+                        <p>${content.title}</p>
+                        <div class="card-details">
+                            <span>${content.releaseYear || 'N/A'}</span>
+                            ${content.duration ? `<span>• ${content.duration}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+                
+                // Store the content ID as a data attribute for navigation
+                card.dataset.contentId = content._id;
+                
+                row.appendChild(card);
+            }
+        });
+        
+        console.log("Carousels populated with API content");
+        
+        // Set up click handlers for the new content cards
+        setupMovieItemClicks();
+        
+    } catch (error) {
+        console.error("Error fetching content from API:", error);
+        useFallbackContent();
+    }
+}
+
+// Fallback function to use hardcoded data if API fails
+function useFallbackContent() {
+    // Your existing populateCarousels code here
+    // This is the current implementation that uses hardcoded data
+    
+    // Sample movie and TV show data with better images
       const contentData = [
+          { 
+              title: "Big Buck Bunny",
+              year: "2008",
+              type: "movie",
+              img: "https://peach.blender.org/wp-content/uploads/bbb-splash.png",
+              _id: "bbb",
+              duration: "10m",
+              posterImage: "https://peach.blender.org/wp-content/uploads/bbb-splash.png"
+          },
           { title: "The Matrix", year: "1999", type: "movie", img: "https://images.unsplash.com/photo-1558486012-817176f84c6d" },
           { title: "Blade Runner", year: "1982", type: "movie", img: "https://images.unsplash.com/photo-1478720568477-152d9b164e26" },
           { title: "Inception", year: "2010", type: "movie", img: "https://images.unsplash.com/photo-1536440136628-849c177e76a1" },
@@ -353,7 +480,7 @@ function setupMovieItemClicks() {
       if (searchTrigger) {
           // Make the entire search field clickable
           searchTrigger.addEventListener('click', function() {
-              window.location.href = 'pages/search.html';
+              window.location.href = 'pages/search';
           });
           
           // Also make the icons inside the search field clickable
@@ -364,26 +491,26 @@ function setupMovieItemClicks() {
           if (searchIcon) {
               searchIcon.addEventListener('click', function(e) {
                   e.stopPropagation(); // Prevent double triggering
-                  window.location.href = 'pages/search.html';
+                  window.location.href = 'pages/search';
               });
           }
           
           if (voiceIcon) {
               voiceIcon.addEventListener('click', function(e) {
                   e.stopPropagation(); // Prevent double triggering
-                  window.location.href = 'pages/search.html';
+                  window.location.href = 'pages/search';
               });
           }
           
           if (searchInput) {
               searchInput.addEventListener('click', function(e) {
                   e.stopPropagation(); // Prevent double triggering
-                  window.location.href = 'pages/search.html';
+                  window.location.href = 'pages/search';
               });
               
               // Also trigger on focus attempt
               searchInput.addEventListener('focus', function(e) {
-                  window.location.href = 'pages/search.html';
+                  window.location.href = 'pages/search';
               });
           }
       }

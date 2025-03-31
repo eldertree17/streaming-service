@@ -1,0 +1,23 @@
+# URL Redirection for Watch Page
+# Redirects /pages/watch.html to /pages/watch for consistent behavior
+
+# Enable rewrite engine
+RewriteEngine On
+
+# Redirect /pages/watch.html to /pages/watch
+RewriteCond %{REQUEST_URI} ^/pages/watch\.html [NC]
+RewriteRule ^pages/watch\.html$ /pages/watch [R=301,QSA,L]
+
+# Add headers to ensure proper caching for HTML files
+<FilesMatch "\.(html)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires 0
+</FilesMatch>
+
+# Allow cross-origin requests for API endpoints
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization, x-demo-user"
+</IfModule> 

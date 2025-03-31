@@ -42,7 +42,7 @@
                     <span class="subtitle" style="font-size: 0.8rem; color: #ccc; margin-left: 10px;">Guaranteed to work</span>
                 </div>
                 <div class="content-row" id="test-video-row">
-                    <div class="content-card" id="test-video-card" data-content-id="sample-video-1" style="min-width: 300px;">
+                    <div class="content-card" id="test-video-card" style="min-width: 300px;">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Big_buck_bunny_poster_big.jpg/800px-Big_buck_bunny_poster_big.jpg" alt="Big Buck Bunny">
                         <div class="card-info">
                             <p>Big Buck Bunny (Test Video)</p>
@@ -355,19 +355,19 @@
         <!-- Navigation Bar -->
         <div class="nav-bar">
             <div class="nav-item active">
-                <a href="/">
+                <a href="index.html">
                     <i class="fas fa-home"></i>
                     <p>Home</p>
                 </a>
             </div>
             <div class="nav-item">
-                <a href="pages/activity">
+                <a href="pages/activity.html">
                     <i class="fas fa-compact-disc"></i>
                     <p>Activity</p>
                 </a>
             </div>
             <div class="nav-item">
-                <a href="pages/account">
+                <a href="pages/account.html">
                     <i class="fas fa-user"></i>
                     <p>Account</p>
                 </a>
@@ -444,7 +444,7 @@
                 testVideoCard.addEventListener('click', function() {
                     console.log('Test video card clicked, navigating to sample-video-1');
                     const baseUrl = window.location.origin;
-                    // Using clean URL format without .html
+                    // Using watch.html instead of pages/watch (prevent 301 redirect)
                     window.location.href = `${baseUrl}/pages/watch?id=sample-video-1`;
                     // Stop any other event handlers
                     return false;

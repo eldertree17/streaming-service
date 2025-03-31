@@ -1,0 +1,29 @@
+{
+  "name": "streaming-service",
+  "version": "1.0.0",
+  "description": "A streaming service with WebTorrent and Telegram integration",
+  "main": "index.js",
+  "scripts": {
+    "start": "node streaming-service-backend/server.js",
+    "dev": "nodemon streaming-service-backend/server.js",
+    "serve": "node server-config.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "streaming",
+    "webtorrent",
+    "telegram"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^8.1.1",
+    "dotenv": "^16.4.1",
+    "cors": "^2.8.5",
+    "webtorrent": "^2.1.32"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  }
+} 

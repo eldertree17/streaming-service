@@ -202,7 +202,8 @@ function populateCollectionGrid(gridId, items) {
       
       // Add click event to navigate to watch page
       itemElement.addEventListener('click', function() {
-          window.location.href = `watch.html?movie=${encodeURIComponent(item.title)}`;
+          const baseUrl = window.location.origin;
+          window.location.href = `${baseUrl}/pages/watch?movie=${encodeURIComponent(item.title)}`;
       });
       
       grid.appendChild(itemElement);
