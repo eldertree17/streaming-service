@@ -1,3 +1,20 @@
+:root {
+    /* Telegram theme variables */
+    --tg-theme-bg-color: #000000;
+    --tg-theme-text-color: #ffffff;
+    --tg-theme-hint-color: #999999;
+    --tg-theme-link-color: #2481cc;
+    --tg-theme-button-color: #2481cc;
+    --tg-theme-button-text-color: #ffffff;
+
+    /* Existing theme variables */
+    --primary-color: var(--tg-theme-link-color);
+    --secondary-color: var(--tg-theme-button-color);
+    --text-color: var(--tg-theme-text-color);
+    --background-color: var(--tg-theme-bg-color);
+    --accent-color: var(--tg-theme-button-color);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -6,8 +23,8 @@
 }
 
 body {
-  background-color: #0D0402;
-  color: white;
+  background-color: var(--background-color);
+  color: var(--text-color);
 }
 
 .app-container {
@@ -586,4 +603,29 @@ html {
   background-color: rgba(0, 0, 0, 0.5);
   color: rgba(255, 255, 255, 0.5);
   font-size: 14px;
+}
+
+/* Update button styles */
+button, .button {
+    background-color: var(--tg-theme-button-color);
+    color: var(--tg-theme-button-text-color);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: opacity 0.3s;
+}
+
+button:hover, .button:hover {
+    opacity: 0.9;
+}
+
+/* Update link styles */
+a {
+    color: var(--tg-theme-link-color);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
 }

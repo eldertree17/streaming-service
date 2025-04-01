@@ -1,13 +1,14 @@
 {
   "name": "streaming-service",
   "version": "1.0.0",
-  "description": "A streaming service with WebTorrent and Telegram integration",
-  "main": "index.js",
+  "description": "A streaming service with Telegram integration",
+  "main": "server-config.js",
   "scripts": {
-    "start": "node streaming-service-backend/server.js",
-    "dev": "nodemon streaming-service-backend/server.js",
-    "serve": "node server-config.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server-config.js",
+    "dev": "nodemon server-config.js"
+  },
+  "engines": {
+    "node": ">=14.0.0"
   },
   "keywords": [
     "streaming",
@@ -17,13 +18,14 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2",
-    "mongoose": "^8.1.1",
-    "dotenv": "^16.4.1",
+    "express": "^4.17.1",
+    "dotenv": "^10.0.0",
     "cors": "^2.8.5",
-    "webtorrent": "^2.1.32"
+    "jsonwebtoken": "^8.5.1",
+    "mongoose": "^6.0.12",
+    "axios": "^0.24.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.3"
+    "nodemon": "^2.0.14"
   }
 } 

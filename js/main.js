@@ -4,129 +4,113 @@ function setupMovieItemClicks() {
     const movieItems = document.querySelectorAll('.content-card, .featured-card');
     
     movieItems.forEach(item => {
-      item.addEventListener('click', function(e) {
-        // Don't navigate if clicking on the like button
-        if (e.target.closest('.likes')) {
-          e.stopPropagation();
-          return;
-        }
-        
-        // Check if we have a content ID (from API)
-        const contentId = this.dataset.contentId;
-        
-        if (contentId) {
-          console.log('Clicked on content with ID:', contentId);
-          // Navigate to the content page with the ID (use clean URL format)
-          window.location.href = 'pages/watch?id=' + contentId;
-        } else {
-          // Fallback to the old method using title
-          const titleElement = this.querySelector('p, h2, .title-container h2, .card-info p');
-          let movieTitle = 'Inception'; // Default fallback
-          
-          if (titleElement) {
-            movieTitle = titleElement.textContent.trim();
-            console.log('Clicked on movie:', movieTitle);
+        item.addEventListener('click', function(e) {
+            // Don't navigate if clicking on the like button
+            if (e.target.closest('.likes')) {
+                e.stopPropagation();
+                return;
+            }
             
-            // Navigate to the watch page with the movie title as a parameter (use clean URL format)
-            window.location.href = 'pages/watch?movie=' + encodeURIComponent(movieTitle);
-          }
+            // Check if we have a content ID (from API)
+            const contentId = this.dataset.contentId;
+            
+            if (contentId) {
+                console.log('Clicked on content with ID:', contentId);
+                // Use Telegram navigation if available
+                if (window.telegramApp) {
+                    window.telegramApp.navigateTo('pages/watch?id=' + contentId);
+                } else {
+                    window.location.href = 'pages/watch?id=' + contentId;
+                }
+            }
+        });
+    });
+}
+
+// Add interactivity to the Netflix-like interface
+document.addEventListener('DOMContentLoaded', async function() {
+    // Wait for Telegram WebApp to be ready (if available)
+    if (window.telegramApp) {
+        // Update metrics with Telegram user data
+        try {
+            const userData = window.telegramApp.getUserData();
+            const response = await fetch('/api/metrics/user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(userData)
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to update user metrics');
+            }
+            
+            console.log('Updated metrics with Telegram user data');
+        } catch (error) {
+            console.error('Error updating metrics:', error);
         }
-      });
+    }
+    
+    // Update hero content first with random featured content
+    updateHeroContent();
+    
+    // Generate category sections
+    generateCategorySections();
+    
+    // Then populate carousels
+    populateCarousels();
+    
+    // Add this line at the end of your initialization
+    setupMovieItemClicks();
+    
+    // Navigation bar functionality with Telegram support
+    const navItems = document.querySelectorAll('.nav-item');
+    
+    navItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Remove active class from all items
+            navItems.forEach(nav => nav.classList.remove('active'));
+            
+            // Add active class to clicked item
+            this.classList.add('active');
+            
+            // Get the target page from the nav item
+            const targetPage = this.dataset.page;
+            
+            // Navigate using Telegram navigation if available
+            if (targetPage) {
+                if (window.telegramApp) {
+                    window.telegramApp.navigateTo('pages/' + targetPage);
+                } else {
+                    window.location.href = 'pages/' + targetPage;
+                }
+            }
+        });
     });
     
-    console.log('Movie click handlers set up for', movieItems.length, 'items');
-}
-  
-  // Add interactivity to the Netflix-like interface
-  document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Telegram WebApp if available
-    if (window.Telegram && window.Telegram.WebApp) {
-        // Tell Telegram that the Mini App is ready
-        window.Telegram.WebApp.ready();
-        
-        // Optionally expand the Mini App to full height
-        window.Telegram.WebApp.expand();
-        
-        console.log("Telegram WebApp initialized");
+    // Search functionality
+    const searchInput = document.querySelector('.search-field input');
+    
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                const searchQuery = this.value.trim();
+                if (searchQuery) {
+                    if (window.telegramApp) {
+                        window.telegramApp.navigateTo('pages/search?q=' + encodeURIComponent(searchQuery));
+                    } else {
+                        window.location.href = 'pages/search?q=' + encodeURIComponent(searchQuery);
+                    }
+                }
+            }
+        });
     }
-      // Update hero content first with random featured content
-      updateHeroContent();
-      
-      // Generate category sections
-      generateCategorySections();
-      
-      // Then populate carousels
-      populateCarousels();
-  
-      // Add this line at the end of your initialization
-      setupMovieItemClicks();
-      
-      // Navigation bar functionality
-      const navItems = document.querySelectorAll('.nav-item');
-      
-      navItems.forEach(item => {
-          item.addEventListener('click', function() {
-              // Remove active class from all items
-              navItems.forEach(nav => nav.classList.remove('active'));
-              
-              // Add active class to clicked item
-              this.classList.add('active');
-          });
-      });
-      
-      // Like button functionality
-      const likeButton = document.querySelector('.likes');
-      let likeCount = Math.floor(Math.random() * 30) + 10; // Random likes between 10-40
-  
-      if (likeButton) {
-          // Update the initial text
-          likeButton.innerHTML = `<i class="fas fa-thumbs-up"></i> ${likeCount}`;
-          
-          likeButton.addEventListener('click', function(e) {
-              // Stop event propagation to prevent navigation
-              e.stopPropagation();
-              
-              if (!this.classList.contains('active')) {
-                  // Increment like count when clicked
-                  likeCount++;
-                  this.innerHTML = `<i class="fas fa-thumbs-up"></i> ${likeCount}`;
-                  this.classList.add('active');
-              } else {
-                  // Decrement if clicked again (unlike)
-                  likeCount--;
-                  this.innerHTML = `<i class="fas fa-thumbs-up"></i> ${likeCount}`;
-                  this.classList.remove('active');
-              }
-          });
-      }
-  
-      // Search functionality
-      const searchInput = document.querySelector('.search-field input');
-      
-      if (searchInput) {
-          searchInput.addEventListener('keyup', function(e) {
-              if (e.key === 'Enter') {
-                  console.log('Searching for:', this.value);
-                  // In a real app, this would perform a search
-              }
-          });
-      }
-      
-      // Voice search functionality
-      const voiceIcon = document.querySelector('.voice-icon');
-      
-      if (voiceIcon) {
-          voiceIcon.addEventListener('click', function() {
-              console.log('Voice search activated');
-              // In a real app, this would activate voice search
-          });
-      }
-      
-      // Set up search navigation
-      setupSearchNavigation();
-  });
+});
 
-  // Function to update hero content with featured content from API
+// Function to update hero content with featured content from API
 async function updateHeroContent() {
     try {
         // Fetch content from the API

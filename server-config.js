@@ -5,15 +5,34 @@
  * Redirects /pages/*.html to /pages/* for all pages
  */
 
+require('dotenv').config();
 const express = require('express');
+const cors = require('cors');
+const mongoose = require('mongoose');
 const path = require('path');
 const fs = require('fs');
 
 // Create Express app
 const app = express();
+const port = process.env.PORT || 5003;
 
-// Parse JSON bodies
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log('Connected to MongoDB'))
+.catch(err => console.error('MongoDB connection error:', err));
+
+// Middleware
+app.use(cors());
 app.use(express.json());
+app.use(express.static('public'));
+
+// Health check route
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
 
 // Generic handler for any .html URLs - redirect to clean URLs
 app.get('/pages/*.html', (req, res) => {
@@ -153,10 +172,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Start server on specified port
-const PORT = process.env.PORT || 8003; // Changed from 8002 to avoid conflicts
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Main site: http://localhost:${PORT}`);
-    console.log(`Watch page: http://localhost:${PORT}/pages/watch`);
+// Start server
+app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
 }); 

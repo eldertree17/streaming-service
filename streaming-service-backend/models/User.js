@@ -43,10 +43,22 @@ const userSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    required: false,
+    required: true,
     unique: true,
     sparse: true,
     trim: true
+  },
+  profileImage: String,
+  github: {
+    id: String,
+    username: String,
+    email: String,
+    avatar: String
+  },
+  telegram: {
+    id: String,
+    username: String,
+    chatId: String
   },
   // Added Telegram fields for better tracking
   telegramId: {
@@ -116,6 +128,10 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  },
   lastActiveAt: {
     type: Date,
     default: Date.now
@@ -160,6 +176,12 @@ userSchema.virtual('seedingRank').get(function() {
   if (score > 10) return 'Silver';
   if (score > 5) return 'Bronze';
   return 'Starter';
+});
+
+// Update the updatedAt timestamp before saving
+userSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  next();
 });
 
 const User = mongoose.model('User', userSchema);
