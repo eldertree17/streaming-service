@@ -24,7 +24,8 @@ const telegramUserSchema = new mongoose.Schema({
     },
     loginToken: {
         type: String,
-        sparse: true
+        sparse: true,
+        index: true
     },
     loginTokenExpires: Date,
     lastInteraction: Date,
@@ -48,10 +49,7 @@ telegramUserSchema.pre('save', function(next) {
     next();
 });
 
-// Create indexes
-telegramUserSchema.index({ telegramId: 1 });
-telegramUserSchema.index({ chatId: 1 });
-telegramUserSchema.index({ loginToken: 1 });
+// Create index for userId (other indexes are created by unique: true)
 telegramUserSchema.index({ userId: 1 });
 
 const TelegramUser = mongoose.model('TelegramUser', telegramUserSchema);
