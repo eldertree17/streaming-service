@@ -30,13 +30,18 @@ class TelegramController {
 
             // Forward the update to the bot instance
             if (this.telegramService && this.telegramService.bot) {
-                await this.telegramService.bot.processUpdate(update);
+                if (!update) {
+                    console.error('No update data received in webhook');
+                    return res.sendStatus(400);
+                }
+
+                await this.bot.processUpdate(update);
                 console.log('Successfully processed webhook update');
+                res.sendStatus(200);
             } else {
                 console.error('Telegram service or bot not initialized');
+                res.sendStatus(500);
             }
-            
-            res.sendStatus(200);
         } catch (error) {
             console.error('Error processing webhook:', error);
             res.sendStatus(500);

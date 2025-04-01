@@ -39,7 +39,14 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-demo-user']
 }));
-app.use(express.json());
+
+// Parse JSON bodies
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
+
 console.log('Middleware setup complete');
 
 // Serve static files from public directory
