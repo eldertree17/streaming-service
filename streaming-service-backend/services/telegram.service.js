@@ -13,12 +13,24 @@ class TelegramService {
         console.log('Initializing TelegramService with token:', this.maskToken(process.env.TELEGRAM_BOT_TOKEN));
         console.log('Using APP_URL:', process.env.APP_URL);
         
-        // Initialize bot with polling for development
-        this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, {
-            polling: true
+        const options = {
+            webHook: {
+                port: process.env.PORT || 10000
+            }
+        };
+
+        // Initialize bot with webhook for production
+        this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, options);
+        
+        // Set webhook
+        const webhookUrl = `${process.env.APP_URL}/api/telegram/webhook`;
+        this.bot.setWebHook(webhookUrl).then(() => {
+            console.log('Webhook set successfully to:', webhookUrl);
+        }).catch(error => {
+            console.error('Error setting webhook:', error);
         });
 
-        console.log('Bot initialized in polling mode');
+        console.log('Bot initialized in webhook mode');
 
         // Add error handler
         this.bot.on('error', (error) => {
