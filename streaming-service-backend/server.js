@@ -107,10 +107,24 @@ app.get('/', (req, res) => {
   res.send('StreamFlix API is running...');
 });
 
+// Error handling for unhandled rejections
+process.on('unhandledRejection', (err, promise) => {
+  console.log('Unhandled Rejection:', err.message);
+  // Close server & exit process
+  server.close(() => process.exit(1));
+});
+
+// Error handling for uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.log('Uncaught Exception:', err.message);
+  // Close server & exit process
+  process.exit(1);
+});
+
 // Start server
 const PORT = process.env.PORT || 5000;
 console.log(`Attempting to start server on port ${PORT}...`);
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });
 console.log('Server listen command executed');
