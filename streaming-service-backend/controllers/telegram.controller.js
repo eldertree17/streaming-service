@@ -11,6 +11,7 @@ class TelegramController {
             telegramServiceInstance = new TelegramService();
         }
         this.telegramService = telegramServiceInstance;
+        this.bot = this.telegramService.bot;
     }
 
     async handleWebhook(req, res) {
@@ -100,4 +101,4 @@ class TelegramController {
     }
 }
 
-module.exports = new TelegramController(); 
+module.exports = TelegramController; 
