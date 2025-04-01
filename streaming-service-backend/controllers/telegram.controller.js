@@ -12,6 +12,12 @@ class TelegramController {
         }
         this.telegramService = telegramServiceInstance;
         this.bot = this.telegramService.bot;
+
+        // Bind methods to this instance
+        this.handleWebhook = this.handleWebhook.bind(this);
+        this.handleAuth = this.handleAuth.bind(this);
+        this.setWebhook = this.setWebhook.bind(this);
+        this.getStatus = this.getStatus.bind(this);
     }
 
     async handleWebhook(req, res) {
@@ -97,6 +103,20 @@ class TelegramController {
         } catch (error) {
             console.error('Error setting webhook:', error);
             res.status(500).json({ error: 'Failed to set webhook' });
+        }
+    }
+
+    async getStatus(req, res) {
+        try {
+            const webhookInfo = await this.bot.getWebHookInfo();
+            res.json({
+                status: 'ok',
+                webhook: webhookInfo,
+                botInfo: await this.bot.getMe()
+            });
+        } catch (error) {
+            console.error('Error getting status:', error);
+            res.status(500).json({ error: 'Failed to get status' });
         }
     }
 }
