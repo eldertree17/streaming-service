@@ -1,3 +1,12 @@
+# Large video files
+*.mp4
+*.webm
+*.mkv
+*.avi
+seeded-torrents/
+test-videos/
+videos/
+
 # Dependencies
 node_modules/
 package-lock.json
