@@ -44,9 +44,6 @@ class TelegramService {
                     case '/start':
                         await this.handleStart(msg);
                         break;
-                    case '/login':
-                        await this.handleLogin(msg);
-                        break;
                     case '/watch':
                         await this.handleWatch(msg);
                         break;
@@ -114,8 +111,7 @@ class TelegramService {
             // Set up bot commands
             await this.bot.setMyCommands([
                 { command: '/start', description: 'Start the bot and get introduction' },
-                { command: '/login', description: 'Generate authentication link' },
-                { command: '/watch', description: 'List available content' },
+                { command: '/watch', description: 'Open streaming app' },
                 { command: '/points', description: 'Check points balance and history' },
                 { command: '/refer', description: 'Generate referral links' },
                 { command: '/help', description: 'List available commands' }
@@ -130,51 +126,26 @@ class TelegramService {
         const chatId = msg.chat.id;
         const welcomeMessage = `Welcome to Block Stream! 🎬\n\n`
             + `I'm your streaming assistant. Here's what I can help you with:\n\n`
-            + `🔑 /login - Connect your account\n`
-            + `🎥 /watch - Browse available content\n`
+            + `🎥 /watch - Open streaming app\n`
             + `💰 /points - Check your points\n`
             + `🔗 /refer - Get referral links\n`
             + `❓ /help - See all commands\n\n`
-            + `To get started, use /login to connect your account.`;
+            + `To start watching, click the Menu button and select Block Stream, or use the /watch command!`;
 
         await this.bot.sendMessage(chatId, welcomeMessage);
-    }
-
-    async handleLogin(msg) {
-        const chatId = msg.chat.id;
-        // Generate a unique login link
-        const loginToken = await this.generateLoginToken(chatId);
-        const authUrl = `https://7e03-119-237-115-84.ngrok-free.app/auth/telegram?token=${loginToken}`;
-
-        await this.bot.sendMessage(
-            chatId,
-            `Click the link below to connect your account:\n${authUrl}`,
-            { disable_web_page_preview: true }
-        );
     }
 
     async handleWatch(msg) {
         const chatId = msg.chat.id;
         
-        // Check if user is authenticated
-        const isAuthenticated = await this.checkUserAuth(chatId);
-        
-        if (!isAuthenticated) {
-            await this.promptLogin(chatId);
-            return;
-        }
-
-        // If authenticated, show content
         await this.bot.sendMessage(
             chatId,
-            '🎬 Here\'s what you can watch:\n\n' +
-            '1. Big Buck Bunny\n' +
-            '2. More content coming soon!\n\n' +
-            'Select a title to start watching:',
+            '🎬 Welcome to Block Stream!\n\n' +
+            'Click the button below to start watching:',
             {
                 reply_markup: {
                     inline_keyboard: [[
-                        { text: '🎥 Big Buck Bunny', callback_data: 'watch_bbb' }
+                        { text: '▶️ Open Streaming App', web_app: { url: process.env.APP_URL } }
                     ]]
                 }
             }
@@ -203,11 +174,11 @@ class TelegramService {
         const chatId = msg.chat.id;
         const helpMessage = `Available commands:\n\n`
             + `🚀 /start - Start the bot\n`
-            + `🔑 /login - Connect your account\n`
-            + `🎥 /watch - Browse content\n`
+            + `🎥 /watch - Open streaming app\n`
             + `💰 /points - Check points\n`
             + `🔗 /refer - Get referral links\n`
-            + `❓ /help - Show this help message`;
+            + `❓ /help - Show this help message\n\n`
+            + `You can also access the streaming app through the Menu button!`;
 
         await this.bot.sendMessage(chatId, helpMessage);
     }
