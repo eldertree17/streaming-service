@@ -49,23 +49,27 @@ console.log('Static file serving set up');
 // Import routes
 const contentRoutes = require('./routes/content');
 const metricsRoutes = require('./routes/metrics');
-const telegramRoutes = require('./routes/telegram.routes');
-const TelegramService = require('./services/telegram.service');
 
 // Routes
 console.log('Setting up routes...');
 try {
   app.use('/api/content', contentRoutes);
   app.use('/api/metrics', metricsRoutes);
-  app.use('/api/telegram', telegramRoutes);
+  
+  // Only initialize Telegram routes if environment variables are set
+  if (process.env.TELEGRAM_BOT_TOKEN && process.env.APP_URL) {
+    console.log('Initializing Telegram bot service...');
+    const telegramRoutes = require('./routes/telegram.routes');
+    app.use('/api/telegram', telegramRoutes);
+    console.log('Telegram routes initialized successfully');
+  } else {
+    console.log('Skipping Telegram initialization - missing environment variables');
+  }
+  
   console.log('Routes setup complete');
 } catch (error) {
   console.error('Error setting up routes:', error);
 }
-
-// Initialize Telegram service
-console.log('Initializing Telegram bot service...');
-TelegramService;  // This will trigger the singleton initialization
 
 // Sample video streaming endpoint
 app.get('/api/video', (req, res) => {
