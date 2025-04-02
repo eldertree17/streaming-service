@@ -18,6 +18,8 @@ class TelegramController {
         this.handleAuth = this.handleAuth.bind(this);
         this.setWebhook = this.setWebhook.bind(this);
         this.getStatus = this.getStatus.bind(this);
+        this.resetWebhook = this.resetWebhook.bind(this);
+        this.getWebhookStatus = this.getWebhookStatus.bind(this);
     }
 
     async handleWebhook(req, res) {
@@ -102,12 +104,23 @@ class TelegramController {
 
     async setWebhook(req, res) {
         try {
-            const url = `${process.env.APP_URL}/api/telegram/webhook`;
-            await this.bot.setWebHook(url);
-            res.json({ success: true, message: 'Webhook set successfully' });
+            const backendUrl = process.env.BACKEND_URL || 'https://streamflix-backend.onrender.com';
+            const webhookUrl = `${backendUrl}/api/telegram/webhook`;
+            console.log('Setting webhook to:', webhookUrl);
+            
+            await this.bot.setWebHook(webhookUrl);
+            
+            res.json({ 
+                success: true, 
+                message: 'Webhook set successfully',
+                url: webhookUrl 
+            });
         } catch (error) {
             console.error('Error setting webhook:', error);
-            res.status(500).json({ error: 'Failed to set webhook' });
+            res.status(500).json({ 
+                error: 'Failed to set webhook',
+                details: error.message
+            });
         }
     }
 
@@ -122,6 +135,62 @@ class TelegramController {
         } catch (error) {
             console.error('Error getting status:', error);
             res.status(500).json({ error: 'Failed to get status' });
+        }
+    }
+
+    async resetWebhook(req, res) {
+        try {
+            // Use the backend URL from environment variables
+            const backendUrl = process.env.BACKEND_URL || 'https://streamflix-backend.onrender.com';
+            const webhookUrl = `${backendUrl}/api/telegram/webhook`;
+            
+            console.log('Resetting webhook to:', webhookUrl);
+            
+            // First, delete any existing webhook
+            await this.bot.deleteWebHook();
+            console.log('Deleted existing webhook');
+            
+            // Then set the new webhook
+            const result = await this.bot.setWebHook(webhookUrl);
+            console.log('Webhook reset result:', result);
+            
+            // Get the webhook info to verify
+            const webhookInfo = await this.bot.getWebHookInfo();
+            console.log('New webhook info:', webhookInfo);
+            
+            res.json({
+                success: true,
+                message: 'Webhook reset successfully',
+                webhook: {
+                    url: webhookUrl,
+                    info: webhookInfo
+                }
+            });
+        } catch (error) {
+            console.error('Error resetting webhook:', error);
+            res.status(500).json({ 
+                error: 'Failed to reset webhook',
+                details: error.message
+            });
+        }
+    }
+
+    async getWebhookStatus(req, res) {
+        try {
+            const webhookInfo = await this.bot.getWebHookInfo();
+            console.log('Webhook info:', webhookInfo);
+            
+            res.json({
+                status: "ok",
+                webhook: webhookInfo,
+                botInfo: await this.bot.getMe()
+            });
+        } catch (error) {
+            console.error('Error getting webhook status:', error);
+            res.status(500).json({ 
+                error: 'Failed to get webhook status',
+                details: error.message
+            });
         }
     }
 }

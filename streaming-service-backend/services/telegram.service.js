@@ -36,6 +36,13 @@ class TelegramService {
                 const webhookUrl = `${backendUrl}/api/telegram/webhook`;
                 console.log('Setting webhook to:', webhookUrl);
                 
+                // Make sure we're using HTTPS
+                if (!webhookUrl.startsWith('https://')) {
+                    console.error('===== WEBHOOK ERROR: MUST USE HTTPS =====');
+                    console.error('Webhook URL is not HTTPS:', webhookUrl);
+                    console.error('Telegram only accepts HTTPS webhooks');
+                }
+
                 this.bot.setWebHook(webhookUrl).then(() => {
                     console.log('===== WEBHOOK SET SUCCESSFULLY =====');
                     console.log('Webhook URL:', webhookUrl);
