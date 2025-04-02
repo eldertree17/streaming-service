@@ -20,10 +20,21 @@ console.log('Environment variables loaded');
 // Connect to database
 console.log('Attempting to connect to MongoDB...');
 try {
-  connectDB();
-  console.log('Database connection function called');
+  // Add connection timeout and retry logic
+  const connectWithRetry = async () => {
+    try {
+      await connectDB();
+      console.log('MongoDB connection successful');
+    } catch (err) {
+      console.error('MongoDB connection error:', err);
+      console.log('Retrying connection in 5 seconds...');
+      setTimeout(connectWithRetry, 5000);
+    }
+  };
+  connectWithRetry();
 } catch (error) {
-  console.error('Error connecting to database:', error);
+  console.error('Error in connection setup:', error);
+  // Don't exit process, let server start anyway
 }
 
 // Initialize app
@@ -153,5 +164,12 @@ const PORT = process.env.PORT || 5000;
 console.log(`Attempting to start server on port ${PORT}...`);
 const server = app.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  // Log environment variables for debugging (obscure sensitive info)
+  console.log('Environment variables:');
+  console.log('NODE_ENV:', process.env.NODE_ENV);
+  console.log('PORT:', process.env.PORT);
+  console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set (value hidden)' : 'Not set');
+  console.log('TELEGRAM_BOT_TOKEN:', process.env.TELEGRAM_BOT_TOKEN ? 'Set (value hidden)' : 'Not set');
+  console.log('APP_URL:', process.env.APP_URL);
 });
 console.log('Server listen command executed');
