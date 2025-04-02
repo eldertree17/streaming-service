@@ -14,7 +14,7 @@ function initAuthButtons() {
     if (githubLoginBtn) {
         githubLoginBtn.addEventListener('click', async () => {
             try {
-                const response = await fetch('/api/auth/url');
+                const response = await fetch(`${getApiUrl()}/auth/url`);
                 const data = await response.json();
                 window.location.href = data.url;
             } catch (error) {
@@ -78,7 +78,7 @@ async function getCurrentUser() {
     if (!token) return null;
     
     try {
-        const response = await fetch('/api/user/me', {
+        const response = await fetch(`${getApiUrl()}/user/me`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -100,4 +100,9 @@ async function getCurrentUser() {
 function logout() {
     localStorage.removeItem('authToken');
     window.location.href = '/';
+}
+
+// Helper function to get the API URL
+function getApiUrl() {
+    return window.StreamFlixConfig?.API_URL || '/api';
 } 

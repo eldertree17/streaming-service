@@ -1,0 +1,51 @@
+name: Deploy Frontend to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'index.html'
+      - 'css/**'
+      - 'js/**'
+      - 'pages/**'
+      - 'img/**'
+      - 'assets/**'
+      - '.github/workflows/deploy-frontend.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install Dependencies
+        run: |
+          npm install
+
+      - name: Update config.js
+        run: |
+          # Update the config.js file with the correct backend URL
+          sed -i 's|https://your-backend-server.com/api|https://streamflix-backend.onrender.com/api|g' js/config.js
+          # Update with your actual backend URL when deployed
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: .
+          # Only include frontend files, exclude backend
+          clean: true
+          clean-exclude: |
+            .git
+            .github
+            streaming-service-backend
+            node_modules
+            server-config.js
+            README.md
+            .gitignore 

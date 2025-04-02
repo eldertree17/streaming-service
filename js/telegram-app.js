@@ -3,20 +3,9 @@ class TelegramApp {
     constructor() {
         this.webApp = window.Telegram?.WebApp;
         this.user = null;
-        this.basePath = this.getBasePath();
+        this.router = new Router();
         this.initTheme();
         this.initApp();
-    }
-
-    getBasePath() {
-        // Get the repository name from the URL for GitHub Pages
-        const pathSegments = window.location.pathname.split('/');
-        if (pathSegments[1] && pathSegments[1] !== 'index.html') {
-            // We're on GitHub Pages
-            return '/' + pathSegments[1];
-        }
-        // We're running locally
-        return '';
     }
 
     initApp() {
@@ -38,6 +27,11 @@ class TelegramApp {
         
         // Handle theme changes
         this.webApp.onEvent('themeChanged', () => this.initTheme());
+
+        // Initialize router with current path
+        const path = window.location.pathname;
+        const params = Object.fromEntries(new URLSearchParams(window.location.search));
+        this.router.navigate(path, params);
 
         // Update UI with user data
         this.updateUI();
@@ -77,33 +71,30 @@ class TelegramApp {
     }
 
     handleBackButton() {
-        const currentPath = window.location.pathname.replace(this.basePath, '');
+        const currentPath = window.location.pathname;
         
         if (currentPath === '/' || currentPath === '/index.html') {
-            // On main page, hide back button
             this.webApp.BackButton.hide();
         } else {
-            // Show back button on other pages
             this.webApp.BackButton.show();
-            // Go back in history
             window.history.back();
         }
     }
 
-    // Navigation methods
-    navigateTo(path) {
-        const fullPath = this.basePath + '/' + path.replace(/^\//, '');
-        window.location.href = fullPath;
+    // Navigation method now uses the router
+    navigateTo(path, params = {}) {
+        this.router.navigate(path, params);
         
         if (path !== '/' && path !== '/index.html') {
             this.webApp.BackButton.show();
+        } else {
+            this.webApp.BackButton.hide();
         }
     }
 
     // Share content using Telegram's native sharing
     shareContent(title, text) {
         if (!this.webApp) return;
-        
         this.webApp.switchInlineQuery(text, ['users', 'groups']);
     }
 
@@ -120,5 +111,19 @@ class TelegramApp {
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    // Add loading indicator to body
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.className = 'loading-indicator';
+    loadingIndicator.style.display = 'none';
+    loadingIndicator.innerHTML = '<div class="spinner"></div>';
+    document.body.appendChild(loadingIndicator);
+
+    // Add error message container
+    const errorMessage = document.createElement('div');
+    errorMessage.className = 'error-message';
+    errorMessage.style.display = 'none';
+    document.body.appendChild(errorMessage);
+
+    // Initialize Telegram App
     window.telegramApp = new TelegramApp();
 }); 

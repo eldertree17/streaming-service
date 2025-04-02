@@ -103,7 +103,7 @@ class TelegramController {
     async setWebhook(req, res) {
         try {
             const url = `${process.env.APP_URL}/api/telegram/webhook`;
-            await TelegramService.bot.setWebHook(url);
+            await this.bot.setWebHook(url);
             res.json({ success: true, message: 'Webhook set successfully' });
         } catch (error) {
             console.error('Error setting webhook:', error);

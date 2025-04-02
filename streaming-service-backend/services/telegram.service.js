@@ -13,18 +13,29 @@ class TelegramService {
         console.log('Initializing TelegramService with token:', this.maskToken(process.env.TELEGRAM_BOT_TOKEN));
         console.log('Using APP_URL:', process.env.APP_URL);
         
-        // Initialize bot without webhook options (Express will handle webhooks)
-        this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN);
+        // Check if we're in development mode
+        const isDevelopment = process.env.NODE_ENV === 'development';
         
-        // Set webhook
-        const webhookUrl = `${process.env.APP_URL}/api/telegram/webhook`;
-        this.bot.setWebHook(webhookUrl).then(() => {
-            console.log('Webhook set successfully to:', webhookUrl);
-        }).catch(error => {
-            console.error('Error setting webhook:', error);
-        });
-
-        console.log('Bot initialized in webhook mode');
+        if (isDevelopment) {
+            // Use polling for development
+            console.log('Development mode detected, using polling instead of webhook');
+            this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
+            console.log('Bot initialized in polling mode for development');
+        } else {
+            // Use webhook for production
+            console.log('Production mode detected, using webhook');
+            this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN);
+            
+            // Set webhook
+            const webhookUrl = `${process.env.APP_URL}/api/telegram/webhook`;
+            this.bot.setWebHook(webhookUrl).then(() => {
+                console.log('Webhook set successfully to:', webhookUrl);
+            }).catch(error => {
+                console.error('Error setting webhook:', error);
+            });
+            
+            console.log('Bot initialized in webhook mode for production');
+        }
 
         // Add error handler
         this.bot.on('error', (error) => {
@@ -80,20 +91,36 @@ class TelegramService {
 
                 const watchUrl = `${process.env.APP_URL}/pages/watch?id=bbb&from=telegram`;
                 
-                // Send watch link for Big Buck Bunny
-                await this.bot.sendMessage(
-                    query.message.chat.id,
-                    '🎬 Here\'s your link to watch Big Buck Bunny:\n' +
-                    watchUrl,
-                    { 
-                        disable_web_page_preview: true,
-                        reply_markup: {
-                            inline_keyboard: [[
-                                { text: '▶️ Watch Now', url: watchUrl }
-                            ]]
+                // Check if we're in development mode
+                const isDevelopment = process.env.NODE_ENV === 'development';
+                
+                if (isDevelopment) {
+                    // In development, don't use buttons for localhost URLs
+                    await this.bot.sendMessage(
+                        query.message.chat.id,
+                        '🎬 Here\'s your link to watch Big Buck Bunny:\n\n' +
+                        `${watchUrl}\n\n` +
+                        'Note: In production, this would be a clickable button.',
+                        { 
+                            disable_web_page_preview: true
                         }
-                    }
-                );
+                    );
+                } else {
+                    // In production, use clickable URL button
+                    await this.bot.sendMessage(
+                        query.message.chat.id,
+                        '🎬 Here\'s your link to watch Big Buck Bunny:\n' +
+                        watchUrl,
+                        { 
+                            disable_web_page_preview: true,
+                            reply_markup: {
+                                inline_keyboard: [[
+                                    { text: '▶️ Watch Now', url: watchUrl }
+                                ]]
+                            }
+                        }
+                    );
+                }
             }
         });
 
@@ -124,13 +151,20 @@ class TelegramService {
 
     async handleStart(msg) {
         const chatId = msg.chat.id;
-        const welcomeMessage = `Welcome to Block Stream! 🎬\n\n`
+        const isDevelopment = process.env.NODE_ENV === 'development';
+        
+        let welcomeMessage = `Welcome to Block Stream! 🎬\n\n`
             + `I'm your streaming assistant. Here's what I can help you with:\n\n`
             + `🎥 /watch - Open streaming app\n`
             + `💰 /points - Check your points\n`
             + `🔗 /refer - Get referral links\n`
-            + `❓ /help - See all commands\n\n`
-            + `To start watching, click the Menu button and select Block Stream, or use the /watch command!`;
+            + `❓ /help - See all commands\n\n`;
+        
+        if (isDevelopment) {
+            welcomeMessage += `For development testing, use the commands above.`;
+        } else {
+            welcomeMessage += `To start watching, click the Menu button and select Block Stream, or use the /watch command!`;
+        }
 
         await this.bot.sendMessage(chatId, welcomeMessage);
     }
@@ -138,18 +172,33 @@ class TelegramService {
     async handleWatch(msg) {
         const chatId = msg.chat.id;
         
-        await this.bot.sendMessage(
-            chatId,
-            '🎬 Welcome to Block Stream!\n\n' +
-            'Click the button below to start watching:',
-            {
-                reply_markup: {
-                    inline_keyboard: [[
-                        { text: '▶️ Open Streaming App', web_app: { url: process.env.APP_URL } }
-                    ]]
+        // Check if we're in development mode
+        const isDevelopment = process.env.NODE_ENV === 'development';
+        
+        if (isDevelopment) {
+            // In development, don't use buttons for localhost URLs - use text only
+            await this.bot.sendMessage(
+                chatId,
+                '🎬 Welcome to Block Stream!\n\n' +
+                'For development testing, please visit:\n\n' +
+                `${process.env.APP_URL}\n\n` +
+                'In production, this would open the Telegram Mini App.'
+            );
+        } else {
+            // In production, use web_app button (requires HTTPS)
+            await this.bot.sendMessage(
+                chatId,
+                '🎬 Welcome to Block Stream!\n\n' +
+                'Click the button below to start watching:',
+                {
+                    reply_markup: {
+                        inline_keyboard: [[
+                            { text: '▶️ Open Streaming App', web_app: { url: process.env.APP_URL } }
+                        ]]
+                    }
                 }
-            }
-        );
+            );
+        }
     }
 
     async handlePoints(msg) {
@@ -200,22 +249,41 @@ class TelegramService {
 
     async promptLogin(chatId) {
         const loginToken = await this.generateLoginToken(chatId);
-        const authUrl = `https://7e03-119-237-115-84.ngrok-free.app/auth/telegram?token=${loginToken}`;
+        // Use APP_URL from environment instead of hardcoded ngrok URL
+        const authUrl = `${process.env.APP_URL}/auth/telegram?token=${loginToken}`;
         
-        const keyboard = {
-            inline_keyboard: [
-                [{ text: '🔗 Connect Account', url: authUrl }]
-            ]
-        };
+        // Check if we're in development mode
+        const isDevelopment = process.env.NODE_ENV === 'development';
+        
+        if (isDevelopment) {
+            // In development, don't use buttons for localhost URLs
+            await this.bot.sendMessage(
+                chatId,
+                `🔑 Please connect your account first!\n\n` +
+                `For development testing, please use this URL to connect:\n\n` +
+                `${authUrl}\n\n` +
+                `Note: In production, this would be a clickable button.`,
+                { 
+                    disable_web_page_preview: true
+                }
+            );
+        } else {
+            // In production, use clickable URL button
+            const keyboard = {
+                inline_keyboard: [
+                    [{ text: '🔗 Connect Account', url: authUrl }]
+                ]
+            };
 
-        await this.bot.sendMessage(
-            chatId,
-            `🔑 Please connect your account first!\n\nClick the link below to connect:\n${authUrl}`,
-            { 
-                disable_web_page_preview: true,
-                reply_markup: keyboard
-            }
-        );
+            await this.bot.sendMessage(
+                chatId,
+                `🔑 Please connect your account first!\n\nClick the link below to connect:\n${authUrl}`,
+                { 
+                    disable_web_page_preview: true,
+                    reply_markup: keyboard
+                }
+            );
+        }
     }
 }
 

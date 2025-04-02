@@ -1,3 +1,191 @@
+// API Service
+class ApiService {
+    constructor() {
+        this.baseUrl = '/api';
+    }
+
+    async getMovies() {
+        const response = await fetch(`${this.baseUrl}/movies`);
+        if (!response.ok) throw new Error('Failed to fetch movies');
+        return response.json();
+    }
+
+    async getMovie(id) {
+        const response = await fetch(`${this.baseUrl}/movies/${id}`);
+        if (!response.ok) throw new Error('Failed to fetch movie');
+        return response.json();
+    }
+
+    async searchMovies(query) {
+        const response = await fetch(`${this.baseUrl}/movies/search?q=${encodeURIComponent(query)}`);
+        if (!response.ok) throw new Error('Failed to search movies');
+        return response.json();
+    }
+
+    async updateUserMetrics(userData) {
+        const response = await fetch(`${this.baseUrl}/metrics/user`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(userData)
+        });
+        if (!response.ok) throw new Error('Failed to update metrics');
+        return response.json();
+    }
+}
+
+// Content Manager
+class ContentManager {
+    constructor() {
+        this.api = new ApiService();
+        this.movies = [];
+        this.categories = new Map();
+        this.currentMovie = null;
+    }
+
+    async loadMovies() {
+        try {
+            this.movies = await this.api.getMovies();
+            this.categorizeMovies();
+            return this.movies;
+        } catch (error) {
+            console.error('Error loading movies:', error);
+            throw error;
+        }
+    }
+
+    categorizeMovies() {
+        this.categories.clear();
+        this.movies.forEach(movie => {
+            movie.categories?.forEach(category => {
+                if (!this.categories.has(category)) {
+                    this.categories.set(category, []);
+                }
+                this.categories.get(category).push(movie);
+            });
+        });
+    }
+
+    async getMovieById(id) {
+        try {
+            this.currentMovie = await this.api.getMovie(id);
+            return this.currentMovie;
+        } catch (error) {
+            console.error('Error loading movie:', error);
+            throw error;
+        }
+    }
+
+    async searchMovies(query) {
+        try {
+            return await this.api.searchMovies(query);
+        } catch (error) {
+            console.error('Error searching movies:', error);
+            throw error;
+        }
+    }
+}
+
+// UI Manager
+class UiManager {
+    constructor(contentManager) {
+        this.contentManager = contentManager;
+    }
+
+    createMovieCard(movie) {
+        return `
+            <div class="content-card" data-movie-id="${movie._id}">
+                <img src="${movie.posterImage}" alt="${movie.title}">
+                <div class="card-info">
+                    <p>${movie.title}</p>
+                    <div class="likes">
+                        <i class="fas fa-thumbs-up"></i>
+                        <span>${movie.likes || 0}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    createCategorySection(category, movies) {
+        return `
+            <div class="section">
+                <div class="section-header">
+                    <h3>${category}</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row">
+                    ${movies.map(movie => this.createMovieCard(movie)).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    updateHomeContent() {
+        const container = document.getElementById('category-container');
+        if (!container) return;
+
+        // Clear existing content
+        container.innerHTML = '';
+
+        // Add categories
+        this.contentManager.categories.forEach((movies, category) => {
+            container.innerHTML += this.createCategorySection(category, movies);
+        });
+    }
+
+    updateWatchContent(movie) {
+        const container = document.querySelector('.app-container');
+        if (!container || !movie) return;
+
+        container.innerHTML = `
+            <div class="watch-container">
+                <video id="video-player" controls>
+                    <source src="${movie.videoUrl}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <div class="video-info">
+                    <h2>${movie.title}</h2>
+                    <p>${movie.description}</p>
+                    <div class="video-actions">
+                        <button class="like-btn">
+                            <i class="fas fa-thumbs-up"></i>
+                            <span>${movie.likes || 0}</span>
+                        </button>
+                        <button class="share-btn">
+                            <i class="fas fa-share"></i>
+                            Share
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', async () => {
+    const contentManager = new ContentManager();
+    const uiManager = new UiManager(contentManager);
+
+    // Initialize content
+    try {
+        await contentManager.loadMovies();
+        uiManager.updateHomeContent();
+    } catch (error) {
+        console.error('Initialization error:', error);
+    }
+
+    // Update metrics if Telegram user is available
+    if (window.telegramApp?.user) {
+        try {
+            const userData = window.telegramApp.getUserData();
+            await contentManager.api.updateUserMetrics(userData);
+        } catch (error) {
+            console.error('Error updating metrics:', error);
+        }
+    }
+});
+
 // Function to set up movie item clicks - define this OUTSIDE any event handlers
 function setupMovieItemClicks() {
     // Select all clickable movie elements - adjust selectors to match your HTML
@@ -34,7 +222,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Update metrics with Telegram user data
         try {
             const userData = window.telegramApp.getUserData();
-            const response = await fetch('/api/metrics/user', {
+            const response = await fetch(`${getApiUrl()}/metrics/user`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -499,3 +687,8 @@ function useFallbackContent() {
           }
       }
   }
+
+// Helper function to get the API URL
+function getApiUrl() {
+    return window.StreamFlixConfig?.API_URL || '/api';
+}

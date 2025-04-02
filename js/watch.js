@@ -236,8 +236,8 @@ function loadMovieData() {
 // Function to load movie data from API using content ID
 async function loadMovieDataFromAPI(contentId) {
   try {
-        // Use the API_URL constant if it's defined, otherwise use a fallback URL
-        const apiUrl = typeof API_URL !== 'undefined' ? API_URL : 'http://localhost:5003/api';
+        // Use the config API_URL for the environment
+        const apiUrl = window.StreamFlixConfig ? window.StreamFlixConfig.API_URL : 'http://localhost:5006/api';
         
         console.log('Fetching movie data from API for content ID:', contentId);
         const response = await fetch(`${apiUrl}/content/video`);
@@ -267,8 +267,8 @@ async function loadMovieDataFromAPI(contentId) {
 function getFallbackMovieData(contentId) {
     console.log('Using fallback data for content ID:', contentId);
     
-    // Use the API_URL constant if it's defined, otherwise use a fallback URL
-    const apiUrl = typeof API_URL !== 'undefined' ? API_URL : 'http://localhost:5001/api';
+    // Use config API_URL if available
+    const apiUrl = window.StreamFlixConfig ? window.StreamFlixConfig.API_URL : 'http://localhost:5006/api';
     
     // Default fallback data for Big Buck Bunny
     return {

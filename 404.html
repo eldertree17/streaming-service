@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Redirecting...</title>
+  <script>
+    // Single Page Apps for GitHub Pages
+    // MIT License https://github.com/rafgraph/spa-github-pages
+    // This script takes the current URL path and converts it to a hash fragment
+    // on the redirected URL so the original path can be preserved
+    
+    // Parse the URL
+    const l = window.location;
+    const segmentCount = 1; // Adjust based on your repo structure
+    
+    // Get the full path
+    let path = l.pathname.split('/').slice(segmentCount + 1).join('/');
+    
+    // Add the query string if it exists
+    if (l.search) {
+      path += l.search;
+    }
+    
+    // Redirect with the path in the hash fragment
+    l.replace(
+      l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+      l.pathname.split('/').slice(0, segmentCount + 1).join('/') + '/?/' +
+      path + l.hash
+    );
+  </script>
+</head>
+<body>
+  Redirecting...
+</body>
+</html> 
