@@ -33,9 +33,25 @@ console.log('Express app initialized');
 
 // Middleware
 console.log('Setting up middleware...');
-// Set up CORS to allow requests from any origin
+// Set up CORS to allow requests from specific origins
+const allowedOrigins = [
+  'https://eldertree17.github.io',
+  'http://localhost:3000',
+  'http://localhost:5006'
+];
+
 app.use(cors({
-  origin: '*',
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || origin.match(/^https:\/\/eldertree17\.github\.io/)) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked request from:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-demo-user']
 }));
