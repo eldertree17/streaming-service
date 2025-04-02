@@ -24,17 +24,33 @@ class TelegramService {
         } else {
             // Use webhook for production
             console.log('Production mode detected, using webhook');
-            this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN);
-            
-            // Set webhook
-            // We need to use the backend URL (Render), not the frontend (GitHub Pages)
-            const backendUrl = process.env.BACKEND_URL || 'https://streamflix-backend.onrender.com';
-            const webhookUrl = `${backendUrl}/api/telegram/webhook`;
-            this.bot.setWebHook(webhookUrl).then(() => {
-                console.log('Webhook set successfully to:', webhookUrl);
-            }).catch(error => {
-                console.error('Error setting webhook:', error);
-            });
+            try {
+                console.log('Creating Telegram bot instance...');
+                this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN);
+                console.log('Telegram bot instance created successfully');
+
+                // Set webhook
+                // We need to use the backend URL (Render), not the frontend (GitHub Pages)
+                const backendUrl = process.env.BACKEND_URL || 'https://streamflix-backend.onrender.com';
+                console.log('Using backend URL for webhook:', backendUrl);
+                const webhookUrl = `${backendUrl}/api/telegram/webhook`;
+                console.log('Setting webhook to:', webhookUrl);
+                
+                this.bot.setWebHook(webhookUrl).then(() => {
+                    console.log('===== WEBHOOK SET SUCCESSFULLY =====');
+                    console.log('Webhook URL:', webhookUrl);
+                }).catch(error => {
+                    console.error('===== ERROR SETTING WEBHOOK =====');
+                    console.error('Error type:', error.name);
+                    console.error('Error message:', error.message);
+                    console.error('Stack trace:', error.stack);
+                });
+            } catch (error) {
+                console.error('===== FATAL ERROR INITIALIZING TELEGRAM BOT =====');
+                console.error('Error type:', error.name);
+                console.error('Error message:', error.message);
+                console.error('Stack trace:', error.stack);
+            }
             
             console.log('Bot initialized in webhook mode for production');
         }
