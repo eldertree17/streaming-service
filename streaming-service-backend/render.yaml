@@ -16,6 +16,9 @@ services:
       - key: APP_URL
         # This should be set to your Telegram Mini App URL (GitHub Pages)
         value: https://eldertree17.github.io/streaming-service
+      - key: BACKEND_URL
+        # This should be set to your Render backend URL
+        value: https://streamflix-backend.onrender.com
       - key: JWT_SECRET
         generateValue: true
     healthCheckPath: /

@@ -11,6 +11,8 @@ const path = require('path');
 console.log('Path module loaded');
 const fs = require('fs');
 console.log('File system module loaded');
+const mongoose = require('mongoose');
+console.log('Mongoose loaded successfully');
 
 // Load env vars
 console.log('Loading environment variables...');
@@ -142,7 +144,34 @@ app.get('/api/direct-video', (req, res) => {
 // Basic route
 app.get('/', (req, res) => {
   console.log('Root route accessed');
-  res.send('StreamFlix API is running...');
+  // Send a proper health check response with 200 status
+  res.status(200).json({
+    status: 'success',
+    message: 'StreamFlix API is running',
+    timestamp: new Date(),
+    environment: process.env.NODE_ENV,
+    mongoConnected: mongoose.connection.readyState === 1
+  });
+});
+
+// Global error handler middleware - must be added after all routes
+app.use((err, req, res, next) => {
+  console.error('Global error handler caught:', err.stack);
+  res.status(500).json({
+    status: 'error',
+    message: process.env.NODE_ENV === 'production' ? 'Something went wrong' : err.message,
+    timestamp: new Date()
+  });
+});
+
+// 404 handler - must be the last middleware
+app.use((req, res) => {
+  console.log(`404 Not Found: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({
+    status: 'error',
+    message: `Route not found: ${req.method} ${req.originalUrl}`,
+    timestamp: new Date()
+  });
 });
 
 // Error handling for unhandled rejections

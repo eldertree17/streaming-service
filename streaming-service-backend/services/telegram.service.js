@@ -27,7 +27,9 @@ class TelegramService {
             this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN);
             
             // Set webhook
-            const webhookUrl = `${process.env.APP_URL}/api/telegram/webhook`;
+            // We need to use the backend URL (Render), not the frontend (GitHub Pages)
+            const backendUrl = process.env.BACKEND_URL || 'https://streamflix-backend.onrender.com';
+            const webhookUrl = `${backendUrl}/api/telegram/webhook`;
             this.bot.setWebHook(webhookUrl).then(() => {
                 console.log('Webhook set successfully to:', webhookUrl);
             }).catch(error => {
