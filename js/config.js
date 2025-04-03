@@ -7,6 +7,9 @@
 const isProduction = window.location.hostname !== 'localhost' && 
                    !window.location.hostname.includes('127.0.0.1');
 
+// Check for Telegram Mini App
+const isTelegramMiniApp = !!window.Telegram?.WebApp;
+
 // Configuration object
 const config = {
   // BACKEND API base URL
@@ -24,12 +27,18 @@ const config = {
       : 'http://localhost:5006'
   },
   
-  // Environment flag
-  IS_PRODUCTION: isProduction
+  // Environment flags
+  IS_PRODUCTION: isProduction,
+  IS_TELEGRAM_MINI_APP: isTelegramMiniApp
 };
 
 // Make config globally available
 window.StreamFlixConfig = config;
+
+// Log configuration in development mode
+if (!isProduction) {
+  console.log('StreamFlix Config:', config);
+}
 
 // For modules using import/export
 if (typeof module !== 'undefined' && module.exports) {

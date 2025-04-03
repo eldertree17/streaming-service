@@ -6,11 +6,16 @@ class TelegramApp {
         this.router = new Router();
         this.initTheme();
         this.initApp();
+        
+        // Add a flag to indicate this is running as a mini app
+        window.IS_TELEGRAM_MINI_APP = true;
     }
 
     initApp() {
         if (!this.webApp) {
             console.warn('Telegram WebApp is not available');
+            // Add fallback behavior for browser testing
+            this.simulateTelegramApp();
             return;
         }
 
@@ -28,25 +33,34 @@ class TelegramApp {
         // Handle theme changes
         this.webApp.onEvent('themeChanged', () => this.initTheme());
 
-        // Initialize router with current path
-        const path = window.location.pathname;
-        const params = Object.fromEntries(new URLSearchParams(window.location.search));
-        this.router.navigate(path, params);
+        // Force navigation to home page for initial load
+        this.navigateTo('/', {});
 
         // Update UI with user data
         this.updateUI();
+    }
+    
+    // Fallback for testing outside Telegram
+    simulateTelegramApp() {
+        console.log("Running in browser mode (not Telegram)");
+        this.user = {
+            id: "browser-test-user",
+            username: "test_user",
+            first_name: "Test",
+            last_name: "User"
+        };
     }
 
     initTheme() {
         if (!this.webApp) return;
 
         // Apply Telegram theme colors
-        document.documentElement.style.setProperty('--tg-theme-bg-color', this.webApp.backgroundColor);
-        document.documentElement.style.setProperty('--tg-theme-text-color', this.webApp.textColor);
-        document.documentElement.style.setProperty('--tg-theme-hint-color', this.webApp.hint_color);
-        document.documentElement.style.setProperty('--tg-theme-link-color', this.webApp.link_color);
-        document.documentElement.style.setProperty('--tg-theme-button-color', this.webApp.button_color);
-        document.documentElement.style.setProperty('--tg-theme-button-text-color', this.webApp.button_text_color);
+        document.documentElement.style.setProperty('--tg-theme-bg-color', this.webApp.backgroundColor || '#ffffff');
+        document.documentElement.style.setProperty('--tg-theme-text-color', this.webApp.textColor || '#000000');
+        document.documentElement.style.setProperty('--tg-theme-hint-color', this.webApp.hint_color || '#999999');
+        document.documentElement.style.setProperty('--tg-theme-link-color', this.webApp.link_color || '#2481cc');
+        document.documentElement.style.setProperty('--tg-theme-button-color', this.webApp.button_color || '#2481cc');
+        document.documentElement.style.setProperty('--tg-theme-button-text-color', this.webApp.button_text_color || '#ffffff');
     }
 
     updateUI() {
@@ -74,21 +88,29 @@ class TelegramApp {
         const currentPath = window.location.pathname;
         
         if (currentPath === '/' || currentPath === '/index.html') {
-            this.webApp.BackButton.hide();
+            if (this.webApp) this.webApp.BackButton.hide();
         } else {
-            this.webApp.BackButton.show();
+            if (this.webApp) this.webApp.BackButton.show();
             window.history.back();
         }
     }
 
     // Navigation method now uses the router
     navigateTo(path, params = {}) {
+        // Override the router's navigate method to prevent conflicts
+        if (document.querySelector('.app-container')) {
+            // Clear the app container to prevent flickering
+            document.querySelector('.app-container').innerHTML = '';
+        }
+        
         this.router.navigate(path, params);
         
-        if (path !== '/' && path !== '/index.html') {
-            this.webApp.BackButton.show();
-        } else {
-            this.webApp.BackButton.hide();
+        if (this.webApp) {
+            if (path !== '/' && path !== '/index.html') {
+                this.webApp.BackButton.show();
+            } else {
+                this.webApp.BackButton.hide();
+            }
         }
     }
 
@@ -104,13 +126,15 @@ class TelegramApp {
             telegramId: this.user?.id,
             telegramUsername: this.user?.username,
             telegramPhotoUrl: this.user?.photo_url,
-            telegramHandle: '@' + this.user?.username
+            telegramHandle: this.user?.username ? '@' + this.user?.username : null
         };
     }
 }
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    console.log("Initializing Telegram Mini App");
+    
     // Add loading indicator to body
     const loadingIndicator = document.createElement('div');
     loadingIndicator.className = 'loading-indicator';
@@ -126,4 +150,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize Telegram App
     window.telegramApp = new TelegramApp();
+    
+    // Override any conflicting initializations
+    const originalAddEventListener = window.addEventListener;
+    window.addEventListener = function(event, handler, options) {
+        // Prevent other DOMContentLoaded handlers from running
+        if (event === 'DOMContentLoaded' && handler.toString().includes('setupMovieItemClicks')) {
+            console.log('Preventing conflicting initialization');
+            return;
+        }
+        return originalAddEventListener.call(this, event, handler, options);
+    };
 }); 

@@ -1,23 +1,30 @@
 // API Service
 class ApiService {
     constructor() {
-        this.baseUrl = '/api';
+        // Use the config URL if available, otherwise fallback
+        this.baseUrl = window.StreamFlixConfig?.API_URL || 'https://streamflix-backend.onrender.com/api';
+        console.log('API Service initialized with base URL:', this.baseUrl);
     }
 
     async getMovies() {
-        const response = await fetch(`${this.baseUrl}/movies`);
-        if (!response.ok) throw new Error('Failed to fetch movies');
+        const response = await fetch(`${this.baseUrl}/content`);
+        if (!response.ok) {
+            // Try to get the sample video as fallback
+            const sampleResponse = await fetch(`${this.baseUrl}/content/video`);
+            if (!sampleResponse.ok) throw new Error('Failed to fetch content');
+            return [await sampleResponse.json()];
+        }
         return response.json();
     }
 
     async getMovie(id) {
-        const response = await fetch(`${this.baseUrl}/movies/${id}`);
+        const response = await fetch(`${this.baseUrl}/content/${id}`);
         if (!response.ok) throw new Error('Failed to fetch movie');
         return response.json();
     }
 
     async searchMovies(query) {
-        const response = await fetch(`${this.baseUrl}/movies/search?q=${encodeURIComponent(query)}`);
+        const response = await fetch(`${this.baseUrl}/content/search?query=${encodeURIComponent(query)}`);
         if (!response.ok) throw new Error('Failed to search movies');
         return response.json();
     }
@@ -164,6 +171,14 @@ class UiManager {
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
+    // Skip initialization if we're in a Telegram Mini App context
+    if (window.Telegram?.WebApp || window.IS_TELEGRAM_MINI_APP) {
+        console.log('Skipping regular initialization because this is a Telegram Mini App');
+        return;
+    }
+    
+    console.log('Initializing standard web app');
+    
     const contentManager = new ContentManager();
     const uiManager = new UiManager(contentManager);
 
@@ -188,6 +203,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Function to set up movie item clicks - define this OUTSIDE any event handlers
 function setupMovieItemClicks() {
+    // Skip in Telegram Mini App context
+    if (window.Telegram?.WebApp || window.IS_TELEGRAM_MINI_APP) {
+        return;
+    }
+    
     // Select all clickable movie elements - adjust selectors to match your HTML
     const movieItems = document.querySelectorAll('.content-card, .featured-card');
     

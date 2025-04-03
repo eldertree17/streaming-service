@@ -11,6 +11,9 @@ class Router {
             error: null
         };
         
+        // Check if running in Telegram Mini App
+        this.isTelegramMiniApp = !!window.Telegram?.WebApp || window.IS_TELEGRAM_MINI_APP;
+        
         // Get the base path for GitHub Pages
         this.basePath = this.getBasePath();
 
@@ -20,6 +23,8 @@ class Router {
 
         // Initialize
         this.initializeRouter();
+        
+        console.log('Router initialized. Telegram Mini App:', this.isTelegramMiniApp);
     }
     
     // Helper to get the correct base path for GitHub Pages
@@ -38,8 +43,10 @@ class Router {
     }
 
     initializeRouter() {
-        // Handle browser back/forward buttons
-        window.addEventListener('popstate', this.handlePopState);
+        // Handle browser back/forward buttons (only if not in Telegram Mini App)
+        if (!this.isTelegramMiniApp) {
+            window.addEventListener('popstate', this.handlePopState);
+        }
 
         // Define routes
         this.routes.set('/', { 
@@ -63,8 +70,10 @@ class Router {
             init: (params) => this.initSearch(params)
         });
         
-        // Initial route
-        this.handleCurrentLocation();
+        // Initial route (skip if in Telegram Mini App - it will call navigate directly)
+        if (!this.isTelegramMiniApp) {
+            this.handleCurrentLocation();
+        }
     }
     
     // Handle the current URL when the page loads
@@ -83,6 +92,8 @@ class Router {
     }
 
     async navigate(path, params = {}, replaceState = false) {
+        console.log(`Navigating to: ${path}`, params);
+        
         // Show loading state
         this.contentState.loading = true;
         this.updateUI();
@@ -93,14 +104,16 @@ class Router {
             this.currentRoute = route;
 
             // Update URL, considering the base path
-            const url = new URL(this.basePath + path, window.location.origin);
-            Object.keys(params).forEach(key => url.searchParams.set(key, params[key]));
-            
-            // Use either pushState or replaceState
-            if (replaceState) {
-                window.history.replaceState({}, '', url);
-            } else {
-                window.history.pushState({}, '', url);
+            if (!this.isTelegramMiniApp) {
+                const url = new URL(this.basePath + path, window.location.origin);
+                Object.keys(params).forEach(key => url.searchParams.set(key, params[key]));
+                
+                // Use either pushState or replaceState
+                if (replaceState) {
+                    window.history.replaceState({}, '', url);
+                } else {
+                    window.history.pushState({}, '', url);
+                }
             }
 
             // Initialize the route
@@ -119,6 +132,9 @@ class Router {
     }
 
     handlePopState() {
+        // Skip in Telegram Mini App
+        if (this.isTelegramMiniApp) return;
+        
         // Get the path relative to the base path
         let path = window.location.pathname;
         if (this.basePath && path.startsWith(this.basePath)) {
@@ -131,16 +147,40 @@ class Router {
 
     async initHome() {
         try {
+            console.log('Initializing home page');
             // Clear previous state
             this.contentState.currentMovie = null;
             
             // Fetch movies if not already loaded
             if (this.contentState.movies.length === 0) {
                 // Get the API URL from config to ensure it's using the correct backend URL
-                const apiUrl = window.StreamFlixConfig?.API_URL || '/api';
-                const response = await fetch(`${apiUrl}/movies`);
-                if (!response.ok) throw new Error('Failed to fetch movies');
-                this.contentState.movies = await response.json();
+                const apiUrl = window.StreamFlixConfig?.API_URL || 'https://streamflix-backend.onrender.com/api';
+                console.log('Fetching movies from:', apiUrl);
+                
+                try {
+                    const response = await fetch(`${apiUrl}/content`);
+                    
+                    if (!response.ok) {
+                        // If the /movies endpoint fails, try the sample video endpoint
+                        console.log('Falling back to sample video endpoint');
+                        const sampleResponse = await fetch(`${apiUrl}/content/video`);
+                        if (!sampleResponse.ok) throw new Error('Failed to fetch sample video');
+                        
+                        const sampleVideo = await sampleResponse.json();
+                        this.contentState.movies = [sampleVideo];
+                    } else {
+                        this.contentState.movies = await response.json();
+                    }
+                } catch (error) {
+                    console.error('Error fetching movies:', error);
+                    // Try sample video as fallback
+                    this.contentState.movies = [{
+                        _id: "sample-video-1",
+                        title: "Big Buck Bunny",
+                        description: "This is a sample video",
+                        posterImage: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Big_buck_bunny_poster_big.jpg/800px-Big_buck_bunny_poster_big.jpg",
+                    }];
+                }
             }
 
             // Update UI
@@ -158,7 +198,8 @@ class Router {
             if (!params.id) throw new Error('Movie ID is required');
 
             // Fetch movie details
-            const response = await fetch(`/api/movies/${params.id}`);
+            const apiUrl = window.StreamFlixConfig?.API_URL || 'https://streamflix-backend.onrender.com/api';
+            const response = await fetch(`${apiUrl}/content/${params.id}`);
             if (!response.ok) throw new Error('Failed to fetch movie details');
             this.contentState.currentMovie = await response.json();
 
@@ -200,7 +241,48 @@ class Router {
     getHomeTemplate() {
         return `
             <div class="home-container">
-                <!-- Your existing home template -->
+                <!-- Hero Section -->
+                <div class="hero-card">
+                    <div class="featured-card" id="featured-movie">
+                        <div class="badge">Featured</div>
+                        <div class="likes" id="featured-like">
+                            <i class="fas fa-thumbs-up"></i>
+                            <span>1.5K</span>
+                        </div>
+                        <img src="https://archive.org/services/img/earth-vs-the-flying-saucers-color" alt="Featured Movie">
+                        <div class="title-container">
+                            <h2>Earth vs the Flying Saucers</h2>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Content Sections -->
+                <div id="category-container">
+                    <!-- Movies Section -->
+                    <div class="section">
+                        <div class="section-header">
+                            <h3>Movies</h3>
+                        </div>
+                        <div class="content-row">
+                            ${this.contentState.movies.map(movie => this.getMovieCardTemplate(movie)).join('')}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    getMovieCardTemplate(movie) {
+        return `
+            <div class="content-card" data-movie-id="${movie._id}">
+                <img src="${movie.posterImage}" alt="${movie.title}">
+                <div class="card-info">
+                    <p>${movie.title}</p>
+                    <div class="likes">
+                        <i class="fas fa-thumbs-up"></i>
+                        <span>${movie.likes || 0}</span>
+                    </div>
+                </div>
             </div>
         `;
     }
@@ -209,7 +291,26 @@ class Router {
         const movie = this.contentState.currentMovie;
         return `
             <div class="watch-container">
-                <!-- Your existing watch template -->
+                <div class="video-container">
+                    <video id="video-player" controls>
+                        <source src="${movie.videoUrl || ''}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+                <div class="video-info">
+                    <h2>${movie.title}</h2>
+                    <p>${movie.description}</p>
+                    <div class="video-actions">
+                        <button class="like-btn">
+                            <i class="fas fa-thumbs-up"></i>
+                            <span>${movie.likes || 0}</span>
+                        </button>
+                        <button class="share-btn">
+                            <i class="fas fa-share"></i>
+                            Share
+                        </button>
+                    </div>
+                </div>
             </div>
         `;
     }
@@ -242,7 +343,19 @@ class Router {
 
     setupWatchEventListeners() {
         // Set up video player controls
-        // Set up like/share buttons
-        // etc...
+        const videoPlayer = document.querySelector('#video-player');
+        if (videoPlayer) {
+            videoPlayer.addEventListener('play', () => {
+                console.log('Video started playing');
+            });
+        }
+        
+        // Set up back button
+        const backBtn = document.querySelector('.back-btn');
+        if (backBtn) {
+            backBtn.addEventListener('click', () => {
+                this.navigate('/');
+            });
+        }
     }
 } 
