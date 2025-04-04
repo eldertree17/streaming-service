@@ -1,361 +1,421 @@
 class Router {
     constructor() {
-        this.routes = new Map();
-        this.currentRoute = null;
-        this.contentState = {
-            movies: [],
-            currentMovie: null,
-            categories: new Map(),
-            searchResults: [],
-            loading: false,
-            error: null
-        };
+        console.log('Router constructor starting');
         
-        // Check if running in Telegram Mini App
-        this.isTelegramMiniApp = !!window.Telegram?.WebApp || window.IS_TELEGRAM_MINI_APP;
-        
-        // Get the base path for GitHub Pages
-        this.basePath = this.getBasePath();
-
-        // Bind methods
-        this.navigate = this.navigate.bind(this);
-        this.handlePopState = this.handlePopState.bind(this);
-
-        // Initialize
-        this.initializeRouter();
-        
-        console.log('Router initialized. Telegram Mini App:', this.isTelegramMiniApp);
-    }
-    
-    // Helper to get the correct base path for GitHub Pages
-    getBasePath() {
-        // For GitHub Pages, we need to consider the repository name in the path
-        const isGitHubPages = window.location.hostname.includes('github.io');
-        if (isGitHubPages) {
-            // Extract repository name from path
-            const pathSegments = window.location.pathname.split('/');
-            if (pathSegments.length > 1) {
-                // Return /repo-name for GitHub Pages
-                return '/' + pathSegments[1];
+        this.routes = {
+            '/': {
+                template: null, // Will use index.html's default content
+                init: this.initHomePage
+            },
+            '/watch': {
+                template: null, // Will be set dynamically
+                init: this.initWatchPage
+            },
+            '/search': {
+                template: this.getSearchTemplate(),
+                init: this.initSearchPage
+            },
+            '/profile': {
+                template: this.getProfileTemplate(),
+                init: this.initProfilePage
             }
-        }
-        return ''; // No base path for local development
-    }
+        };
 
-    initializeRouter() {
-        // Handle browser back/forward buttons (only if not in Telegram Mini App)
-        if (!this.isTelegramMiniApp) {
-            window.addEventListener('popstate', this.handlePopState);
-        }
-
-        // Define routes
-        this.routes.set('/', { 
-            component: 'home',
-            init: () => this.initHome()
-        });
-        this.routes.set('/watch', {
-            component: 'watch',
-            init: (params) => this.initWatch(params)
-        });
-        this.routes.set('/activity', {
-            component: 'activity',
-            init: () => this.initActivity()
-        });
-        this.routes.set('/account', {
-            component: 'account',
-            init: () => this.initAccount()
-        });
-        this.routes.set('/search', {
-            component: 'search',
-            init: (params) => this.initSearch(params)
-        });
+        this.currentPath = '/';
+        this.params = {};
         
-        // Initial route (skip if in Telegram Mini App - it will call navigate directly)
-        if (!this.isTelegramMiniApp) {
-            this.handleCurrentLocation();
-        }
-    }
-    
-    // Handle the current URL when the page loads
-    handleCurrentLocation() {
-        // Get the path relative to the base path
-        let path = window.location.pathname;
-        if (this.basePath && path.startsWith(this.basePath)) {
-            path = path.slice(this.basePath.length) || '/';
-        }
-        
-        // Parse query parameters
-        const params = Object.fromEntries(new URLSearchParams(window.location.search));
-        
-        // Navigate to the current path
-        this.navigate(path, params, true);
-    }
-
-    async navigate(path, params = {}, replaceState = false) {
-        console.log(`Navigating to: ${path}`, params);
-        
-        // Show loading state
-        this.contentState.loading = true;
-        this.updateUI();
-
+        // Add history state handling
         try {
-            // Find the route
-            const route = this.routes.get(path) || this.routes.get('/');
-            this.currentRoute = route;
+            window.addEventListener('popstate', (e) => this.handlePopState(e));
+            console.log('PopState event handler registered');
+        } catch (error) {
+            console.error('Failed to register popstate handler:', error);
+            window.debugError?.('Failed to register popstate handler: ' + error.message, error);
+        }
+        
+        console.log('Router initialized successfully');
+    }
 
-            // Update URL, considering the base path
-            if (!this.isTelegramMiniApp) {
-                const url = new URL(this.basePath + path, window.location.origin);
-                Object.keys(params).forEach(key => url.searchParams.set(key, params[key]));
-                
-                // Use either pushState or replaceState
-                if (replaceState) {
-                    window.history.replaceState({}, '', url);
-                } else {
-                    window.history.pushState({}, '', url);
+    handlePopState(e) {
+        console.log('PopState event triggered', e.state);
+        if (e.state && e.state.path) {
+            this.navigateTo(e.state.path, e.state.params || {}, true);
+        }
+    }
+
+    navigateTo(path, params = {}, skipHistory = false) {
+        try {
+            console.log(`Navigating to: ${path}`, params);
+            
+            // Store current state
+            this.currentPath = path;
+            this.params = params;
+
+            // Add to browser history
+            if (!skipHistory) {
+                window.history.pushState({ path, params }, '', this.getFullPath(path, params));
+            }
+
+            // Get route configuration
+            const route = this.routes[path];
+            if (!route) {
+                console.error('Route not found:', path);
+                window.debugError?.('Route not found: ' + path);
+                return this.navigateTo('/'); // Redirect to home on error
+            }
+
+            // If template is defined, update content
+            if (route.template) {
+                console.log('Setting HTML template for route:', path);
+                document.querySelector('.app-container').innerHTML = route.template;
+            }
+
+            // Initialize page-specific functionality
+            if (typeof route.init === 'function') {
+                console.log('Initializing route:', path);
+                try {
+                    route.init.call(this, params);
+                    console.log('Route initialization completed successfully:', path);
+                } catch (error) {
+                    console.error('Error initializing route:', error);
+                    window.debugError?.('Error initializing route: ' + error.message, error);
                 }
             }
 
-            // Initialize the route
-            await route.init(params);
-
-            // Update UI
-            this.contentState.loading = false;
+            // Update UI based on current route
             this.updateUI();
-
+            
+            return true;
         } catch (error) {
             console.error('Navigation error:', error);
-            this.contentState.error = error.message;
-            this.contentState.loading = false;
-            this.updateUI();
+            window.debugError?.('Navigation error: ' + error.message, error);
+            return false;
         }
     }
 
-    handlePopState() {
-        // Skip in Telegram Mini App
-        if (this.isTelegramMiniApp) return;
-        
-        // Get the path relative to the base path
-        let path = window.location.pathname;
-        if (this.basePath && path.startsWith(this.basePath)) {
-            path = path.slice(this.basePath.length) || '/';
-        }
-        
-        const params = Object.fromEntries(new URLSearchParams(window.location.search));
-        this.navigate(path, params, true);
-    }
-
-    async initHome() {
+    getFullPath(path, params) {
+        // Create a URL with path and query parameters
         try {
-            console.log('Initializing home page');
-            // Clear previous state
-            this.contentState.currentMovie = null;
+            if (Object.keys(params).length === 0) return path;
             
-            // Fetch movies if not already loaded
-            if (this.contentState.movies.length === 0) {
-                // Get the API URL from config to ensure it's using the correct backend URL
-                const apiUrl = window.StreamFlixConfig?.API_URL || 'https://streamflix-backend.onrender.com/api';
-                console.log('Fetching movies from:', apiUrl);
+            const queryString = Object.keys(params)
+                .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+                .join('&');
                 
-                try {
-                    const response = await fetch(`${apiUrl}/content`);
-                    
-                    if (!response.ok) {
-                        // If the /movies endpoint fails, try the sample video endpoint
-                        console.log('Falling back to sample video endpoint');
-                        const sampleResponse = await fetch(`${apiUrl}/content/video`);
-                        if (!sampleResponse.ok) throw new Error('Failed to fetch sample video');
-                        
-                        const sampleVideo = await sampleResponse.json();
-                        this.contentState.movies = [sampleVideo];
-                    } else {
-                        this.contentState.movies = await response.json();
-                    }
-                } catch (error) {
-                    console.error('Error fetching movies:', error);
-                    // Try sample video as fallback
-                    this.contentState.movies = [{
-                        _id: "sample-video-1",
-                        title: "Big Buck Bunny",
-                        description: "This is a sample video",
-                        posterImage: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Big_buck_bunny_poster_big.jpg/800px-Big_buck_bunny_poster_big.jpg",
-                    }];
-                }
-            }
-
-            // Update UI
-            document.querySelector('.app-container').innerHTML = this.getHomeTemplate();
-            this.setupHomeEventListeners();
-
+            return `${path}?${queryString}`;
         } catch (error) {
-            console.error('Home initialization error:', error);
-            this.contentState.error = error.message;
+            console.error('Error generating path:', error);
+            window.debugError?.('Error generating path: ' + error.message, error);
+            return path;
         }
     }
-
-    async initWatch(params) {
-        try {
-            if (!params.id) throw new Error('Movie ID is required');
-
-            // Fetch movie details
-            const apiUrl = window.StreamFlixConfig?.API_URL || 'https://streamflix-backend.onrender.com/api';
-            const response = await fetch(`${apiUrl}/content/${params.id}`);
-            if (!response.ok) throw new Error('Failed to fetch movie details');
-            this.contentState.currentMovie = await response.json();
-
-            // Update UI
-            document.querySelector('.app-container').innerHTML = this.getWatchTemplate();
-            this.setupWatchEventListeners();
-
-        } catch (error) {
-            console.error('Watch initialization error:', error);
-            this.contentState.error = error.message;
-        }
-    }
-
-    // Similar init methods for other routes...
 
     updateUI() {
-        // Update loading state
-        const loadingEl = document.querySelector('.loading-indicator');
-        if (loadingEl) {
-            loadingEl.style.display = this.contentState.loading ? 'block' : 'none';
-        }
-
-        // Update error state
-        const errorEl = document.querySelector('.error-message');
-        if (errorEl) {
-            errorEl.textContent = this.contentState.error || '';
-            errorEl.style.display = this.contentState.error ? 'block' : 'none';
-        }
-
-        // Update navigation state
-        const navItems = document.querySelectorAll('.nav-item');
-        navItems.forEach(item => {
-            const path = item.dataset.path;
-            item.classList.toggle('active', path === this.currentRoute?.component);
-        });
-    }
-
-    // Template methods
-    getHomeTemplate() {
-        return `
-            <div class="home-container">
-                <!-- Hero Section -->
-                <div class="hero-card">
-                    <div class="featured-card" id="featured-movie">
-                        <div class="badge">Featured</div>
-                        <div class="likes" id="featured-like">
-                            <i class="fas fa-thumbs-up"></i>
-                            <span>1.5K</span>
-                        </div>
-                        <img src="https://archive.org/services/img/earth-vs-the-flying-saucers-color" alt="Featured Movie">
-                        <div class="title-container">
-                            <h2>Earth vs the Flying Saucers</h2>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Content Sections -->
-                <div id="category-container">
-                    <!-- Movies Section -->
-                    <div class="section">
-                        <div class="section-header">
-                            <h3>Movies</h3>
-                        </div>
-                        <div class="content-row">
-                            ${this.contentState.movies.map(movie => this.getMovieCardTemplate(movie)).join('')}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    getMovieCardTemplate(movie) {
-        return `
-            <div class="content-card" data-movie-id="${movie._id}">
-                <img src="${movie.posterImage}" alt="${movie.title}">
-                <div class="card-info">
-                    <p>${movie.title}</p>
-                    <div class="likes">
-                        <i class="fas fa-thumbs-up"></i>
-                        <span>${movie.likes || 0}</span>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    getWatchTemplate() {
-        const movie = this.contentState.currentMovie;
-        return `
-            <div class="watch-container">
-                <div class="video-container">
-                    <video id="video-player" controls>
-                        <source src="${movie.videoUrl || ''}" type="video/mp4">
-                        Your browser does not support the video tag.
-                    </video>
-                </div>
-                <div class="video-info">
-                    <h2>${movie.title}</h2>
-                    <p>${movie.description}</p>
-                    <div class="video-actions">
-                        <button class="like-btn">
-                            <i class="fas fa-thumbs-up"></i>
-                            <span>${movie.likes || 0}</span>
-                        </button>
-                        <button class="share-btn">
-                            <i class="fas fa-share"></i>
-                            Share
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    // Event listener setup methods
-    setupHomeEventListeners() {
-        // Set up movie click handlers
-        document.querySelectorAll('.content-card').forEach(card => {
-            card.addEventListener('click', (e) => {
-                const movieId = card.dataset.movieId;
-                if (movieId) {
-                    this.navigate('/watch', { id: movieId });
+        try {
+            console.log('Updating UI for route:', this.currentPath);
+            
+            // Show/hide back button based on current route
+            if (window.Telegram && window.Telegram.WebApp) {
+                if (this.currentPath === '/') {
+                    window.Telegram.WebApp.BackButton.hide();
+                } else {
+                    window.Telegram.WebApp.BackButton.show();
                 }
-            });
-        });
+            }
+        } catch (error) {
+            console.error('Error updating UI:', error);
+            window.debugError?.('Error updating UI: ' + error.message, error);
+        }
+    }
 
-        // Set up search
-        const searchInput = document.querySelector('#search-input');
-        if (searchInput) {
-            searchInput.addEventListener('keyup', (e) => {
-                if (e.key === 'Enter') {
-                    const query = e.target.value.trim();
-                    if (query) {
-                        this.navigate('/search', { q: query });
+    // Route-specific initialization functions
+    initHomePage() {
+        try {
+            console.log('Initializing home page');
+            // Setup event listeners 
+            const container = document.querySelector('.app-container');
+            if (!container) {
+                console.error('App container not found');
+                window.debugError?.('App container not found');
+                return;
+            }
+            
+            // Set up click handlers for movie cards
+            container.addEventListener('click', (e) => {
+                // Find the closest content-card parent
+                const card = e.target.closest('.content-card');
+                if (card) {
+                    const movieId = card.dataset.movieId;
+                    if (movieId) {
+                        console.log('Movie card clicked, ID:', movieId);
+                        this.navigateTo('/watch', { id: movieId });
                     }
                 }
             });
+            
+            // Trigger content loading
+            if (window.contentManager) {
+                window.contentManager.loadMovies()
+                    .then(() => window.uiManager.updateHomeContent())
+                    .catch(err => {
+                        console.error('Failed to load movies:', err);
+                        window.debugError?.('Failed to load movies: ' + err.message, err);
+                    });
+            } else {
+                console.log('Content manager not initialized yet');
+            }
+            
+            console.log('Home page initialization completed');
+        } catch (error) {
+            console.error('Error initializing home page:', error);
+            window.debugError?.('Error initializing home page: ' + error.message, error);
         }
     }
 
-    setupWatchEventListeners() {
-        // Set up video player controls
-        const videoPlayer = document.querySelector('#video-player');
-        if (videoPlayer) {
-            videoPlayer.addEventListener('play', () => {
-                console.log('Video started playing');
-            });
+    initWatchPage(params) {
+        try {
+            console.log('Initializing watch page with params:', params);
+            
+            // Get movie ID from params
+            const movieId = params.id;
+            if (!movieId) {
+                console.error('No movie ID provided');
+                window.debugError?.('No movie ID provided for watch page');
+                return this.navigateTo('/');
+            }
+            
+            // Load movie details and update UI
+            window.contentManager.getMovieById(movieId)
+                .then(movie => {
+                    console.log('Movie loaded:', movie);
+                    window.uiManager.updateWatchContent(movie);
+                })
+                .catch(err => {
+                    console.error('Failed to load movie:', err);
+                    window.debugError?.('Failed to load movie: ' + err.message, err);
+                    this.navigateTo('/');
+                });
+                
+            console.log('Watch page initialization completed');
+        } catch (error) {
+            console.error('Error initializing watch page:', error);
+            window.debugError?.('Error initializing watch page: ' + error.message, error);
         }
-        
-        // Set up back button
-        const backBtn = document.querySelector('.back-btn');
-        if (backBtn) {
-            backBtn.addEventListener('click', () => {
-                this.navigate('/');
-            });
+    }
+
+    initSearchPage(params) {
+        try {
+            console.log('Initializing search page with params:', params);
+            
+            // Get search query from params
+            const query = params.query || '';
+            
+            // Set up search input field
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.value = query;
+                searchInput.focus();
+                
+                // Handle search input
+                searchInput.addEventListener('keyup', (e) => {
+                    if (e.key === 'Enter') {
+                        const searchQuery = searchInput.value.trim();
+                        if (searchQuery) {
+                            console.log('Search query submitted:', searchQuery);
+                            this.performSearch(searchQuery);
+                        }
+                    }
+                });
+            }
+            
+            // Set up back button
+            const backButton = document.querySelector('.back-button');
+            if (backButton) {
+                backButton.addEventListener('click', () => {
+                    console.log('Search back button clicked');
+                    this.navigateTo('/');
+                });
+            }
+            
+            // Perform search if query is provided
+            if (query) {
+                console.log('Initial search with query:', query);
+                this.performSearch(query);
+            }
+            
+            console.log('Search page initialization completed');
+        } catch (error) {
+            console.error('Error initializing search page:', error);
+            window.debugError?.('Error initializing search page: ' + error.message, error);
         }
+    }
+
+    performSearch(query) {
+        try {
+            console.log('Performing search with query:', query);
+            
+            const resultsContainer = document.querySelector('.search-results');
+            if (!resultsContainer) {
+                console.error('Search results container not found');
+                window.debugError?.('Search results container not found');
+                return;
+            }
+            
+            // Show loading state
+            resultsContainer.innerHTML = '<div class="loading-spinner">Searching...</div>';
+            
+            // Perform search
+            window.contentManager.searchMovies(query)
+                .then(results => {
+                    console.log('Search results:', results);
+                    
+                    if (results.length === 0) {
+                        resultsContainer.innerHTML = '<div class="no-results">No results found</div>';
+                        return;
+                    }
+                    
+                    // Display results
+                    resultsContainer.innerHTML = results.map(movie => 
+                        window.uiManager.createMovieCard(movie)
+                    ).join('');
+                    
+                    // Set up click handlers for results
+                    resultsContainer.addEventListener('click', (e) => {
+                        const card = e.target.closest('.content-card');
+                        if (card) {
+                            const movieId = card.dataset.movieId;
+                            if (movieId) {
+                                this.navigateTo('/watch', { id: movieId });
+                            }
+                        }
+                    });
+                })
+                .catch(err => {
+                    console.error('Search failed:', err);
+                    window.debugError?.('Search failed: ' + err.message, err);
+                    resultsContainer.innerHTML = '<div class="error">Search failed. Please try again.</div>';
+                });
+        } catch (error) {
+            console.error('Error in search function:', error);
+            window.debugError?.('Error in search function: ' + error.message, error);
+        }
+    }
+
+    initProfilePage() {
+        try {
+            console.log('Initializing profile page');
+            
+            // Get user data from Telegram if available
+            let userData = { name: 'Guest User', username: 'guest' };
+            
+            if (window.Telegram && window.Telegram.WebApp) {
+                const user = window.Telegram.WebApp.initDataUnsafe?.user;
+                if (user) {
+                    userData = {
+                        name: user.first_name + (user.last_name ? ' ' + user.last_name : ''),
+                        username: user.username || 'unknown',
+                        photoUrl: user.photo_url
+                    };
+                }
+            }
+            
+            // Update profile UI with user data
+            const userNameElement = document.getElementById('user-name');
+            const userHandleElement = document.getElementById('user-handle');
+            const userImageElement = document.getElementById('user-image');
+            
+            if (userNameElement) userNameElement.textContent = userData.name;
+            if (userHandleElement) userHandleElement.textContent = '@' + userData.username;
+            
+            if (userImageElement && userData.photoUrl) {
+                userImageElement.src = userData.photoUrl;
+            }
+            
+            // Set up back button
+            const backButton = document.querySelector('.back-button');
+            if (backButton) {
+                backButton.addEventListener('click', () => {
+                    this.navigateTo('/');
+                });
+            }
+            
+            console.log('Profile page initialization completed');
+        } catch (error) {
+            console.error('Error initializing profile page:', error);
+            window.debugError?.('Error initializing profile page: ' + error.message, error);
+        }
+    }
+
+    // Template string getters
+    getSearchTemplate() {
+        return `
+            <div class="search-page">
+                <div class="search-header">
+                    <div class="back-button">
+                        <i class="fas fa-arrow-left"></i>
+                    </div>
+                    <div class="search-input-container">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="search-input" placeholder="Search movies...">
+                        <i class="fas fa-microphone"></i>
+                    </div>
+                </div>
+                <div class="search-results">
+                    <!-- Results will be loaded here -->
+                </div>
+            </div>
+        `;
+    }
+
+    getProfileTemplate() {
+        return `
+            <div class="profile-page">
+                <div class="profile-header">
+                    <div class="back-button">
+                        <i class="fas fa-arrow-left"></i>
+                    </div>
+                    <h2>Profile</h2>
+                </div>
+                <div class="profile-content">
+                    <div class="user-info">
+                        <img id="user-image" src="https://via.placeholder.com/100" alt="User">
+                        <h3 id="user-name">User Name</h3>
+                        <p id="user-handle">@username</p>
+                    </div>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <span class="stat-value">15</span>
+                            <span class="stat-label">Watched</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">23</span>
+                            <span class="stat-label">Likes</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">7</span>
+                            <span class="stat-label">Lists</span>
+                        </div>
+                    </div>
+                    <div class="section-label">Watch History</div>
+                    <div class="history-list">
+                        <!-- Placeholder items -->
+                        <div class="history-item">
+                            <img src="https://via.placeholder.com/50" alt="Movie">
+                            <div class="history-info">
+                                <h4>The Movie Title</h4>
+                                <p>Watched today</p>
+                            </div>
+                        </div>
+                        <div class="history-item">
+                            <img src="https://via.placeholder.com/50" alt="Movie">
+                            <div class="history-info">
+                                <h4>Another Movie</h4>
+                                <p>Watched yesterday</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 } 
