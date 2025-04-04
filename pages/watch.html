@@ -1,22 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- URL Redirection - Ensures users get the working version of the page -->
-    <script>
-    // Only run on watch.html
-    if (window.location.pathname.endsWith('/watch.html')) {
-        // Get the current query string
-        const queryString = window.location.search || '';
-        
-        // Build the new URL
-        const newUrl = window.location.origin + 
-                      window.location.pathname.replace('watch.html', 'watch') + 
-                      queryString;
-        
-        // Redirect to the clean URL
-        window.location.replace(newUrl);
-    }
-    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' blob:; script-src 'self' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; media-src 'self' blob: https://*; connect-src 'self' http://* https://* ws://* wss://* blob: *; font-src https://cdnjs.cloudflare.com data:; img-src 'self' https://* data:; worker-src 'self' blob:;">

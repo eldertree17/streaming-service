@@ -630,12 +630,13 @@
             document.getElementById('featured-movie').addEventListener('click', function() {
                 console.log('Featured movie clicked, redirecting to watch.html');
                 
-                // Direct navigation to watch.html
+                // Get repository path from current location
                 const baseUrl = window.location.origin;
+                const repoPath = '/streaming-service'; // GitHub Pages repository name
                 const movieId = '67d919a32437ccb3a8680549'; // Featured movie ID
                 
-                // Use direct URL navigation to access the full watch.html page with WebTorrent functionality
-                window.location.href = `${baseUrl}/pages/watch.html?id=${movieId}`;
+                // Directly access the full watch.html page with WebTorrent functionality
+                window.location.href = `${baseUrl}${repoPath}/pages/watch.html?id=${movieId}`;
             });
             
             // Set up like button
@@ -661,12 +662,13 @@
                 testVideoCard.addEventListener('click', function() {
                     console.log('Test video card clicked, redirecting to watch.html');
                     
-                    // Direct navigation to watch.html
+                    // Get repository path from current location
                     const baseUrl = window.location.origin;
+                    const repoPath = '/streaming-service'; // GitHub Pages repository name
                     const videoId = 'sample-video-1';
                     
-                    // Use direct URL navigation to access the full watch.html page with WebTorrent functionality
-                    window.location.href = `${baseUrl}/pages/watch.html?id=${videoId}`;
+                    // Directly access the full watch.html page with WebTorrent functionality
+                    window.location.href = `${baseUrl}${repoPath}/pages/watch.html?id=${videoId}`;
                     
                     // Stop any other event handlers
                     return false;
@@ -813,16 +815,17 @@
             }
         }
 
-        // Update these URLs to use .html extension
+        // Update these URLs to use .html extension and proper repository path
         function createContentCard(item) {
             const div = document.createElement('div');
             div.className = 'content-card';
             
-            // Use absolute path with window.location.origin
+            // Use absolute path with window.location.origin and repository name
             const baseUrl = window.location.origin;
+            const repoPath = '/streaming-service'; // GitHub Pages repository name
             
             div.innerHTML = `
-                <a href="${baseUrl}/pages/watch.html?id=${item._id}">
+                <a href="${baseUrl}${repoPath}/pages/watch.html?id=${item._id}">
                     <img src="${item.posterImage}" alt="${item.title}">
                     <div class="card-info">
                         <p>${item.title}</p>
@@ -833,7 +836,7 @@
             div.addEventListener('click', function(e) {
                 e.preventDefault(); // Prevent default to manually handle navigation
                 console.log('Navigating to watch page with ID:', item._id);
-                window.location.href = `${baseUrl}/pages/watch.html?id=${item._id}`;
+                window.location.href = `${baseUrl}${repoPath}/pages/watch.html?id=${item._id}`;
             });
             
             return div;

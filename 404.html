@@ -11,29 +11,58 @@
             // Parse the current URL path
             var path = window.location.pathname;
             var origin = window.location.origin;
+            var search = window.location.search || '';
+            var destUrl = '';
             
             // Log the current path for debugging
-            console.log('404 page - redirecting path:', path);
+            console.log('404 page - redirecting path:', path, 'with query:', search);
+            
+            // Check for debug mode
+            var isDebug = search.includes('debug=true');
+            
+            // Special handling for watch.html - serve the actual file directly
+            if (path.includes('/pages/watch.html') || path.includes('/pages/watch')) {
+                console.log('Watch page detected, redirecting with query parameters');
+                destUrl = origin + '/streaming-service/pages/watch.html' + search;
+                if (!isDebug) {
+                    window.location.href = destUrl;
+                    return;
+                }
+            }
             
             // If this is a /pages/ request
-            if (path.includes('/pages/')) {
+            else if (path.includes('/pages/')) {
                 // Detect the page type
                 if (path.includes('/watch')) {
                     // Keep any query parameters
-                    window.location.href = origin + '/index.html?path=/watch' + window.location.search;
+                    destUrl = origin + '/streaming-service/pages/watch.html' + search;
                 } else if (path.includes('/search')) {
-                    window.location.href = origin + '/index.html?path=/search' + window.location.search;
+                    destUrl = origin + '/streaming-service/index.html?path=/search' + search;
                 } else if (path.includes('/activity')) {
-                    window.location.href = origin + '/index.html?path=/activity';
+                    destUrl = origin + '/streaming-service/index.html?path=/activity';
                 } else if (path.includes('/account')) {
-                    window.location.href = origin + '/index.html?path=/account';
+                    destUrl = origin + '/streaming-service/index.html?path=/account';
                 } else {
                     // Default redirect to home
-                    window.location.href = origin + '/index.html';
+                    destUrl = origin + '/streaming-service/index.html';
                 }
             } else {
                 // For any other unknown path, redirect to index
-                window.location.href = origin + '/index.html';
+                destUrl = origin + '/streaming-service/index.html';
+            }
+            
+            // If debug mode is active, show debug info instead of redirecting
+            if (isDebug) {
+                document.addEventListener('DOMContentLoaded', function() {
+                    document.getElementById('current-path').textContent = path;
+                    document.getElementById('current-query').textContent = search;
+                    document.getElementById('dest-url').textContent = destUrl;
+                    document.getElementById('debug-info').style.display = 'block';
+                    document.getElementById('redirect-msg').style.display = 'none';
+                });
+            } else {
+                // Normal redirect
+                window.location.href = destUrl;
             }
         })();
     </script>
@@ -49,12 +78,13 @@
             background-color: #f5f5f5;
             color: #333;
         }
-        .redirect-message {
+        .redirect-message, .debug-info {
             text-align: center;
             padding: 20px;
             border-radius: 8px;
             background-color: white;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 800px;
         }
         .spinner {
             border: 4px solid #f3f3f3;
@@ -69,13 +99,53 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .debug-info {
+            text-align: left;
+            display: none;
+        }
+        .debug-info h2 {
+            color: #3498db;
+            margin-top: 0;
+        }
+        .path-info {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            word-break: break-all;
+            font-family: monospace;
+        }
+        .help-text {
+            font-size: 14px;
+            color: #666;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
-    <div class="redirect-message">
+    <div class="redirect-message" id="redirect-msg">
         <h2>Redirecting...</h2>
         <div class="spinner"></div>
         <p>You'll be redirected to the correct page in a moment.</p>
+    </div>
+    
+    <div class="debug-info" id="debug-info">
+        <h2>404 Debug Information</h2>
+        <p>This page is showing debugging information for the 404 redirection system.</p>
+        
+        <h3>Current Path:</h3>
+        <div class="path-info" id="current-path"></div>
+        
+        <h3>Query Parameters:</h3>
+        <div class="path-info" id="current-query"></div>
+        
+        <h3>Destination URL:</h3>
+        <div class="path-info" id="dest-url"></div>
+        
+        <div class="help-text">
+            <p>The 404.html page is responsible for handling navigation in the GitHub Pages SPA.</p>
+            <p>To proceed to the destination page, <a href="#" onclick="window.location.href=document.getElementById('dest-url').textContent">click here</a>.</p>
+        </div>
     </div>
 </body>
 </html> 
