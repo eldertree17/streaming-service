@@ -4,7 +4,92 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StreamFlix - Streaming Service</title>
-    <!-- Version: 2023-04-04 Telegram Mini App Fix v2 -->
+    <!-- Version: 2023-04-04 Telegram Mini App Fix v3 -->
+    
+    <!-- Simple Bootstrap for Telegram Mini App -->
+    <script>
+        // Immediate execution to set up Telegram Mini App
+        (function() {
+            console.log('BOOTSTRAP: Starting Mini App initialization');
+            
+            // Create a visible status indicator
+            function createStatusIndicator() {
+                var statusDiv = document.createElement('div');
+                statusDiv.id = 'tg-status';
+                statusDiv.style.position = 'fixed';
+                statusDiv.style.bottom = '10px';
+                statusDiv.style.right = '10px';
+                statusDiv.style.backgroundColor = 'rgba(0,0,0,0.7)';
+                statusDiv.style.color = 'white';
+                statusDiv.style.padding = '10px';
+                statusDiv.style.borderRadius = '5px';
+                statusDiv.style.fontSize = '12px';
+                statusDiv.style.zIndex = '9999';
+                statusDiv.style.maxWidth = '80%';
+                statusDiv.style.maxHeight = '200px';
+                statusDiv.style.overflow = 'auto';
+                statusDiv.innerHTML = 'Initializing...';
+                
+                // Add to body or create body if it doesn't exist
+                if (document.body) {
+                    document.body.appendChild(statusDiv);
+                } else {
+                    document.addEventListener('DOMContentLoaded', function() {
+                        document.body.appendChild(statusDiv);
+                    });
+                }
+                
+                return statusDiv;
+            }
+            
+            // Create status indicator immediately
+            var statusDiv = createStatusIndicator();
+            
+            // Log status to indicator
+            function logStatus(message) {
+                console.log('BOOTSTRAP: ' + message);
+                if (statusDiv) {
+                    statusDiv.innerHTML += '<br>' + message;
+                    statusDiv.scrollTop = statusDiv.scrollHeight;
+                }
+            }
+            
+            // Log error to indicator
+            function logError(message) {
+                console.error('BOOTSTRAP ERROR: ' + message);
+                if (statusDiv) {
+                    statusDiv.innerHTML += '<br><span style="color:red">ERROR: ' + message + '</span>';
+                    statusDiv.scrollTop = statusDiv.scrollHeight;
+                }
+            }
+            
+            // Check if Telegram WebApp is available
+            if (window.Telegram && window.Telegram.WebApp) {
+                logStatus('Telegram WebApp detected');
+                
+                // Set up WebApp ready
+                try {
+                    window.Telegram.WebApp.ready();
+                    logStatus('WebApp.ready() called');
+                    
+                    window.Telegram.WebApp.expand();
+                    logStatus('WebApp.expand() called');
+                } catch (e) {
+                    logError('Failed to initialize WebApp: ' + e.message);
+                }
+            } else {
+                logStatus('Telegram WebApp not detected, running in browser mode');
+            }
+            
+            // Set up global error handler
+            window.onerror = function(message, source, lineno, colno, error) {
+                logError(message + ' at ' + source + ':' + lineno);
+                return false;
+            };
+            
+            logStatus('Bootstrap completed');
+        })();
+    </script>
     
     <!-- Debugging script to track initialization -->
     <script>
@@ -62,7 +147,7 @@
     <script>console.log('DEBUG: After loading config.js');</script>
     
     <script>console.log('DEBUG: Before loading Telegram Web App SDK');</script>
-    <!-- Telegram Web App SDK -->
+    <!-- Telegram Web App SDK - we're already loading it in the bootstrap, but include again for completeness -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         console.log('DEBUG: After loading Telegram Web App SDK');

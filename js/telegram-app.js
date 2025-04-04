@@ -185,22 +185,38 @@ class TelegramApp {
         }
     }
 
-    // Navigation method now uses the router
+    // Navigation method now uses the router's navigateTo method
     navigateTo(path, params = {}) {
-        // Override the router's navigate method to prevent conflicts
-        if (document.querySelector('.app-container')) {
-            // Clear the app container to prevent flickering
-            document.querySelector('.app-container').innerHTML = '';
-        }
+        console.log('TelegramApp.navigateTo called with path:', path, 'params:', params);
         
-        this.router.navigate(path, params);
-        
-        if (this.webApp) {
-            if (path !== '/' && path !== '/index.html') {
-                this.webApp.BackButton.show();
-            } else {
-                this.webApp.BackButton.hide();
+        try {
+            // Override the router's navigate method to prevent conflicts
+            if (document.querySelector('.app-container')) {
+                // Clear the app container to prevent flickering
+                document.querySelector('.app-container').innerHTML = '';
             }
+            
+            // Call the router's navigateTo method instead of navigate
+            if (this.router && typeof this.router.navigateTo === 'function') {
+                console.log('Calling router.navigateTo');
+                this.router.navigateTo(path, params);
+            } else {
+                console.error('Router or navigateTo method not available');
+                window.debugError?.('Router navigation failed: router.navigateTo not available');
+            }
+            
+            if (this.webApp) {
+                if (path !== '/' && path !== '/index.html') {
+                    console.log('Showing back button');
+                    this.webApp.BackButton.show();
+                } else {
+                    console.log('Hiding back button');
+                    this.webApp.BackButton.hide();
+                }
+            }
+        } catch (error) {
+            console.error('Navigation error in TelegramApp:', error);
+            window.debugError?.('Navigation error: ' + error.message, error);
         }
     }
 
