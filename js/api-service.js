@@ -1,5 +1,6 @@
 // js/api-service.js
-const API_URL = 'http://localhost:5003/api';
+// Use the configuration-based API URL instead of hardcoded value
+const API_URL = window.StreamFlixConfig?.API_URL || 'https://streamflix-backend.onrender.com/api';
 
 // Get all content
 async function getAllContent() {

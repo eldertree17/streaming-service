@@ -657,9 +657,17 @@
             if (testVideoCard) {
                 testVideoCard.addEventListener('click', function() {
                     console.log('Test video card clicked, navigating to sample-video-1');
-                    const baseUrl = window.location.origin;
-                    // Using watch.html instead of pages/watch (prevent 301 redirect)
-                    window.location.href = `${baseUrl}/pages/watch.html?id=sample-video-1`;
+                    
+                    // Use telegramApp if available, otherwise use direct URL
+                    if (window.telegramApp) {
+                        console.log('Using Telegram router for navigation');
+                        window.telegramApp.navigateTo('/watch', { id: 'sample-video-1' });
+                    } else {
+                        const baseUrl = window.location.origin;
+                        console.log('Using direct URL navigation');
+                        window.location.href = `${baseUrl}/pages/watch.html?id=sample-video-1`;
+                    }
+                    
                     // Stop any other event handlers
                     return false;
                 });
