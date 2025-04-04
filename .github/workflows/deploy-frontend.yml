@@ -40,13 +40,22 @@ jobs:
         run: |
           ls -la
           echo "Contents of index.html:"
-          cat index.html | grep -A 10 "<script"
+          cat index.html | head -50
 
       - name: Update config.js
         run: |
           # Update the config.js file with the correct backend URL
           sed -i 's|https://your-backend-server.com/api|https://streamflix-backend.onrender.com/api|g' js/config.js
           # Update with your actual backend URL when deployed
+          
+      - name: Git config
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          echo "Git version:"
+          git --version
+          echo "Git config:"
+          git config --list
 
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
@@ -62,5 +71,7 @@ jobs:
             server-config.js
             README.md
             .gitignore
-          token: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+          # Use built-in GitHub token instead of custom key
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages
           force: true # Force push changes 
