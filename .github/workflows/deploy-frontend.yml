@@ -4,14 +4,15 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'index.html'
-      - 'css/**'
-      - 'js/**'
-      - 'pages/**'
-      - 'img/**'
-      - 'assets/**'
-      - '.github/workflows/deploy-frontend.yml'
+    # Force redeploy for all changes by removing paths filter
+    # paths:
+    #   - 'index.html'
+    #   - 'css/**'
+    #   - 'js/**'
+    #   - 'pages/**'
+    #   - 'img/**'
+    #   - 'assets/**'
+    #   - '.github/workflows/deploy-frontend.yml'
 
 # Add permissions for GitHub Actions
 permissions:
@@ -23,6 +24,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Fetch all history
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -32,6 +35,12 @@ jobs:
       - name: Install Dependencies
         run: |
           npm install
+
+      - name: Debug - List files to be deployed
+        run: |
+          ls -la
+          echo "Contents of index.html:"
+          cat index.html | grep -A 10 "<script"
 
       - name: Update config.js
         run: |
@@ -53,4 +62,5 @@ jobs:
             server-config.js
             README.md
             .gitignore
-          token: ${{ secrets.ACTIONS_DEPLOY_KEY }} 
+          token: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+          force: true # Force push changes 

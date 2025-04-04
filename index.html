@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StreamFlix - Streaming Service</title>
+    <!-- Version: 2023-04-04 Telegram Mini App Fix -->
     <!-- GitHub Pages SPA redirect script -->
     <script type="text/javascript">
       // Single Page Apps for GitHub Pages
@@ -26,17 +27,16 @@
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Load configuration first -->
+    <!-- CRITICAL: LOAD IN CORRECT ORDER - Load configuration first -->
     <script src="js/config.js"></script>
     
-    <!-- Telegram Mini App integration -->
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- CRITICAL: LOAD IN CORRECT ORDER - App components -->
     <script src="js/router.js"></script>
     <script src="js/telegram-app.js"></script>
-    
-    <!-- API Service -->
     <script src="js/api-service.js"></script>
-    
-    <!-- Main app logic -->
     <script src="js/main.js"></script>
 </head>
 <body>
@@ -407,6 +407,6 @@
         </div>
     </div>
 
-    <!-- No inline script here - all code is loaded from external JS files -->
+    <!-- IMPORTANT: NO INLINE SCRIPTS HERE -->
 </body>
 </html>
