@@ -354,13 +354,42 @@ class Router {
         try {
             console.log('Initializing activity page');
             
-            // Set up back button
-            const backButton = document.querySelector('.back-button');
-            if (backButton) {
-                backButton.addEventListener('click', () => {
-                    console.log('Activity back button clicked');
-                    this.navigateTo('/');
-                });
+            // Load activity.js if not already loaded
+            if (!window.activityJsLoaded) {
+                console.log('Loading activity.js');
+                const script = document.createElement('script');
+                script.src = 'js/activity.js';
+                script.onload = function() {
+                    console.log('activity.js loaded successfully');
+                    window.activityJsLoaded = true;
+                    
+                    // If these functions are defined in activity.js, call them
+                    if (typeof setupSectionHandlers === 'function') {
+                        setupSectionHandlers();
+                    }
+                    
+                    if (typeof loadActivityData === 'function') {
+                        loadActivityData();
+                    }
+                };
+                document.head.appendChild(script);
+            } else {
+                // Call functions directly if activity.js is already loaded
+                if (typeof setupSectionHandlers === 'function') {
+                    setupSectionHandlers();
+                }
+                
+                if (typeof loadActivityData === 'function') {
+                    loadActivityData();
+                }
+            }
+            
+            // Set up styles for activity page if not already loaded
+            if (!document.querySelector('link[href="css/activity.css"]')) {
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = 'css/activity.css';
+                document.head.appendChild(link);
             }
             
             console.log('Activity page initialization completed');
@@ -445,18 +474,94 @@ class Router {
 
     getActivityTemplate() {
         return `
-        <div class="page-container">
-            <div class="header">
-                <div class="back-button"><i class="fas fa-arrow-left"></i></div>
-                <h1>Activity</h1>
-            </div>
-            <div class="content">
-                <div class="activity-list">
-                    <div class="activity-item">
-                        <p>Your activity will appear here</p>
+        <div class="app-container">
+            <header>
+                <div class="header-content">
+                    <h1>Activity</h1>
+                </div>
+            </header>
+
+            <main>
+                <div class="section dvd-seeding-section">
+                    <div class="section-header">
+                        <h2>DVD Seeding</h2>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                    
+                    <div class="earn-apy">
+                        <h3>Earn APY</h3>
+                        
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-label">DVDs Seeded</div>
+                                <div class="stat-value">500</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">APY</div>
+                                <div class="stat-value">10%</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Earnings</div>
+                                <div class="stat-value">$50</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Duration</div>
+                                <div class="stat-value">Flexible ~ 1 Year</div>
+                            </div>
+                        </div>
+                        
+                        <div class="earnings-summary">
+                            <div class="earnings-row">
+                                <div class="earnings-label">Total earnings</div>
+                                <div class="earnings-value">$250 <span class="percentage">+10%</span></div>
+                            </div>
+                            <div class="earnings-row">
+                                <div class="earnings-label">Projected earnings</div>
+                                <div class="earnings-value">$300 <span class="percentage">+20%</span></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
+
+                <div class="section roadmap-section">
+                    <div class="section-header">
+                        <h2>Roadmap</h2>
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                    
+                    <div class="roadmap-timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-icon">
+                                <i class="fas fa-gift"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-date">Q1 2023</div>
+                                <div class="timeline-text">Launch first library.</div>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item">
+                            <div class="timeline-icon">
+                                <i class="fas fa-crown"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-date">Q2 2023</div>
+                                <div class="timeline-text">Enable premier league.</div>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item">
+                            <div class="timeline-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-date">Q3 2023</div>
+                                <div class="timeline-text">Review and assessment of outcomes.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>`;
     }
 } 
