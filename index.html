@@ -628,50 +628,14 @@
             
             // Set up hero card click
             document.getElementById('featured-movie').addEventListener('click', function() {
-                console.log('Featured movie clicked, displaying video player directly');
+                console.log('Featured movie clicked, redirecting to watch.html');
                 
-                // Replace app container content with a simple video player
-                const appContainer = document.querySelector('.app-container');
-                if (appContainer) {
-                    // Save the current content so we can go back
-                    const previousContent = appContainer.innerHTML;
-                    
-                    // Replace with direct video player
-                    appContainer.innerHTML = `
-                        <div style="padding: 15px; color: #fff; background-color: #0D0402;">
-                            <div style="margin-bottom: 15px; cursor: pointer;" id="back-to-home">
-                                <i class="fas fa-arrow-left"></i> Back
-                            </div>
-                            <h2 style="font-size: 20px; margin-bottom: 15px;">Earth vs the Flying Saucers</h2>
-                            <video controls autoplay width="100%" style="max-height: 300px; background: #000;">
-                                <source src="https://archive.org/download/earthvstheflyingsaucersclassic/EarthFlyingSaucersClassic_512kb.mp4" type="video/mp4">
-                                Your browser does not support the video tag.
-                            </video>
-                            <div style="margin-top: 15px;">
-                                <p style="font-size: 14px; color: #ccc; line-height: 1.4;">
-                                    Dr. Russell Marvin heads up Operation Skyhook, which is tasked with sending
-                                    rockets into the upper atmosphere to probe for future space flights. Unfortunately
-                                    all the rockets are somehow disappearing. During the final rocket launching, a flying
-                                    saucer lands and the military shoots at it, triggering the beginning of the aliens' 
-                                    hostility. In classic 1950s alien invasion fashion, the film follows the struggle
-                                    between the humans and the aliens.
-                                </p>
-                            </div>
-                        </div>
-                    `;
-                    
-                    // Add back button handler
-                    const backButton = document.getElementById('back-to-home');
-                    if (backButton) {
-                        backButton.addEventListener('click', function() {
-                            console.log('Returning to home page');
-                            appContainer.innerHTML = previousContent;
-                            
-                            // Reinitialize all the event handlers
-                            document.dispatchEvent(new Event('DOMContentLoaded'));
-                        });
-                    }
-                }
+                // Direct navigation to watch.html
+                const baseUrl = window.location.origin;
+                const movieId = '67d919a32437ccb3a8680549'; // Featured movie ID
+                
+                // Use direct URL navigation to access the full watch.html page with WebTorrent functionality
+                window.location.href = `${baseUrl}/pages/watch.html?id=${movieId}`;
             });
             
             // Set up like button
@@ -695,48 +659,14 @@
             const testVideoCard = document.getElementById('test-video-card');
             if (testVideoCard) {
                 testVideoCard.addEventListener('click', function() {
-                    console.log('Test video card clicked, displaying video player directly');
+                    console.log('Test video card clicked, redirecting to watch.html');
                     
-                    // Replace app container content with a simple video player
-                    const appContainer = document.querySelector('.app-container');
-                    if (appContainer) {
-                        // Save the current content so we can go back
-                        const previousContent = appContainer.innerHTML;
-                        
-                        // Replace with direct video player
-                        appContainer.innerHTML = `
-                            <div style="padding: 15px; color: #fff; background-color: #0D0402;">
-                                <div style="margin-bottom: 15px; cursor: pointer;" id="back-to-home">
-                                    <i class="fas fa-arrow-left"></i> Back
-                                </div>
-                                <h2 style="font-size: 20px; margin-bottom: 15px;">Big Buck Bunny</h2>
-                                <video controls autoplay width="100%" style="max-height: 300px; background: #000;">
-                                    <source src="https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
-                                    Your browser does not support the video tag.
-                                </video>
-                                <div style="margin-top: 15px;">
-                                    <p style="font-size: 14px; color: #ccc; line-height: 1.4;">
-                                        Big Buck Bunny tells the story of a giant rabbit with a heart bigger than himself. 
-                                        When one sunny day three rodents rudely harass him, something snaps... 
-                                        and the rabbit ain't no bunny anymore! In the typical cartoon tradition he prepares 
-                                        the nasty rodents a comical revenge.
-                                    </p>
-                                </div>
-                            </div>
-                        `;
-                        
-                        // Add back button handler
-                        const backButton = document.getElementById('back-to-home');
-                        if (backButton) {
-                            backButton.addEventListener('click', function() {
-                                console.log('Returning to home page');
-                                appContainer.innerHTML = previousContent;
-                                
-                                // Reinitialize all the event handlers
-                                document.dispatchEvent(new Event('DOMContentLoaded'));
-                            });
-                        }
-                    }
+                    // Direct navigation to watch.html
+                    const baseUrl = window.location.origin;
+                    const videoId = 'sample-video-1';
+                    
+                    // Use direct URL navigation to access the full watch.html page with WebTorrent functionality
+                    window.location.href = `${baseUrl}/pages/watch.html?id=${videoId}`;
                     
                     // Stop any other event handlers
                     return false;
