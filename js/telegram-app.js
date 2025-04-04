@@ -143,7 +143,7 @@ class TelegramApp {
     updateUI() {
         try {
             // Update account tab with user name if available
-            const accountItem = document.querySelector('.nav-item a[href="pages/account.html"]');
+            const accountItem = document.querySelector('.nav-item#nav-account');
             if (accountItem && this.user) {
                 const nameElement = accountItem.querySelector('p');
                 if (nameElement) {

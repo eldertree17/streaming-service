@@ -15,9 +15,13 @@ class Router {
                 template: this.getSearchTemplate(),
                 init: this.initSearchPage
             },
-            '/profile': {
+            '/account': {
                 template: this.getProfileTemplate(),
                 init: this.initProfilePage
+            },
+            '/activity': {
+                template: this.getActivityTemplate(),
+                init: this.initActivityPage
             }
         };
 
@@ -346,6 +350,26 @@ class Router {
         }
     }
 
+    initActivityPage() {
+        try {
+            console.log('Initializing activity page');
+            
+            // Set up back button
+            const backButton = document.querySelector('.back-button');
+            if (backButton) {
+                backButton.addEventListener('click', () => {
+                    console.log('Activity back button clicked');
+                    this.navigateTo('/');
+                });
+            }
+            
+            console.log('Activity page initialization completed');
+        } catch (error) {
+            console.error('Error initializing activity page:', error);
+            window.debugError?.('Error initializing activity page: ' + error.message, error);
+        }
+    }
+
     // Template string getters
     getSearchTemplate() {
         return `
@@ -417,5 +441,22 @@ class Router {
                 </div>
             </div>
         `;
+    }
+
+    getActivityTemplate() {
+        return `
+        <div class="page-container">
+            <div class="header">
+                <div class="back-button"><i class="fas fa-arrow-left"></i></div>
+                <h1>Activity</h1>
+            </div>
+            <div class="content">
+                <div class="activity-list">
+                    <div class="activity-item">
+                        <p>Your activity will appear here</p>
+                    </div>
+                </div>
+            </div>
+        </div>`;
     }
 } 
