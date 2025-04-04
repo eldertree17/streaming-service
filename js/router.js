@@ -8,7 +8,7 @@ class Router {
                 init: this.initHomePage
             },
             '/watch': {
-                template: null, // Will be set dynamically
+                template: this.getWatchTemplate(),
                 init: this.initWatchPage
             },
             '/search': {
@@ -188,17 +188,107 @@ class Router {
                 return this.navigateTo('/');
             }
             
-            // Load movie details and update UI
-            window.contentManager.getMovieById(movieId)
-                .then(movie => {
-                    console.log('Movie loaded:', movie);
-                    window.uiManager.updateWatchContent(movie);
-                })
-                .catch(err => {
-                    console.error('Failed to load movie:', err);
-                    window.debugError?.('Failed to load movie: ' + err.message, err);
-                    this.navigateTo('/');
-                });
+            // Create watch page template
+            const container = document.querySelector('.app-container');
+            if (!container) {
+                console.error('App container not found');
+                window.debugError?.('App container not found for watch page');
+                return;
+            }
+            
+            // Set loading state
+            container.innerHTML = `
+                <div class="watch-container">
+                    <div class="loading-indicator">Loading video...</div>
+                </div>
+            `;
+            
+            // Use the global getContentById function from api-service.js
+            if (typeof getContentById === 'function') {
+                getContentById(movieId)
+                    .then(movie => {
+                        console.log('Movie loaded successfully:', movie);
+                        
+                        // Update the UI with video content
+                        container.innerHTML = `
+                            <div class="watch-container">
+                                <div class="back-button">
+                                    <i class="fas fa-arrow-left"></i> Back
+                                </div>
+                                <video id="video-player" controls autoplay width="100%">
+                                    <source src="${movie.videoUrl}" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
+                                <div class="video-info">
+                                    <h2>${movie.title}</h2>
+                                    <p>${movie.description || 'No description available'}</p>
+                                </div>
+                            </div>
+                        `;
+                        
+                        // Set up back button
+                        const backButton = container.querySelector('.back-button');
+                        if (backButton) {
+                            backButton.addEventListener('click', () => {
+                                console.log('Watch page back button clicked');
+                                this.navigateTo('/');
+                            });
+                        }
+                        
+                        console.log('Watch page UI updated successfully');
+                    })
+                    .catch(err => {
+                        console.error('Failed to load movie:', err);
+                        window.debugError?.('Failed to load movie: ' + err.message, err);
+                        
+                        // Show error message
+                        container.innerHTML = `
+                            <div class="watch-container">
+                                <div class="back-button">
+                                    <i class="fas fa-arrow-left"></i> Back
+                                </div>
+                                <div class="error-message">
+                                    <h2>Error</h2>
+                                    <p>Failed to load video. Please try again later.</p>
+                                </div>
+                            </div>
+                        `;
+                        
+                        // Set up back button
+                        const backButton = container.querySelector('.back-button');
+                        if (backButton) {
+                            backButton.addEventListener('click', () => {
+                                console.log('Watch page back button clicked');
+                                this.navigateTo('/');
+                            });
+                        }
+                    });
+            } else {
+                console.error('getContentById function not found');
+                window.debugError?.('getContentById function not found');
+                
+                // Show error message
+                container.innerHTML = `
+                    <div class="watch-container">
+                        <div class="back-button">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </div>
+                        <div class="error-message">
+                            <h2>Error</h2>
+                            <p>Video player functionality is not available.</p>
+                        </div>
+                    </div>
+                `;
+                
+                // Set up back button
+                const backButton = container.querySelector('.back-button');
+                if (backButton) {
+                    backButton.addEventListener('click', () => {
+                        console.log('Watch page back button clicked');
+                        this.navigateTo('/');
+                    });
+                }
+            }
                 
             console.log('Watch page initialization completed');
         } catch (error) {
@@ -701,6 +791,60 @@ class Router {
                     </div>
                 </div>
             </div>
+        </div>`;
+    }
+
+    getWatchTemplate() {
+        return `
+        <style>
+            .watch-container {
+                padding: 15px;
+                color: #fff;
+                background-color: #0D0402;
+            }
+            
+            .back-button {
+                display: inline-block;
+                margin-bottom: 15px;
+                cursor: pointer;
+                color: #fff;
+                font-size: 16px;
+            }
+            
+            #video-player {
+                width: 100%;
+                max-height: 300px;
+                background-color: #000;
+                margin-bottom: 15px;
+            }
+            
+            .video-info {
+                margin-top: 15px;
+            }
+            
+            .video-info h2 {
+                font-size: 20px;
+                margin-bottom: 10px;
+            }
+            
+            .video-info p {
+                font-size: 14px;
+                color: #ccc;
+                line-height: 1.4;
+            }
+            
+            .loading-indicator, .error-message {
+                padding: 20px;
+                text-align: center;
+                min-height: 200px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
+        </style>
+        <div class="watch-container">
+            <div class="loading-indicator">Loading video...</div>
         </div>`;
     }
 } 
