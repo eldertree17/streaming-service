@@ -3,78 +3,78 @@ class TelegramApp {
     constructor() {
         console.log('TelegramApp constructor starting');
         
-        // Check if WebApp is already initialized by the early initialization script
+        // Use the already initialized WebApp from the initialization script
         this.webApp = window.Telegram?.WebApp;
-        
-        // If we already have the WebApp from early initialization
-        if (this.webApp) {
-            console.log('Using already initialized Telegram WebApp');
-        } else {
-            console.log('Telegram WebApp not found, app will run in browser mode');
-        }
-        
         this.user = null;
         
+        // Check if Telegram WebApp is available and initialized
+        if (this.webApp) {
+            console.log('Using pre-initialized Telegram WebApp');
+            
+            // Log WebApp version and initialization data
+            console.log('WebApp version:', this.webApp.version);
+            console.log('WebApp platform:', this.webApp.platform);
+            
+            // Get the initialization parameters from the Telegram
+            try {
+                this.user = this.webApp.initDataUnsafe?.user || null;
+                console.log('User data retrieved:', this.user);
+            } catch (e) {
+                console.error('Error retrieving user data:', e);
+            }
+        } else {
+            console.log('Telegram WebApp not available, running in browser mode');
+            // Create fallback for browser testing
+            this.simulateTelegramApp();
+        }
+        
         try {
+            // Initialize router
             this.router = new Router();
             console.log('Router initialized successfully');
-        } catch (e) {
-            console.error('Failed to initialize Router:', e);
-            return;
-        }
-        
-        // Initialize the app
-        this.initTheme();
-        this.initApp();
-        
-        // Flag indicating this is running as a mini app
-        window.IS_TELEGRAM_MINI_APP = !!this.webApp;
-    }
-
-    initApp() {
-        if (!this.webApp) {
-            console.warn('Telegram WebApp is not available');
-            // Add fallback behavior for browser testing
-            this.simulateTelegramApp();
-            return;
-        }
-
-        try {
-            // Note: We don't need to call ready() or expand() again
-            // since we already did in the early initialization script
-            // this.webApp.ready();
-            // this.webApp.expand();
-
-            // Get user data
-            console.log('Getting user data from initDataUnsafe');
-            this.user = this.webApp.initDataUnsafe?.user || null;
-            console.log('Telegram user:', this.user);
-
-            // Set up back button handling
-            console.log('Setting up back button handler');
-            this.webApp.BackButton.onClick(() => this.handleBackButton());
             
-            // Handle theme changes
-            console.log('Setting up theme change handler');
-            this.webApp.onEvent('themeChanged', () => this.initTheme());
-
-            // Force navigation to home page for initial load
-            console.log('Navigating to home page');
-            this.navigateTo('/', {});
-
-            // Update UI with user data
-            console.log('Updating UI with user data');
-            this.updateUI();
+            // Initialize theme
+            this.initTheme();
             
-            console.log('App initialization completed successfully');
+            // Setup additional handlers
+            this.setupHandlers();
+            
+            console.log('TelegramApp initialization complete');
         } catch (e) {
-            console.error('Error in initApp:', e);
+            console.error('Error during TelegramApp initialization:', e);
         }
     }
     
-    // Fallback for testing outside Telegram
+    // Setup Telegram-specific handlers
+    setupHandlers() {
+        if (!this.webApp) return;
+        
+        try {
+            // Setup back button handler
+            this.webApp.BackButton.onClick(() => this.handleBackButton());
+            console.log('Back button handler set up');
+            
+            // Handle theme changes
+            this.webApp.onEvent('themeChanged', () => this.initTheme());
+            console.log('Theme change handler set up');
+            
+            // Set up main button if needed
+            if (this.webApp.MainButton) {
+                this.webApp.MainButton.setText('Watch Movie');
+                this.webApp.MainButton.onClick(() => {
+                    console.log('Main button clicked');
+                    // Logic for main button click
+                });
+                console.log('Main button set up');
+            }
+        } catch (e) {
+            console.error('Error setting up Telegram handlers:', e);
+        }
+    }
+    
+    // Fallback for browser testing
     simulateTelegramApp() {
-        console.log("Running in browser mode (not Telegram)");
+        console.log("Creating browser test environment");
         this.user = {
             id: "browser-test-user",
             username: "test_user",
@@ -82,79 +82,110 @@ class TelegramApp {
             last_name: "User"
         };
     }
-
+    
     // Initialize theme based on Telegram settings
     initTheme() {
         if (!this.webApp) return;
         
-        const colorScheme = this.webApp.colorScheme || 'light';
-        document.documentElement.setAttribute('data-theme', colorScheme);
-        
-        // Apply Telegram theme colors if available
-        const themeParams = this.webApp.themeParams || {};
-        if (themeParams) {
-            document.documentElement.style.setProperty('--tg-theme-bg-color', themeParams.bg_color || '');
-            document.documentElement.style.setProperty('--tg-theme-text-color', themeParams.text_color || '');
-            document.documentElement.style.setProperty('--tg-theme-hint-color', themeParams.hint_color || '');
-            document.documentElement.style.setProperty('--tg-theme-link-color', themeParams.link_color || '');
-            document.documentElement.style.setProperty('--tg-theme-button-color', themeParams.button_color || '');
-            document.documentElement.style.setProperty('--tg-theme-button-text-color', themeParams.button_text_color || '');
+        try {
+            const colorScheme = this.webApp.colorScheme || 'light';
+            document.documentElement.setAttribute('data-theme', colorScheme);
+            
+            // Apply Telegram theme colors if available
+            const themeParams = this.webApp.themeParams || {};
+            if (themeParams) {
+                document.documentElement.style.setProperty('--tg-theme-bg-color', themeParams.bg_color || '');
+                document.documentElement.style.setProperty('--tg-theme-text-color', themeParams.text_color || '');
+                document.documentElement.style.setProperty('--tg-theme-hint-color', themeParams.hint_color || '');
+                document.documentElement.style.setProperty('--tg-theme-link-color', themeParams.link_color || '');
+                document.documentElement.style.setProperty('--tg-theme-button-color', themeParams.button_color || '');
+                document.documentElement.style.setProperty('--tg-theme-button-text-color', themeParams.button_text_color || '');
+            }
+            
+            console.log('Theme initialized with color scheme:', colorScheme);
+        } catch (e) {
+            console.error('Error initializing theme:', e);
         }
     }
-
+    
     // Handle back button press
     handleBackButton() {
         console.log('Back button pressed');
         this.navigateTo('/');
     }
-
-    // Navigation method using router
+    
+    // Navigation using router
     navigateTo(path, params = {}) {
-        console.log('TelegramApp.navigateTo called with path:', path, 'params:', params);
+        console.log('Navigating to:', path, params);
         
         try {
-            // Call the router's navigateTo method
+            // Use the router to navigate
             if (this.router && typeof this.router.navigateTo === 'function') {
-                console.log('Calling router.navigateTo');
                 this.router.navigateTo(path, params);
             } else {
-                console.error('Router or navigateTo method not available');
+                console.error('Router navigation not available');
             }
             
-            // Manage back button visibility
+            // Update back button visibility
             if (this.webApp) {
-                if (path !== '/' && path !== '/index.html') {
-                    console.log('Showing back button');
-                    this.webApp.BackButton.show();
-                } else {
-                    console.log('Hiding back button');
+                if (path === '/' || path === '/index.html') {
                     this.webApp.BackButton.hide();
+                } else {
+                    this.webApp.BackButton.show();
                 }
             }
-        } catch (error) {
-            console.error('Navigation error in TelegramApp:', error);
+        } catch (e) {
+            console.error('Navigation error:', e);
         }
     }
-
-    // Update UI based on user data
+    
+    // Update UI with user data
     updateUI() {
-        // Update navigation elements
-        const accountItem = document.querySelector('.nav-item a[href="pages/account.html"]');
-        if (accountItem && this.user) {
-            accountItem.querySelector('p').textContent = this.user.first_name || 'Account';
+        try {
+            // Update account tab with user name if available
+            const accountItem = document.querySelector('.nav-item a[href="pages/account.html"]');
+            if (accountItem && this.user) {
+                const nameElement = accountItem.querySelector('p');
+                if (nameElement) {
+                    nameElement.textContent = this.user.first_name || 'Account';
+                }
+            }
+            
+            // If we have a user, log analytics
+            if (this.user) {
+                console.log('Logging user session:', this.user.id);
+                // Additional analytics tracking could be added here
+            }
+        } catch (e) {
+            console.error('Error updating UI:', e);
         }
     }
 }
 
-// Initialize when DOM is loaded
+// Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("DOM Content Loaded - Initializing Telegram Mini App");
+    console.log('DOM loaded, initializing TelegramApp');
     
     try {
-        // Initialize Telegram App
+        // Create the TelegramApp instance
         window.telegramApp = new TelegramApp();
-        console.log("Telegram Mini App initialized successfully");
+        
+        // Navigate to home page
+        if (window.telegramApp) {
+            window.telegramApp.navigateTo('/', {});
+            window.telegramApp.updateUI();
+        }
+        
+        // Log initialization success to StreamFlix logger
+        if (window.StreamFlix && window.StreamFlix.log) {
+            window.StreamFlix.log('TelegramApp initialized successfully');
+        }
     } catch (e) {
-        console.error("Failed to initialize Telegram Mini App:", e);
+        console.error('Error creating TelegramApp:', e);
+        
+        // Log error to StreamFlix logger
+        if (window.StreamFlix && window.StreamFlix.error) {
+            window.StreamFlix.error('Failed to initialize TelegramApp: ' + e.message);
+        }
     }
 }); 

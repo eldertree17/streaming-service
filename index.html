@@ -4,34 +4,94 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StreamFlix - Streaming Service</title>
-    <!-- Version: 2023-04-05 Telegram Mini App Fix -->
+    <!-- Version: 2023-04-05 Telegram Mini App Fix v2 -->
     
-    <!-- Telegram Web App SDK - MUST be loaded first -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
-    <!-- Critical Telegram Initialization - Do not modify or move this script -->
+    <!-- Critical timing improvements for Telegram Mini App -->
     <script>
-        (function() {
-            // Immediately initialize Telegram WebApp when available
-            if (window.Telegram && window.Telegram.WebApp) {
-                console.log('Telegram WebApp detected, initializing...');
-                
-                // Tell Telegram WebApp is ready (CRITICAL)
-                window.Telegram.WebApp.ready();
-                
-                // Expand WebApp to full height
-                window.Telegram.WebApp.expand();
-                
-                // Set flag that we're running in Telegram
-                window.IS_TELEGRAM_MINI_APP = true;
-                
-                console.log('Telegram WebApp initialized successfully');
-            } else {
-                console.log('Not running in Telegram, using standard web mode');
-                window.IS_TELEGRAM_MINI_APP = false;
+        // Create global namespace to avoid conflicts
+        window.StreamFlix = {};
+        
+        // Store initialization state
+        window.StreamFlix.initialized = false;
+        
+        // Create logging function
+        window.StreamFlix.log = function(message) {
+            console.log('[StreamFlix]', message);
+            const logDiv = document.getElementById('tg-log');
+            if (logDiv) {
+                const now = new Date();
+                const time = now.toTimeString().split(' ')[0];
+                logDiv.innerHTML += `<div>${time}: ${message}</div>`;
+                logDiv.scrollTop = logDiv.scrollHeight;
             }
-        })();
+        };
+        
+        // Create error logging function
+        window.StreamFlix.error = function(message) {
+            console.error('[StreamFlix ERROR]', message);
+            const logDiv = document.getElementById('tg-log');
+            if (logDiv) {
+                const now = new Date();
+                const time = now.toTimeString().split(' ')[0];
+                logDiv.innerHTML += `<div style="color:red">${time}: ERROR - ${message}</div>`;
+                logDiv.scrollTop = logDiv.scrollHeight;
+            }
+        };
+        
+        // Function to initialize Telegram
+        window.StreamFlix.initTelegram = function() {
+            // Only initialize once
+            if (window.StreamFlix.initialized) return;
+            
+            try {
+                window.StreamFlix.log('Checking for Telegram WebApp...');
+                
+                // Check if Telegram WebApp is available
+                if (window.Telegram && window.Telegram.WebApp) {
+                    window.StreamFlix.log('Telegram WebApp found!');
+                    
+                    // Initialize Telegram
+                    window.Telegram.WebApp.ready();
+                    window.StreamFlix.log('WebApp.ready() called');
+                    
+                    window.Telegram.WebApp.expand();
+                    window.StreamFlix.log('WebApp.expand() called');
+                    
+                    // Set flag for Mini App
+                    window.IS_TELEGRAM_MINI_APP = true;
+                    window.StreamFlix.log('Mini App flag set');
+                    
+                    // Mark as initialized
+                    window.StreamFlix.initialized = true;
+                    window.StreamFlix.log('Telegram initialization successful!');
+                } else {
+                    window.StreamFlix.log('Running outside Telegram - browser mode enabled');
+                    window.IS_TELEGRAM_MINI_APP = false;
+                }
+            } catch (error) {
+                window.StreamFlix.error('Failed to initialize Telegram: ' + error.message);
+            }
+        };
+        
+        // Try to initialize early
+        window.StreamFlix.log('Starting early initialization...');
+        window.StreamFlix.initTelegram();
+        
+        // Also try again when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            window.StreamFlix.log('DOM loaded, initializing Telegram again if needed...');
+            window.StreamFlix.initTelegram();
+        });
+        
+        // And again when window is fully loaded
+        window.addEventListener('load', function() {
+            window.StreamFlix.log('Window loaded, final Telegram initialization check...');
+            window.StreamFlix.initTelegram();
+        });
     </script>
+    
+    <!-- Telegram Web App SDK - must be loaded before other scripts -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
     <!-- GitHub Pages SPA redirect script -->
     <script type="text/javascript">
@@ -52,42 +112,32 @@
         }
       }(window.location))
     </script>
+    
+    <!-- Use defer to ensure scripts load in the right order but execute after parsing -->
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- CRITICAL: LOAD IN CORRECT ORDER - Load configuration first -->
-    <script src="js/config.js"></script>
-    
-    <!-- App components - maintain original order for compatibility -->
-    <script src="js/router.js"></script>
-    <script src="js/telegram-app.js"></script>
-    <script src="js/api-service.js"></script>
-    <script src="js/main.js"></script>
+    <script src="js/config.js" defer></script>
+    <script src="js/router.js" defer></script>
+    <script src="js/telegram-app.js" defer></script>
+    <script src="js/api-service.js" defer></script>
+    <script src="js/main.js" defer></script>
 </head>
 <body>
-    <!-- Telegram status indicator (hidden by default) -->
-    <div id="telegram-status" style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 10px; border-radius: 5px; font-size: 12px; z-index: 9999; max-width: 300px; max-height: 200px; overflow: auto; display: none;">
-        Telegram integration status
+    <!-- Telegram logging panel (hidden by default, can be shown with ?debug=true) -->
+    <div id="tg-log" style="display: none; position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-size: 12px; z-index: 9999; max-width: 80%; max-height: 300px; overflow: auto;">
+        Telegram Mini App Log
     </div>
     
     <script>
-        // Show Telegram status
-        setTimeout(function() {
-            const statusDiv = document.getElementById('telegram-status');
-            if (statusDiv) {
-                if (window.Telegram && window.Telegram.WebApp) {
-                    statusDiv.innerHTML = 'Running in Telegram WebApp<br>Version: ' + 
-                        (window.Telegram.WebApp.version || 'Unknown');
-                    
-                    // Only show in debug mode
-                    if (window.StreamFlixConfig && window.StreamFlixConfig.DEBUG_MODE) {
-                        statusDiv.style.display = 'block';
-                    }
-                }
-            }
-        }, 1000);
+        // Check if debug mode is enabled
+        if (window.location.search.includes('debug=true')) {
+            document.getElementById('tg-log').style.display = 'block';
+            window.StreamFlix.log('Debug mode enabled');
+        }
     </script>
     
+    <!-- App container with existing UI -->
     <div class="app-container">
     <!-- Search Bar -->
     <div class="search-bar">
@@ -442,7 +492,7 @@
             </div>
             <div class="nav-item">
                 <a href="pages/activity.html">
-                    <i class="fas fa-compact-disc"></i>
+                    <i class="fas fa-chart-line"></i>
                     <p>Activity</p>
                 </a>
             </div>
