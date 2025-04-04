@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StreamFlix - Streaming Service</title>
-    <!-- Version: 2023-04-05 Telegram Mini App Fix v2 -->
+    <!-- Version: 2023-04-05 Telegram Mini App Fix v3 -->
     
     <!-- Critical timing improvements for Telegram Mini App -->
     <script>
@@ -81,6 +81,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             window.StreamFlix.log('DOM loaded, initializing Telegram again if needed...');
             window.StreamFlix.initTelegram();
+            
+            // Handle redirects from 404.html
+            checkForRedirect();
         });
         
         // And again when window is fully loaded
@@ -88,6 +91,62 @@
             window.StreamFlix.log('Window loaded, final Telegram initialization check...');
             window.StreamFlix.initTelegram();
         });
+        
+        // Handle redirects from 404.html
+        function checkForRedirect() {
+            // Get URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirectPath = urlParams.get('path');
+            
+            if (redirectPath) {
+                window.StreamFlix.log('Detected redirect path: ' + redirectPath);
+                
+                // Clean URL by removing the path parameter
+                const cleanParams = new URLSearchParams(window.location.search);
+                cleanParams.delete('path');
+                const remainingParams = cleanParams.toString();
+                const newUrl = window.location.pathname + (remainingParams ? '?' + remainingParams : '') + window.location.hash;
+                
+                // Update browser URL without reloading
+                window.history.replaceState({}, document.title, newUrl);
+                
+                // Wait for the app to initialize before navigating
+                setTimeout(() => {
+                    if (window.telegramApp) {
+                        window.StreamFlix.log('Navigating to redirected path: ' + redirectPath);
+                        window.telegramApp.navigateTo(redirectPath, {});
+                    } else {
+                        window.StreamFlix.error('TelegramApp not initialized for navigation');
+                        // Fallback navigation
+                        handleFallbackNavigation(redirectPath);
+                    }
+                }, 500);
+            }
+        }
+        
+        // Fallback navigation when telegramApp is not available
+        function handleFallbackNavigation(path) {
+            window.StreamFlix.log('Using fallback navigation for path: ' + path);
+            
+            // Simple navigation implementation
+            if (path === '/watch') {
+                // Show watch page
+                document.title = 'Watch - StreamFlix';
+                // Logic to display watch page would go here
+            } else if (path === '/search') {
+                // Show search page
+                document.title = 'Search - StreamFlix';
+                // Logic to display search page would go here
+            } else if (path === '/activity') {
+                // Show activity page
+                document.title = 'Activity - StreamFlix';
+                // Logic to display activity page would go here
+            } else if (path === '/account') {
+                // Show account page
+                document.title = 'Account - StreamFlix';
+                // Logic to display account page would go here
+            }
+        }
     </script>
     
     <!-- Telegram Web App SDK - must be loaded before other scripts -->
@@ -484,20 +543,20 @@
         
         <!-- Navigation Bar -->
         <div class="nav-bar">
-            <div class="nav-item active">
-                <a href="index.html">
+            <div class="nav-item active" id="nav-home">
+                <a href="javascript:void(0)" onclick="navigateTo('/')">
                     <i class="fas fa-home"></i>
                     <p>Home</p>
                 </a>
             </div>
-            <div class="nav-item">
-                <a href="pages/activity.html">
+            <div class="nav-item" id="nav-activity">
+                <a href="javascript:void(0)" onclick="navigateTo('/activity')">
                     <i class="fas fa-chart-line"></i>
                     <p>Activity</p>
                 </a>
             </div>
-            <div class="nav-item">
-                <a href="pages/account.html">
+            <div class="nav-item" id="nav-account">
+                <a href="javascript:void(0)" onclick="navigateTo('/account')">
                     <i class="fas fa-user"></i>
                     <p>Account</p>
                 </a>
@@ -506,6 +565,32 @@
     </div>
 
     <script>
+        // Navigation helper function
+        function navigateTo(path, params) {
+            // Use telegramApp if available, otherwise use fallback
+            if (window.telegramApp) {
+                window.telegramApp.navigateTo(path, params || {});
+            } else if (path === '/') {
+                window.location.href = window.location.origin + '/index.html';
+            } else {
+                // Fallback to our redirect system using 404.html
+                window.location.href = window.location.origin + '/index.html?path=' + path;
+            }
+            
+            // Update active navigation class
+            document.querySelectorAll('.nav-bar .nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            if (path === '/') {
+                document.getElementById('nav-home').classList.add('active');
+            } else if (path === '/activity') {
+                document.getElementById('nav-activity').classList.add('active');
+            } else if (path === '/account') {
+                document.getElementById('nav-account').classList.add('active');
+            }
+        }
+        
         document.addEventListener('DOMContentLoaded', function() {
             // Set up search functionality
             const searchInput = document.getElementById('search-input');

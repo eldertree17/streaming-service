@@ -1,35 +1,81 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Redirecting...</title>
-  <script>
-    // Single Page Apps for GitHub Pages
-    // MIT License https://github.com/rafgraph/spa-github-pages
-    // This script takes the current URL path and converts it to a hash fragment
-    // on the redirected URL so the original path can be preserved
-    
-    // Parse the URL
-    const l = window.location;
-    const segmentCount = 1; // Adjust based on your repo structure
-    
-    // Get the full path
-    let path = l.pathname.split('/').slice(segmentCount + 1).join('/');
-    
-    // Add the query string if it exists
-    if (l.search) {
-      path += l.search;
-    }
-    
-    // Redirect with the path in the hash fragment
-    l.replace(
-      l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-      l.pathname.split('/').slice(0, segmentCount + 1).join('/') + '/?/' +
-      path + l.hash
-    );
-  </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting...</title>
+    <script type="text/javascript">
+        // GitHub Pages Redirect for Single Page Apps
+        // This script handles navigation for Telegram Mini App
+        (function() {
+            // Parse the current URL path
+            var path = window.location.pathname;
+            var origin = window.location.origin;
+            
+            // Log the current path for debugging
+            console.log('404 page - redirecting path:', path);
+            
+            // If this is a /pages/ request
+            if (path.includes('/pages/')) {
+                // Detect the page type
+                if (path.includes('/watch')) {
+                    // Keep any query parameters
+                    window.location.href = origin + '/index.html?path=/watch' + window.location.search;
+                } else if (path.includes('/search')) {
+                    window.location.href = origin + '/index.html?path=/search' + window.location.search;
+                } else if (path.includes('/activity')) {
+                    window.location.href = origin + '/index.html?path=/activity';
+                } else if (path.includes('/account')) {
+                    window.location.href = origin + '/index.html?path=/account';
+                } else {
+                    // Default redirect to home
+                    window.location.href = origin + '/index.html';
+                }
+            } else {
+                // For any other unknown path, redirect to index
+                window.location.href = origin + '/index.html';
+            }
+        })();
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .redirect-message {
+            text-align: center;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
-  Redirecting...
+    <div class="redirect-message">
+        <h2>Redirecting...</h2>
+        <div class="spinner"></div>
+        <p>You'll be redirected to the correct page in a moment.</p>
+    </div>
 </body>
 </html> 
