@@ -352,45 +352,187 @@ class Router {
 
     initActivityPage() {
         try {
-            console.log('Initializing activity page');
+            console.log('Initializing activity page with direct content');
             
-            // Load activity.js if not already loaded
-            if (!window.activityJsLoaded) {
-                console.log('Loading activity.js');
-                const script = document.createElement('script');
-                script.src = 'js/activity.js';
-                script.onload = function() {
-                    console.log('activity.js loaded successfully');
-                    window.activityJsLoaded = true;
-                    
-                    // If these functions are defined in activity.js, call them
-                    if (typeof setupSectionHandlers === 'function') {
-                        setupSectionHandlers();
+            // Inject CSS directly
+            if (!document.head.querySelector('style#activity-css')) {
+                const style = document.createElement('style');
+                style.id = 'activity-css';
+                style.textContent = `
+                    /* Activity Page Styles */
+                    .section {
+                        margin-bottom: 20px;
+                        padding: 0 15px;
                     }
                     
-                    if (typeof loadActivityData === 'function') {
-                        loadActivityData();
+                    .section-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 15px;
+                        padding-bottom: 5px;
                     }
-                };
-                document.head.appendChild(script);
+                    
+                    .section-header h2 {
+                        font-size: 28px;
+                        font-weight: 600;
+                        margin: 0;
+                    }
+                    
+                    .section-header i {
+                        font-size: 18px;
+                        color: #aaa;
+                    }
+                    
+                    /* DVD Seeding Section */
+                    .earn-apy h3 {
+                        font-size: 20px;
+                        margin-bottom: 15px;
+                        font-weight: 500;
+                    }
+                    
+                    .stats-grid {
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 20px;
+                        margin-bottom: 20px;
+                    }
+                    
+                    .stat-item {
+                        display: flex;
+                        flex-direction: column;
+                    }
+                    
+                    .stat-label {
+                        font-size: 14px;
+                        color: #aaa;
+                        margin-bottom: 5px;
+                    }
+                    
+                    .stat-value {
+                        font-size: 18px;
+                        font-weight: 600;
+                    }
+                    
+                    /* Earnings Summary */
+                    .earnings-summary {
+                        margin-top: 20px;
+                        border-top: 1px solid rgba(255, 255, 255, 0.1);
+                        padding-top: 15px;
+                    }
+                    
+                    .earnings-row {
+                        display: flex;
+                        justify-content: space-between;
+                        margin-bottom: 10px;
+                    }
+                    
+                    .earnings-label {
+                        font-size: 14px;
+                        color: #aaa;
+                    }
+                    
+                    .earnings-value {
+                        font-size: 16px;
+                        font-weight: 600;
+                    }
+                    
+                    .percentage {
+                        color: rgb(255, 87, 51);
+                        margin-left: 5px;
+                    }
+                    
+                    /* Roadmap Section */
+                    .roadmap-timeline {
+                        position: relative;
+                        padding-left: 30px;
+                    }
+                    
+                    .roadmap-timeline:before {
+                        content: '';
+                        position: absolute;
+                        left: 15px;
+                        top: 0;
+                        bottom: 0;
+                        width: 2px;
+                        background: rgba(255, 255, 255, 0.2);
+                    }
+                    
+                    .timeline-item {
+                        position: relative;
+                        margin-bottom: 30px;
+                    }
+                    
+                    .timeline-icon {
+                        position: absolute;
+                        left: -30px;
+                        width: 30px;
+                        height: 30px;
+                        background-color: rgb(255, 87, 51);
+                        border-radius: 50%;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        z-index: 1;
+                    }
+                    
+                    .timeline-icon i {
+                        color: #fff;
+                        font-size: 14px;
+                    }
+                    
+                    .timeline-content {
+                        padding-left: 10px;
+                    }
+                    
+                    .timeline-date {
+                        font-size: 16px;
+                        font-weight: 600;
+                        margin-bottom: 5px;
+                    }
+                    
+                    .timeline-text {
+                        font-size: 14px;
+                        color: #aaa;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            // Set up back button handler
+            const backButton = document.querySelector('.back-button');
+            if (backButton) {
+                backButton.addEventListener('click', () => {
+                    console.log('Activity back button clicked, navigating home');
+                    this.navigateTo('/');
+                });
+                console.log('Back button handler set up');
             } else {
-                // Call functions directly if activity.js is already loaded
-                if (typeof setupSectionHandlers === 'function') {
-                    setupSectionHandlers();
+                console.error('Back button not found');
+            }
+            
+            // Set up section handlers
+            setTimeout(() => {
+                // Add click handlers for sections
+                const dvdSeedingHeader = document.querySelector('.dvd-seeding-section .section-header');
+                if (dvdSeedingHeader) {
+                    dvdSeedingHeader.addEventListener('click', function() {
+                        console.log('DVD Seeding section clicked');
+                        alert('DVD Seeding details coming soon!');
+                    });
                 }
                 
-                if (typeof loadActivityData === 'function') {
-                    loadActivityData();
+                // Roadmap section click handler
+                const roadmapHeader = document.querySelector('.roadmap-section .section-header');
+                if (roadmapHeader) {
+                    roadmapHeader.addEventListener('click', function() {
+                        console.log('Roadmap section clicked');
+                        alert('Detailed roadmap coming soon!');
+                    });
                 }
-            }
-            
-            // Set up styles for activity page if not already loaded
-            if (!document.querySelector('link[href="css/activity.css"]')) {
-                const link = document.createElement('link');
-                link.rel = 'stylesheet';
-                link.href = 'css/activity.css';
-                document.head.appendChild(link);
-            }
+                
+                console.log('Activity page event handlers set up');
+            }, 300);
             
             console.log('Activity page initialization completed');
         } catch (error) {
@@ -474,94 +616,91 @@ class Router {
 
     getActivityTemplate() {
         return `
-        <div class="app-container">
-            <header>
-                <div class="header-content">
-                    <h1>Activity</h1>
-                </div>
-            </header>
+        <div class="page-container" style="padding: 15px; color: #fff;">
+            <div class="header">
+                <div class="back-button" style="margin-bottom: 15px;"><i class="fas fa-arrow-left"></i></div>
+                <h1 style="font-size: 24px; margin-bottom: 20px; text-align: center;">Activity</h1>
+            </div>
 
-            <main>
-                <div class="section dvd-seeding-section">
-                    <div class="section-header">
-                        <h2>DVD Seeding</h2>
-                        <i class="fas fa-chevron-right"></i>
+            <div class="section dvd-seeding-section">
+                <div class="section-header">
+                    <h2>DVD Seeding</h2>
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+                
+                <div class="earn-apy">
+                    <h3>Earn APY</h3>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-label">DVDs Seeded</div>
+                            <div class="stat-value">500</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">APY</div>
+                            <div class="stat-value">10%</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Earnings</div>
+                            <div class="stat-value">$50</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Duration</div>
+                            <div class="stat-value">Flexible ~ 1 Year</div>
+                        </div>
                     </div>
                     
-                    <div class="earn-apy">
-                        <h3>Earn APY</h3>
-                        
-                        <div class="stats-grid">
-                            <div class="stat-item">
-                                <div class="stat-label">DVDs Seeded</div>
-                                <div class="stat-value">500</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-label">APY</div>
-                                <div class="stat-value">10%</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-label">Earnings</div>
-                                <div class="stat-value">$50</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-label">Duration</div>
-                                <div class="stat-value">Flexible ~ 1 Year</div>
-                            </div>
+                    <div class="earnings-summary">
+                        <div class="earnings-row">
+                            <div class="earnings-label">Total earnings</div>
+                            <div class="earnings-value">$250 <span class="percentage">+10%</span></div>
                         </div>
-                        
-                        <div class="earnings-summary">
-                            <div class="earnings-row">
-                                <div class="earnings-label">Total earnings</div>
-                                <div class="earnings-value">$250 <span class="percentage">+10%</span></div>
-                            </div>
-                            <div class="earnings-row">
-                                <div class="earnings-label">Projected earnings</div>
-                                <div class="earnings-value">$300 <span class="percentage">+20%</span></div>
-                            </div>
+                        <div class="earnings-row">
+                            <div class="earnings-label">Projected earnings</div>
+                            <div class="earnings-value">$300 <span class="percentage">+20%</span></div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="section roadmap-section">
-                    <div class="section-header">
-                        <h2>Roadmap</h2>
-                        <i class="fas fa-chevron-right"></i>
+            <div class="section roadmap-section">
+                <div class="section-header">
+                    <h2>Roadmap</h2>
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+                
+                <div class="roadmap-timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-icon">
+                            <i class="fas fa-gift"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <div class="timeline-date">Q1 2023</div>
+                            <div class="timeline-text">Launch first library.</div>
+                        </div>
                     </div>
                     
-                    <div class="roadmap-timeline">
-                        <div class="timeline-item">
-                            <div class="timeline-icon">
-                                <i class="fas fa-gift"></i>
-                            </div>
-                            <div class="timeline-content">
-                                <div class="timeline-date">Q1 2023</div>
-                                <div class="timeline-text">Launch first library.</div>
-                            </div>
+                    <div class="timeline-item">
+                        <div class="timeline-icon">
+                            <i class="fas fa-crown"></i>
                         </div>
-                        
-                        <div class="timeline-item">
-                            <div class="timeline-icon">
-                                <i class="fas fa-crown"></i>
-                            </div>
-                            <div class="timeline-content">
-                                <div class="timeline-date">Q2 2023</div>
-                                <div class="timeline-text">Enable premier league.</div>
-                            </div>
+                        <div class="timeline-content">
+                            <div class="timeline-date">Q2 2023</div>
+                            <div class="timeline-text">Enable premier league.</div>
                         </div>
-                        
-                        <div class="timeline-item">
-                            <div class="timeline-icon">
-                                <i class="fas fa-chart-line"></i>
-                            </div>
-                            <div class="timeline-content">
-                                <div class="timeline-date">Q3 2023</div>
-                                <div class="timeline-text">Review and assessment of outcomes.</div>
-                            </div>
+                    </div>
+                    
+                    <div class="timeline-item">
+                        <div class="timeline-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <div class="timeline-date">Q3 2023</div>
+                            <div class="timeline-text">Review and assessment of outcomes.</div>
                         </div>
                     </div>
                 </div>
-            </main>
+            </div>
         </div>`;
     }
 } 
