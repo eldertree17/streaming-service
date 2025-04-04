@@ -366,27 +366,16 @@ body {
   }
 }
 
-/* Fix for navigation text in very small viewports (Telegram Mini App) */
-@media (max-width: 320px) {
-  .nav-item p {
-    font-size: 10px;
-    white-space: nowrap;
-    width: 100%;
-    text-align: center;
-  }
-  
-  .nav-bar {
-    padding: 10px 5px;
-  }
-
-  .nav-item {
-    width: 33.33%;
-  }
+/* Simple fix for navigation text */
+.nav-bar .nav-item a p {
+  display: block;
+  width: auto;
 }
 
 html {
   background-color: #0D0402;
 }
+
 /* Navigation Bar Link Styling */
 .nav-bar .nav-item a {
     display: flex;
@@ -690,4 +679,11 @@ a:hover {
   .content-row {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
+}
+
+/* Simple fix specifically for Telegram Mini App navigation */
+.nav-bar .nav-item:last-child a p {
+  font-size: 12px; 
+  min-width: 40px;
+  text-align: center;
 }
