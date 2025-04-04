@@ -25,9 +25,19 @@
     </script>
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Config file for environment settings -->
+    
+    <!-- Load configuration first -->
     <script src="js/config.js"></script>
-    <!-- Rest of the head content -->
+    
+    <!-- Telegram Mini App integration -->
+    <script src="js/router.js"></script>
+    <script src="js/telegram-app.js"></script>
+    
+    <!-- API Service -->
+    <script src="js/api-service.js"></script>
+    
+    <!-- Main app logic -->
+    <script src="js/main.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -384,7 +394,7 @@
             </div>
             <div class="nav-item">
                 <a href="pages/activity.html">
-                    <i class="fas fa-compact-disc"></i>
+                    <i class="fas fa-chart-line"></i>
                     <p>Activity</p>
                 </a>
             </div>
@@ -397,247 +407,6 @@
         </div>
     </div>
 
-    <script src="js/api-service.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Set up search functionality
-            const searchInput = document.getElementById('search-input');
-            const searchField = document.querySelector('.search-field');
-            
-            // Make the entire search field clickable
-            searchField.addEventListener('click', function() {
-                window.location.href = "pages/search";
-            });
-            
-            // Make search input focus also redirect to search page
-            searchInput.addEventListener('focus', function() {
-                window.location.href = "pages/search";
-            });
-            
-            // Handle input clicks - no need to stop propagation anymore since we want the same behavior
-            searchInput.addEventListener('click', function() {
-                window.location.href = "pages/search";
-            });
-            
-            // Handle enter key just in case
-            searchInput.addEventListener('keyup', function(e) {
-                if (e.key === 'Enter') {
-                    const query = searchInput.value.trim();
-                    window.location.href = `pages/search?query=${encodeURIComponent(query)}`;
-                }
-            });
-            
-            // Set up voice search to redirect to search page
-            const voiceIcon = document.querySelector('.fa-microphone');
-            voiceIcon.addEventListener('click', function(e) {
-                e.stopPropagation(); // Stop propagation to prevent double redirect
-                alert("Voice search feature coming soon!");
-            });
-            
-            // Set up hero card click
-            document.getElementById('featured-movie').addEventListener('click', function() {
-                // Use the correct URL with origin to ensure absolute path
-                const baseUrl = window.location.origin;
-                const id = '67d919a32437ccb3a8680549'; // Featured movie ID
-                console.log('Navigating to featured movie page with ID:', id);
-                window.location.href = `${baseUrl}/pages/watch.html?id=${id}`;
-            });
-            
-            // Set up like button
-            document.getElementById('featured-like').addEventListener('click', function(e) {
-                e.stopPropagation();
-                this.classList.toggle('active');
-                const likeIcon = this.querySelector('i');
-                const likeCount = this.querySelector('span');
-                
-                if (this.classList.contains('active')) {
-                    likeCount.textContent = '1.6K';
-                } else {
-                    likeCount.textContent = '1.5K';
-                }
-            });
-            
-            // Load content for each row
-            loadContent();
-
-            // Handle test video card click
-            const testVideoCard = document.getElementById('test-video-card');
-            if (testVideoCard) {
-                testVideoCard.addEventListener('click', function() {
-                    console.log('Test video card clicked, navigating to sample-video-1');
-                    const baseUrl = window.location.origin;
-                    // Using watch.html instead of pages/watch (prevent 301 redirect)
-                    window.location.href = `${baseUrl}/pages/watch.html?id=sample-video-1`;
-                    // Stop any other event handlers
-                    return false;
-                });
-                // Add pointer cursor for better UX
-                testVideoCard.style.cursor = 'pointer';
-            }
-        });
-
-        // Helper function to ensure each row has exactly 15 items
-        function ensureItemCount(items, count = 15) {
-            if (items.length === 0) return [];
-            if (items.length >= count) return items.slice(0, count);
-            
-            // If we have fewer items than needed, duplicate them until we reach the count
-            const result = [...items];
-            while (result.length < count) {
-                // Add items from the beginning until we reach the desired count
-                const needed = count - result.length;
-                const itemsToAdd = items.slice(0, Math.min(needed, items.length));
-                result.push(...itemsToAdd);
-            }
-            return result;
-        }
-
-        async function loadContent() {
-            try {
-                // Fetch content from API
-                const content = await getAllContent();
-                
-                if (content && content.length > 0) {
-                    // Clear loading indicators
-                    document.querySelectorAll('.loading-spinner').forEach(spinner => {
-                        spinner.remove();
-                    });
-                    
-                    // Reference all row containers
-                    const newReleasesRow = document.getElementById('new-releases-row');
-                    const popularMoviesRow = document.getElementById('popular-movies-row');
-                    const classicsRow = document.getElementById('classics-row');
-                    const actionRow = document.getElementById('action-row');
-                    const scifiRow = document.getElementById('scifi-row');
-                    const dramaRow = document.getElementById('drama-row');
-                    const comedyRow = document.getElementById('comedy-row');
-                    const horrorRow = document.getElementById('horror-row');
-                    const documentaryRow = document.getElementById('documentary-row');
-                    const animationRow = document.getElementById('animation-row');
-                    const familyRow = document.getElementById('family-row');
-                    const mysteryRow = document.getElementById('mystery-row');
-                    const thrillerRow = document.getElementById('thriller-row');
-                    const romanceRow = document.getElementById('romance-row');
-                    const westernRow = document.getElementById('western-row');
-                    const warRow = document.getElementById('war-row');
-                    const fantasyRow = document.getElementById('fantasy-row');
-                    const crimeRow = document.getElementById('crime-row');
-                    const adventureRow = document.getElementById('adventure-row');
-                    const biographyRow = document.getElementById('biography-row');
-                    const historyRow = document.getElementById('history-row');
-                    const musicRow = document.getElementById('music-row');
-                    const sportRow = document.getElementById('sport-row');
-                    const shortFilmsRow = document.getElementById('short-films-row');
-                    const foreignRow = document.getElementById('foreign-row');
-                    
-                    // Sort content by date (newest first) for new releases
-                    const sortedByDate = [...content].sort((a, b) => {
-                        return new Date(b.createdAt) - new Date(a.createdAt);
-                    });
-                    
-                    // Populate new releases with exactly 15 items
-                    const newReleases = ensureItemCount(sortedByDate);
-                    newReleases.forEach(item => {
-                        newReleasesRow.appendChild(createContentCard(item));
-                    });
-                    
-                    // Populate popular movies (by likes) with exactly 15 items
-                    const sortedByLikes = [...content].sort((a, b) => {
-                        return (b.likes || 0) - (a.likes || 0);
-                    });
-                    
-                    const popularMovies = ensureItemCount(sortedByLikes);
-                    popularMovies.forEach(item => {
-                        popularMoviesRow.appendChild(createContentCard(item));
-                    });
-                    
-                    // Filter for classics (older movies or specifically categorized as classics)
-                    const classicsContent = content.filter(item => 
-                        (item.releaseYear && parseInt(item.releaseYear) < 1980) ||
-                        (item.genre && item.genre.some(g => 
-                            g.toLowerCase().includes('classic') || 
-                            g.toLowerCase().includes('public domain')
-                        ))
-                    );
-                    
-                    // Make sure we have exactly 15 classics
-                    const classics = ensureItemCount(classicsContent.length > 0 ? classicsContent : content);
-                    classics.forEach(item => {
-                        classicsRow.appendChild(createContentCard(item));
-                    });
-                    
-                    // Helper function to populate genre rows with exactly 15 items
-                    function populateGenreRow(rowElement, genreName) {
-                        const genreContent = content.filter(item => 
-                            item.genre && item.genre.some(g => 
-                                g.toLowerCase().includes(genreName.toLowerCase())
-                            )
-                        );
-                        
-                        // Make sure we have exactly 15 items
-                        const itemsToRender = ensureItemCount(genreContent.length > 0 ? genreContent : content);
-                        itemsToRender.forEach(item => {
-                            rowElement.appendChild(createContentCard(item));
-                        });
-                    }
-                    
-                    // Populate genre-specific rows, each with exactly 15 items
-                    populateGenreRow(actionRow, 'action');
-                    populateGenreRow(scifiRow, 'sci-fi');
-                    populateGenreRow(dramaRow, 'drama');
-                    populateGenreRow(comedyRow, 'comedy');
-                    populateGenreRow(horrorRow, 'horror');
-                    populateGenreRow(documentaryRow, 'documentary');
-                    populateGenreRow(animationRow, 'animation');
-                    populateGenreRow(familyRow, 'family');
-                    populateGenreRow(mysteryRow, 'mystery');
-                    populateGenreRow(thrillerRow, 'thriller');
-                    populateGenreRow(romanceRow, 'romance');
-                    populateGenreRow(westernRow, 'western');
-                    populateGenreRow(warRow, 'war');
-                    populateGenreRow(fantasyRow, 'fantasy');
-                    populateGenreRow(crimeRow, 'crime');
-                    populateGenreRow(adventureRow, 'adventure');
-                    populateGenreRow(biographyRow, 'biography');
-                    populateGenreRow(historyRow, 'history');
-                    populateGenreRow(musicRow, 'music');
-                    populateGenreRow(sportRow, 'sport');
-                    populateGenreRow(shortFilmsRow, 'short');
-                    populateGenreRow(foreignRow, 'foreign');
-                }
-            } catch (error) {
-                console.error('Error loading content:', error);
-                document.querySelectorAll('.loading-spinner').forEach(spinner => {
-                    spinner.textContent = 'Error loading content. Please try again later.';
-                });
-            }
-        }
-
-        // Update these URLs to use .html extension
-        function createContentCard(item) {
-            const div = document.createElement('div');
-            div.className = 'content-card';
-            
-            // Use absolute path with window.location.origin
-            const baseUrl = window.location.origin;
-            
-            div.innerHTML = `
-                <a href="${baseUrl}/pages/watch.html?id=${item._id}">
-                    <img src="${item.posterImage}" alt="${item.title}">
-                    <div class="card-info">
-                        <p>${item.title}</p>
-                    </div>
-                </a>
-            `;
-            
-            div.addEventListener('click', function(e) {
-                e.preventDefault(); // Prevent default to manually handle navigation
-                console.log('Navigating to watch page with ID:', item._id);
-                window.location.href = `${baseUrl}/pages/watch.html?id=${item._id}`;
-            });
-            
-            return div;
-        }
-    </script>
+    <!-- No inline script here - all code is loaded from external JS files -->
 </body>
 </html>

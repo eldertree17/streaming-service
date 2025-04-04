@@ -167,10 +167,278 @@ class UiManager {
             </div>
         `;
     }
+    
+    // Set up event listeners for the home page
+    setupHomeEventListeners() {
+        // Set up search functionality
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            const searchField = document.querySelector('.search-field');
+            
+            // Make the entire search field clickable
+            if (searchField) {
+                searchField.addEventListener('click', function() {
+                    if (window.telegramApp) {
+                        window.telegramApp.navigateTo('/search');
+                    } else {
+                        window.location.href = "pages/search";
+                    }
+                });
+            }
+            
+            // Make search input focus also redirect to search page
+            searchInput.addEventListener('focus', function() {
+                if (window.telegramApp) {
+                    window.telegramApp.navigateTo('/search');
+                } else {
+                    window.location.href = "pages/search";
+                }
+            });
+            
+            // Handle input clicks
+            searchInput.addEventListener('click', function() {
+                if (window.telegramApp) {
+                    window.telegramApp.navigateTo('/search');
+                } else {
+                    window.location.href = "pages/search";
+                }
+            });
+            
+            // Handle enter key
+            searchInput.addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') {
+                    const query = searchInput.value.trim();
+                    if (window.telegramApp) {
+                        window.telegramApp.navigateTo('/search', { query });
+                    } else {
+                        window.location.href = `pages/search?query=${encodeURIComponent(query)}`;
+                    }
+                }
+            });
+        }
+        
+        // Set up voice search
+        const voiceIcon = document.querySelector('.fa-microphone');
+        if (voiceIcon) {
+            voiceIcon.addEventListener('click', function(e) {
+                e.stopPropagation(); // Stop propagation to prevent double redirect
+                alert("Voice search feature coming soon!");
+            });
+        }
+        
+        // Set up hero card click
+        const featuredMovie = document.getElementById('featured-movie');
+        if (featuredMovie) {
+            featuredMovie.addEventListener('click', function() {
+                const id = '67d919a32437ccb3a8680549'; // Featured movie ID
+                console.log('Navigating to featured movie page with ID:', id);
+                if (window.telegramApp) {
+                    window.telegramApp.navigateTo('/watch', { id });
+                } else {
+                    const baseUrl = window.location.origin;
+                    window.location.href = `${baseUrl}/pages/watch.html?id=${id}`;
+                }
+            });
+        }
+        
+        // Set up like button
+        const featuredLike = document.getElementById('featured-like');
+        if (featuredLike) {
+            featuredLike.addEventListener('click', function(e) {
+                e.stopPropagation();
+                this.classList.toggle('active');
+                const likeCount = this.querySelector('span');
+                
+                if (this.classList.contains('active')) {
+                    likeCount.textContent = '1.6K';
+                } else {
+                    likeCount.textContent = '1.5K';
+                }
+            });
+        }
+        
+        // Handle test video card click
+        const testVideoCard = document.getElementById('test-video-card');
+        if (testVideoCard) {
+            testVideoCard.addEventListener('click', function() {
+                console.log('Test video card clicked, navigating to sample-video-1');
+                
+                if (window.telegramApp) {
+                    window.telegramApp.navigateTo('/watch', { id: 'sample-video-1' });
+                } else {
+                    const baseUrl = window.location.origin;
+                    window.location.href = `${baseUrl}/pages/watch.html?id=sample-video-1`;
+                }
+                return false; // Stop event propagation
+            });
+            // Add pointer cursor for better UX
+            testVideoCard.style.cursor = 'pointer';
+        }
+    }
+    
+    // Helper function to ensure each row has exactly 15 items
+    ensureItemCount(items, count = 15) {
+        if (items.length === 0) return [];
+        if (items.length >= count) return items.slice(0, count);
+        
+        // If we have fewer items than needed, duplicate them until we reach the count
+        const result = [...items];
+        while (result.length < count) {
+            // Add items from the beginning until we reach the desired count
+            const needed = count - result.length;
+            const itemsToAdd = items.slice(0, Math.min(needed, items.length));
+            result.push(...itemsToAdd);
+        }
+        return result;
+    }
+    
+    // Create a content card element
+    createContentCardElement(item) {
+        const div = document.createElement('div');
+        div.className = 'content-card';
+        
+        // Use absolute path with window.location.origin
+        const baseUrl = window.location.origin;
+        
+        div.innerHTML = `
+            <a href="${baseUrl}/pages/watch.html?id=${item._id}">
+                <img src="${item.posterImage}" alt="${item.title}">
+                <div class="card-info">
+                    <p>${item.title}</p>
+                </div>
+            </a>
+        `;
+        
+        div.addEventListener('click', function(e) {
+            e.preventDefault(); // Prevent default to manually handle navigation
+            console.log('Navigating to watch page with ID:', item._id);
+            
+            if (window.telegramApp) {
+                window.telegramApp.navigateTo('/watch', { id: item._id });
+            } else {
+                window.location.href = `${baseUrl}/pages/watch.html?id=${item._id}`;
+            }
+        });
+        
+        return div;
+    }
+    
+    // Load and populate content rows
+    async loadContentRows() {
+        try {
+            // Fetch content from API
+            const content = await this.contentManager.loadMovies();
+            
+            if (content && content.length > 0) {
+                // Clear loading indicators
+                document.querySelectorAll('.loading-spinner').forEach(spinner => {
+                    spinner.remove();
+                });
+                
+                // Reference all row containers
+                const rowContainers = {
+                    newReleases: document.getElementById('new-releases-row'),
+                    popularMovies: document.getElementById('popular-movies-row'),
+                    classics: document.getElementById('classics-row'),
+                    action: document.getElementById('action-row'),
+                    scifi: document.getElementById('scifi-row'),
+                    drama: document.getElementById('drama-row'),
+                    comedy: document.getElementById('comedy-row'),
+                    horror: document.getElementById('horror-row'),
+                    documentary: document.getElementById('documentary-row'),
+                    animation: document.getElementById('animation-row'),
+                    family: document.getElementById('family-row'),
+                    mystery: document.getElementById('mystery-row'),
+                    thriller: document.getElementById('thriller-row'),
+                    romance: document.getElementById('romance-row'),
+                    western: document.getElementById('western-row')
+                };
+                
+                // Sort content by date (newest first) for new releases
+                if (rowContainers.newReleases) {
+                    const sortedByDate = [...content].sort((a, b) => {
+                        return new Date(b.createdAt) - new Date(a.createdAt);
+                    });
+                    
+                    // Populate new releases with exactly 15 items
+                    const newReleases = this.ensureItemCount(sortedByDate);
+                    newReleases.forEach(item => {
+                        rowContainers.newReleases.appendChild(this.createContentCardElement(item));
+                    });
+                }
+                
+                // Populate popular movies (by likes)
+                if (rowContainers.popularMovies) {
+                    const sortedByLikes = [...content].sort((a, b) => {
+                        return (b.likes || 0) - (a.likes || 0);
+                    });
+                    
+                    const popularMovies = this.ensureItemCount(sortedByLikes);
+                    popularMovies.forEach(item => {
+                        rowContainers.popularMovies.appendChild(this.createContentCardElement(item));
+                    });
+                }
+                
+                // Filter for classics
+                if (rowContainers.classics) {
+                    const classicsContent = content.filter(item => 
+                        (item.releaseYear && parseInt(item.releaseYear) < 1980) ||
+                        (item.genre && item.genre.some(g => 
+                            g.toLowerCase().includes('classic') || 
+                            g.toLowerCase().includes('public domain')
+                        ))
+                    );
+                    
+                    const classics = this.ensureItemCount(classicsContent.length > 0 ? classicsContent : content);
+                    classics.forEach(item => {
+                        rowContainers.classics.appendChild(this.createContentCardElement(item));
+                    });
+                }
+                
+                // Helper function to populate genre rows
+                const populateGenreRow = (rowElement, genreName) => {
+                    if (!rowElement) return;
+                    
+                    const genreContent = content.filter(item => 
+                        item.genre && item.genre.some(g => 
+                            g.toLowerCase().includes(genreName.toLowerCase())
+                        )
+                    );
+                    
+                    const itemsToRender = this.ensureItemCount(genreContent.length > 0 ? genreContent : content);
+                    itemsToRender.forEach(item => {
+                        rowElement.appendChild(this.createContentCardElement(item));
+                    });
+                };
+                
+                // Populate genre-specific rows
+                if (rowContainers.action) populateGenreRow(rowContainers.action, 'action');
+                if (rowContainers.scifi) populateGenreRow(rowContainers.scifi, 'sci-fi');
+                if (rowContainers.drama) populateGenreRow(rowContainers.drama, 'drama');
+                if (rowContainers.comedy) populateGenreRow(rowContainers.comedy, 'comedy');
+                if (rowContainers.horror) populateGenreRow(rowContainers.horror, 'horror');
+                if (rowContainers.documentary) populateGenreRow(rowContainers.documentary, 'documentary');
+                if (rowContainers.animation) populateGenreRow(rowContainers.animation, 'animation');
+                if (rowContainers.family) populateGenreRow(rowContainers.family, 'family');
+                if (rowContainers.mystery) populateGenreRow(rowContainers.mystery, 'mystery');
+                if (rowContainers.thriller) populateGenreRow(rowContainers.thriller, 'thriller');
+                if (rowContainers.romance) populateGenreRow(rowContainers.romance, 'romance');
+                if (rowContainers.western) populateGenreRow(rowContainers.western, 'western');
+            }
+        } catch (error) {
+            console.error('Error loading content:', error);
+            document.querySelectorAll('.loading-spinner').forEach(spinner => {
+                spinner.textContent = 'Error loading content. Please try again later.';
+            });
+        }
+    }
 }
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log("DOM Content Loaded - Initializing app...");
+    console.log("Is Telegram Mini App?", !!window.Telegram?.WebApp || !!window.IS_TELEGRAM_MINI_APP);
+    
     // Skip initialization if we're in a Telegram Mini App context
     if (window.Telegram?.WebApp || window.IS_TELEGRAM_MINI_APP) {
         console.log('Skipping regular initialization because this is a Telegram Mini App');
@@ -182,10 +450,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const contentManager = new ContentManager();
     const uiManager = new UiManager(contentManager);
 
-    // Initialize content
     try {
-        await contentManager.loadMovies();
-        uiManager.updateHomeContent();
+        // Set up event listeners
+        uiManager.setupHomeEventListeners();
+        
+        // Load content rows
+        await uiManager.loadContentRows();
     } catch (error) {
         console.error('Initialization error:', error);
     }
@@ -219,496 +489,18 @@ function setupMovieItemClicks() {
                 return;
             }
             
-            // Check if we have a content ID (from API)
-            const contentId = this.dataset.contentId;
+            // Get the movie ID
+            const contentId = this.dataset.movieId;
+            if (!contentId) return;
             
-            if (contentId) {
-                console.log('Clicked on content with ID:', contentId);
-                // Use Telegram navigation if available
-                if (window.telegramApp) {
-                    window.telegramApp.navigateTo('pages/watch?id=' + contentId);
-                } else {
-                    window.location.href = 'pages/watch?id=' + contentId;
-                }
+            // Decide how to navigate based on context
+            if (window.telegramApp) {
+                window.telegramApp.navigateTo('pages/watch?id=' + contentId);
+            } else {
+                // Use direct URL navigation for non-Telegram context
+                const baseUrl = window.location.origin;
+                window.location.href = `${baseUrl}/pages/watch.html?id=${contentId}`;
             }
         });
     });
-}
-
-// Add interactivity to the Netflix-like interface
-document.addEventListener('DOMContentLoaded', async function() {
-    // Wait for Telegram WebApp to be ready (if available)
-    if (window.telegramApp) {
-        // Update metrics with Telegram user data
-        try {
-            const userData = window.telegramApp.getUserData();
-            const response = await fetch(`${getApiUrl()}/metrics/user`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(userData)
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to update user metrics');
-            }
-            
-            console.log('Updated metrics with Telegram user data');
-        } catch (error) {
-            console.error('Error updating metrics:', error);
-        }
-    }
-    
-    // Update hero content first with random featured content
-    updateHeroContent();
-    
-    // Generate category sections
-    generateCategorySections();
-    
-    // Then populate carousels
-    populateCarousels();
-    
-    // Add this line at the end of your initialization
-    setupMovieItemClicks();
-    
-    // Navigation bar functionality with Telegram support
-    const navItems = document.querySelectorAll('.nav-item');
-    
-    navItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Remove active class from all items
-            navItems.forEach(nav => nav.classList.remove('active'));
-            
-            // Add active class to clicked item
-            this.classList.add('active');
-            
-            // Get the target page from the nav item
-            const targetPage = this.dataset.page;
-            
-            // Navigate using Telegram navigation if available
-            if (targetPage) {
-                if (window.telegramApp) {
-                    window.telegramApp.navigateTo('pages/' + targetPage);
-                } else {
-                    window.location.href = 'pages/' + targetPage;
-                }
-            }
-        });
-    });
-    
-    // Search functionality
-    const searchInput = document.querySelector('.search-field input');
-    
-    if (searchInput) {
-        searchInput.addEventListener('keyup', function(e) {
-            if (e.key === 'Enter') {
-                const searchQuery = this.value.trim();
-                if (searchQuery) {
-                    if (window.telegramApp) {
-                        window.telegramApp.navigateTo('pages/search?q=' + encodeURIComponent(searchQuery));
-                    } else {
-                        window.location.href = 'pages/search?q=' + encodeURIComponent(searchQuery);
-                    }
-                }
-            }
-        });
-    }
-});
-
-// Function to update hero content with featured content from API
-async function updateHeroContent() {
-    try {
-        // Fetch content from the API
-        const contentData = await getAllContent();
-        
-        // If no content is returned or there's an error, use fallback data
-        if (!contentData || contentData.length === 0) {
-            console.log("No content found in API for hero, using fallback data");
-            useFallbackHeroContent();
-            return;
-        }
-        
-        // Select a random content item for the hero
-        const randomIndex = Math.floor(Math.random() * contentData.length);
-        const featured = contentData[randomIndex];
-        
-        // Update the hero card
-        const heroCard = document.querySelector('.featured-card');
-        if (heroCard) {
-            heroCard.innerHTML = `
-                <div class="badge">Trending</div>
-                <img src="${featured.posterImage}" alt="${featured.title}">
-                <div class="likes"><i class="fas fa-thumbs-up"></i> ${featured.likes || 0}</div>
-                <div class="title-container">
-                    <h2>${featured.title}</h2>
-                </div>
-            `;
-            
-            // Store the content ID as a data attribute for navigation
-            heroCard.dataset.contentId = featured._id;
-        }
-        
-    } catch (error) {
-        console.error("Error fetching content for hero:", error);
-        useFallbackHeroContent();
-    }
-}
-  
-    // Fallback function for hero content
-    function useFallbackHeroContent() {
-        // Your existing updateHeroContent code here
-      const featuredContent = [
-          { title: "The Witcher", likes: "20", img: "https://images.unsplash.com/photo-1626197031507-c17099753214" },
-          { title: "Stranger Things", likes: "18", img: "https://images.unsplash.com/photo-1534809027769-b00d750a6bac" },
-          { title: "Dune", likes: "25", img: "https://images.unsplash.com/photo-1547700055-b61cacebece9" },
-          { title: "The Batman", likes: "22", img: "https://images.unsplash.com/photo-1509347528160-9a9e33742cdb" },
-          { title: "Squid Game", likes: "27", img: "https://images.unsplash.com/photo-1634157703702-3c124b455499" },
-          { title: "Loki", likes: "19", img: "https://images.unsplash.com/photo-1624213111452-35e8d3d5cc18" },
-          { title: "The Queen's Gambit", likes: "21", img: "https://images.unsplash.com/photo-1586165368502-1bad197a6461" }
-      ];
-      
-      // Select a random featured content
-      const randomIndex = Math.floor(Math.random() * featuredContent.length);
-      const featured = featuredContent[randomIndex];
-      
-      // Update the hero card
-      const heroCard = document.querySelector('.featured-card');
-      if (heroCard) {
-          heroCard.innerHTML = `
-              <div class="badge">Trending</div>
-              <img src="${featured.img}?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="${featured.title}">
-              <div class="likes"><i class="fas fa-thumbs-up"></i> ${featured.likes}</div>
-              <div class="title-container">
-                  <h2>${featured.title}</h2>
-              </div>
-          `;
-      }
-  }
-  
-  // Function to generate 25 category sections with random titles
-  function generateCategorySections() {
-      const categoryContainer = document.getElementById('category-container');
-      
-      if (!categoryContainer) {
-          console.error("Category container not found. Creating it...");
-          // Create the container if it doesn't exist
-          const newContainer = document.createElement('div');
-          newContainer.id = 'category-container';
-          document.querySelector('.app-container').appendChild(newContainer);
-          
-          // Now use the newly created container
-          generateCategorySections();
-          return;
-      }
-      
-      // Clear existing content
-      categoryContainer.innerHTML = '';
-      
-      // Netflix-style category names - expanded list for more variety
-      const netflixStyleCategories = [
-          "Continue Watching",
-          "Top Movies",
-          "Top TV Shows",
-          "Action",
-          "Trending Now",
-          "Popular on StreamFlix",
-          "New Releases",
-          "Award-Winning TV Shows",
-          "Bingeworthy TV Shows",
-          "Critically Acclaimed Movies",
-          "Because You Watched The Witcher",
-          "Top 10 in Your Country Today",
-          "Emotional Dramas",
-          "Sci-Fi & Fantasy",
-          "Suspenseful Movies",
-          "Comedies",
-          "Crime TV Shows",
-          "Documentaries",
-          "Feel-Good Movies",
-          "Romantic Movies",
-          "Thrillers",
-          "Horror Movies",
-          "International Films",
-          "Independent Movies",
-          "Family-Friendly Movies",
-          "Anime",
-          "Reality TV",
-          "Stand-up Comedy",
-          "Music & Musicals",
-          "Classic Movies",
-          "Action & Adventure",
-          "Supernatural",
-          "Teen Movies & Shows",
-          "Mysteries",
-          "Psychological Thrillers",
-          "True Crime Documentaries",
-          "Blockbuster Movies",
-          "Hidden Gems",
-          "Movies Based on Books",
-          "Award Winners",
-          "Cult Classics",
-          "Cerebral Movies",
-          "Heartfelt Movies",
-          "Quirky Comedies",
-          "Spy Thrillers",
-          "Period Pieces",
-          "Political Dramas",
-          "Sports Movies",
-          "Martial Arts Movies",
-          "Movies with Strong Female Leads"
-      ];
-      
-      // Shuffle the categories array to get random selection
-      const shuffledCategories = [...netflixStyleCategories].sort(() => 0.5 - Math.random());
-      
-      // Always keep "Continue watching" as the first category
-      const finalCategories = ["Continue Watching"];
-      
-      // Add 24 more random categories (avoiding duplicates)
-      for (let i = 0; i < 24; i++) {
-          if (i < shuffledCategories.length) {
-              finalCategories.push(shuffledCategories[i]);
-          }
-      }
-      
-      // Create 25 category sections
-      for (let i = 0; i < 25; i++) {
-          if (i < finalCategories.length) {
-              const section = document.createElement('div');
-              section.className = 'section';
-              
-              section.innerHTML = `
-                  <div class="section-header">
-                      <h3>${finalCategories[i]}</h3>
-                      <i class="fas fa-chevron-right"></i>
-                  </div>
-                  <div class="content-row">
-                      <!-- Content will be populated by JavaScript -->
-                  </div>
-              `;
-              
-              categoryContainer.appendChild(section);
-          }
-      }
-      
-      console.log("Generated 25 category sections with random titles");
-  }
-  
-  // Function to populate carousels with content from the API
-async function populateCarousels() {
-    try {
-        // Fetch content from the API
-        const contentData = await getAllContent();
-        
-        // If no content is returned or there's an error, use fallback data
-        if (!contentData || contentData.length === 0) {
-            console.log("No content found in API, using fallback data");
-            useFallbackContent();
-            return;
-        }
-        
-        // Get all content rows
-        const contentRows = document.querySelectorAll('.content-row');
-        
-        if (contentRows.length === 0) {
-            console.error("No content rows found. Check your HTML structure.");
-            return;
-        }
-        
-        // Update each content row with movies
-        contentRows.forEach((row) => {
-            // Clear existing content
-            row.innerHTML = '';
-            
-            // Shuffle the content data to get random selection
-            const shuffledContent = [...contentData].sort(() => 0.5 - Math.random());
-            
-            // Add content items to the row (up to 15 or as many as available)
-            const itemCount = Math.min(15, shuffledContent.length);
-            for (let i = 0; i < itemCount; i++) {
-                const content = shuffledContent[i];
-                
-                const card = document.createElement('div');
-                card.className = 'content-card';
-                
-                card.innerHTML = `
-                    <img src="${content.posterImage}" alt="${content.title}">
-                    <div class="card-info">
-                        <p>${content.title}</p>
-                        <div class="card-details">
-                            <span>${content.releaseYear || 'N/A'}</span>
-                            ${content.duration ? `<span>• ${content.duration}</span>` : ''}
-                        </div>
-                    </div>
-                `;
-                
-                // Store the content ID as a data attribute for navigation
-                card.dataset.contentId = content._id;
-                
-                row.appendChild(card);
-            }
-        });
-        
-        console.log("Carousels populated with API content");
-        
-        // Set up click handlers for the new content cards
-        setupMovieItemClicks();
-        
-    } catch (error) {
-        console.error("Error fetching content from API:", error);
-        useFallbackContent();
-    }
-}
-
-// Fallback function to use hardcoded data if API fails
-function useFallbackContent() {
-    // Your existing populateCarousels code here
-    // This is the current implementation that uses hardcoded data
-    
-    // Sample movie and TV show data with better images
-      const contentData = [
-          { 
-              title: "Big Buck Bunny",
-              year: "2008",
-              type: "movie",
-              img: "https://peach.blender.org/wp-content/uploads/bbb-splash.png",
-              _id: "bbb",
-              duration: "10m",
-              posterImage: "https://peach.blender.org/wp-content/uploads/bbb-splash.png"
-          },
-          { title: "The Matrix", year: "1999", type: "movie", img: "https://images.unsplash.com/photo-1558486012-817176f84c6d" },
-          { title: "Blade Runner", year: "1982", type: "movie", img: "https://images.unsplash.com/photo-1478720568477-152d9b164e26" },
-          { title: "Inception", year: "2010", type: "movie", img: "https://images.unsplash.com/photo-1536440136628-849c177e76a1" },
-          { title: "Stranger Things", year: "2016", type: "tv", img: "https://images.unsplash.com/photo-1534809027769-b00d750a6bac" },
-          { title: "Interstellar", year: "2014", type: "movie", img: "https://images.unsplash.com/photo-1506901437675-cde80ff9c746" },
-          { title: "Dune", year: "2021", type: "movie", img: "https://images.unsplash.com/photo-1547700055-b61cacebece9" },
-          { title: "The Batman", year: "2022", type: "movie", img: "https://images.unsplash.com/photo-1509347528160-9a9e33742cdb" },
-          { title: "Avengers", year: "2012", type: "movie", img: "https://images.unsplash.com/photo-1624213111452-35e8d3d5cc18" },
-          { title: "Star Wars", year: "1977", type: "movie", img: "https://images.unsplash.com/photo-1547700055-b61cacebece9" },
-          { title: "Joker", year: "2019", type: "movie", img: "https://images.unsplash.com/photo-1559583109-3e7968136c99" },
-          { title: "Parasite", year: "2019", type: "movie", img: "https://images.unsplash.com/photo-1536440136628-849c177e76a1" },
-          { title: "1917", year: "2019", type: "movie", img: "https://images.unsplash.com/photo-1547700055-b61cacebece9" },
-          { title: "Tenet", year: "2020", type: "movie", img: "https://images.unsplash.com/photo-1440404653325-ab127d49abc1" },
-          { title: "No Time To Die", year: "2021", type: "movie", img: "https://images.unsplash.com/photo-1509347528160-9a9e33742cdb" },
-          { title: "Black Widow", year: "2021", type: "movie", img: "https://images.unsplash.com/photo-1624213111452-35e8d3d5cc18" },
-          { title: "The Godfather", year: "1972", type: "movie", img: "https://images.unsplash.com/photo-1581985673473-0784a7a44e39" },
-          { title: "Pulp Fiction", year: "1994", type: "movie", img: "https://images.unsplash.com/photo-1572883454114-1cf0031ede2a" },
-          { title: "The Dark Knight", year: "2008", type: "movie", img: "https://images.unsplash.com/photo-1509347528160-9a9e33742cdb" },
-          { title: "Fight Club", year: "1999", type: "movie", img: "https://images.unsplash.com/photo-1572883454114-1cf0031ede2a" },
-          { title: "Forrest Gump", year: "1994", type: "movie", img: "https://images.unsplash.com/photo-1581985673473-0784a7a44e39" },
-          { title: "The Shawshank Redemption", year: "1994", type: "movie", img: "https://images.unsplash.com/photo-1572883454114-1cf0031ede2a" },
-          { title: "The Lord of the Rings", year: "2001", type: "movie", img: "https://images.unsplash.com/photo-1547700055-b61cacebece9" },
-          { title: "Breaking Bad", year: "2008", type: "tv", img: "https://images.unsplash.com/photo-1572883454114-1cf0031ede2a" },
-          { title: "Game of Thrones", year: "2011", type: "tv", img: "https://images.unsplash.com/photo-1562813733-b31f0941fd52" },
-          { title: "The Queen's Gambit", year: "2020", type: "tv", img: "https://images.unsplash.com/photo-1586165368502-1bad197a6461" },
-          { title: "Money Heist", year: "2017", type: "tv", img: "https://images.unsplash.com/photo-1601024445121-e5b82f020549" },
-          { title: "Dark", year: "2017", type: "tv", img: "https://images.unsplash.com/photo-1572883454114-1cf0031ede2a" },
-          { title: "The Mandalorian", year: "2019", type: "tv", img: "https://images.unsplash.com/photo-1547700055-b61cacebece9" },
-          { title: "Squid Game", year: "2021", type: "tv", img: "https://images.unsplash.com/photo-1634157703702-3c124b455499" },
-          { title: "Bridgerton", year: "2020", type: "tv", img: "https://images.unsplash.com/photo-1581985673473-0784a7a44e39" },
-          { title: "Loki", year: "2021", type: "tv", img: "https://images.unsplash.com/photo-1624213111452-35e8d3d5cc18" },
-          { title: "The Witcher", year: "2019", type: "tv", img: "https://images.unsplash.com/photo-1626197031507-c17099753214" },
-          { title: "Peaky Blinders", year: "2013", type: "tv", img: "https://images.unsplash.com/photo-1581985673473-0784a7a44e39" },
-          { title: "The Boys", year: "2019", type: "tv", img: "https://images.unsplash.com/photo-1536440136628-849c177e76a1" },
-          { title: "Ozark", year: "2017", type: "tv", img: "https://images.unsplash.com/photo-1572883454114-1cf0031ede2a" },
-          { title: "Mindhunter", year: "2017", type: "tv", img: "https://images.unsplash.com/photo-1572883454114-1cf0031ede2a" },
-          { title: "The Office", year: "2005", type: "tv", img: "https://images.unsplash.com/photo-1504593811423-6dd665756598" },
-          { title: "Friends", year: "1994", type: "tv", img: "https://images.unsplash.com/photo-1581985673473-0784a7a44e39" },
-          { title: "Sherlock", year: "2010", type: "tv", img: "https://images.unsplash.com/photo-1572883454114-1cf0031ede2a" },
-          { title: "Black Mirror", year: "2011", type: "tv", img: "https://images.unsplash.com/photo-1572883454114-1cf0031ede2a" },
-          { title: "The Last Dance", year: "2020", type: "tv", img: "https://images.unsplash.com/photo-1504593811423-6dd665756598" },
-          { title: "Tiger King", year: "2020", type: "tv", img: "https://images.unsplash.com/photo-1504593811423-6dd665756598" },
-          { title: "Narcos", year: "2015", type: "tv", img: "https://images.unsplash.com/photo-1572883454114-1cf0031ede2a" },
-          { title: "The Umbrella Academy", year: "2019", type: "tv", img: "https://images.unsplash.com/photo-1536440136628-849c177e76a1" },
-          { title: "Lupin", year: "2021", type: "tv", img: "https://images.unsplash.com/photo-1581985673473-0784a7a44e39" },
-          { title: "The Haunting of Hill House", year: "2018", type: "tv", img: "https://images.unsplash.com/photo-1572883454114-1cf0031ede2a" },
-          { title: "Cobra Kai", year: "2018", type: "tv", img: "https://images.unsplash.com/photo-1536440136628-849c177e76a1" }
-      ];
-      
-      // Get all content rows
-      const contentRows = document.querySelectorAll('.content-row');
-      
-      if (contentRows.length === 0) {
-          console.error("No content rows found. Check your HTML structure.");
-          return;
-      }
-      
-      // Update each content row with movies
-      contentRows.forEach((row) => {
-          // Clear existing content
-          row.innerHTML = '';
-          
-          // Shuffle the content data to get random selection
-          const shuffledContent = [...contentData].sort(() => 0.5 - Math.random());
-          
-          // Add 15 content items to the row
-          for (let i = 0; i < 15; i++) {
-              const content = shuffledContent[i % shuffledContent.length];
-              
-              const card = document.createElement('div');
-              card.className = 'content-card';
-              
-              card.innerHTML = `
-                  <img src="${content.img}?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="${content.title}">
-                  <div class="card-info">
-                      <p>${content.title}</p>
-                  </div>
-              `;
-              
-              row.appendChild(card);
-          }
-      });
-      
-      console.log("Carousels populated with content");
-  }
-  
-  // Function to set up search navigation
-  function setupSearchNavigation() {
-      const searchTrigger = document.getElementById('search-trigger');
-      
-      if (searchTrigger) {
-          // Make the entire search field clickable
-          searchTrigger.addEventListener('click', function() {
-              window.location.href = 'pages/search';
-          });
-          
-          // Also make the icons inside the search field clickable
-          const searchIcon = searchTrigger.querySelector('.fa-search');
-          const voiceIcon = searchTrigger.querySelector('.fa-microphone');
-          const searchInput = searchTrigger.querySelector('input');
-          
-          if (searchIcon) {
-              searchIcon.addEventListener('click', function(e) {
-                  e.stopPropagation(); // Prevent double triggering
-                  window.location.href = 'pages/search';
-              });
-          }
-          
-          if (voiceIcon) {
-              voiceIcon.addEventListener('click', function(e) {
-                  e.stopPropagation(); // Prevent double triggering
-                  window.location.href = 'pages/search';
-              });
-          }
-          
-          if (searchInput) {
-              searchInput.addEventListener('click', function(e) {
-                  e.stopPropagation(); // Prevent double triggering
-                  window.location.href = 'pages/search';
-              });
-              
-              // Also trigger on focus attempt
-              searchInput.addEventListener('focus', function(e) {
-                  window.location.href = 'pages/search';
-              });
-          }
-      }
-  }
-
-// Helper function to get the API URL
-function getApiUrl() {
-    return window.StreamFlixConfig?.API_URL || '/api';
 }
