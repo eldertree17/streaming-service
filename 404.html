@@ -35,15 +35,20 @@
                 // Detect the page type
                 if (path.includes('/watch')) {
                     // Keep any query parameters
+                    console.log('404: Redirecting to watch page');
                     destUrl = origin + '/streaming-service/pages/watch.html' + search;
                 } else if (path.includes('/search')) {
+                    console.log('404: Redirecting to search page');
                     destUrl = origin + '/streaming-service/index.html?path=/search' + search;
                 } else if (path.includes('/activity')) {
+                    console.log('404: Redirecting to activity page');
                     destUrl = origin + '/streaming-service/index.html?path=/activity';
                 } else if (path.includes('/account')) {
+                    console.log('404: Redirecting to account page');
                     destUrl = origin + '/streaming-service/index.html?path=/account';
                 } else {
                     // Default redirect to home
+                    console.log('404: Redirecting to home page');
                     destUrl = origin + '/streaming-service/index.html';
                 }
             } else {
