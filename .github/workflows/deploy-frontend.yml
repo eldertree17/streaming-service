@@ -4,74 +4,49 @@ on:
   push:
     branches:
       - main
-    # Force redeploy for all changes by removing paths filter
-    # paths:
-    #   - 'index.html'
-    #   - 'css/**'
-    #   - 'js/**'
-    #   - 'pages/**'
-    #   - 'img/**'
-    #   - 'assets/**'
-    #   - '.github/workflows/deploy-frontend.yml'
 
-# Add permissions for GitHub Actions
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
 
 jobs:
-  deploy:
+  # Build job
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0 # Fetch all history
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16'
-
-      - name: Install Dependencies
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+      
+      - name: Debug Info
         run: |
-          npm install
-
-      - name: Debug - List files to be deployed
-        run: |
+          echo "Working directory:"
+          pwd
+          echo "Files to be deployed:"
           ls -la
-          echo "Contents of index.html:"
-          cat index.html | head -50
-
-      - name: Update config.js
-        run: |
-          # Update the config.js file with the correct backend URL
-          sed -i 's|https://your-backend-server.com/api|https://streamflix-backend.onrender.com/api|g' js/config.js
-          # Update with your actual backend URL when deployed
-          
-      - name: Git config
-        run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-          echo "Git version:"
-          git --version
-          echo "Git config:"
-          git config --list
-
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
         with:
-          folder: .
-          # Only include frontend files, exclude backend
-          clean: true
-          clean-exclude: |
-            .git
-            .github
-            streaming-service-backend
-            node_modules
-            server-config.js
-            README.md
-            .gitignore
-          # Use built-in GitHub token instead of custom key
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: gh-pages
-          force: true # Force push changes 
+          path: '.'
+  
+  # Deployment job
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2 

@@ -1,53 +1,16 @@
-name: Deploy to GitHub Pages
+# DEPRECATED - Please use deploy-frontend.yml instead
+# This workflow is kept for reference but is no longer used
+
+name: Deprecated Workflow
 
 on:
-  push:
-    branches:
-      - main
-
-# Add permissions for GitHub Actions
-permissions:
-  contents: write
+  # Prevents this workflow from running
+  workflow_dispatch:
 
 jobs:
-  deploy:
+  info:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0 # Fetch all history
-      
-      - name: Debug - List files
+      - name: Display Info
         run: |
-          ls -la
-          echo "Contents of index.html:"
-          cat index.html | head -50
-
-      - name: Git config
-        run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-          echo "Git version:"
-          git --version
-          echo "Git config:"
-          git config --list
-
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: .
-          # Only include frontend files, exclude backend
-          clean: true
-          clean-exclude: |
-            .git
-            .github
-            streaming-service-backend
-            node_modules
-            server-config.js
-            README.md
-            .gitignore
-          # Use built-in GitHub token instead of custom key
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: gh-pages
-          force: true # Force push changes 
+          echo "This workflow is deprecated. Please use deploy-frontend.yml instead." 
