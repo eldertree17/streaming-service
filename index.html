@@ -4,119 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StreamFlix - Streaming Service</title>
-    <!-- Version: 2023-04-04 Telegram Mini App Fix v3 -->
+    <!-- Version: 2023-04-05 Telegram Mini App Fix -->
     
-    <!-- Simple Bootstrap for Telegram Mini App -->
+    <!-- Telegram Web App SDK - MUST be loaded first -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Critical Telegram Initialization - Do not modify or move this script -->
     <script>
-        // Immediate execution to set up Telegram Mini App
         (function() {
-            console.log('BOOTSTRAP: Starting Mini App initialization');
-            
-            // Create a visible status indicator
-            function createStatusIndicator() {
-                var statusDiv = document.createElement('div');
-                statusDiv.id = 'tg-status';
-                statusDiv.style.position = 'fixed';
-                statusDiv.style.bottom = '10px';
-                statusDiv.style.right = '10px';
-                statusDiv.style.backgroundColor = 'rgba(0,0,0,0.7)';
-                statusDiv.style.color = 'white';
-                statusDiv.style.padding = '10px';
-                statusDiv.style.borderRadius = '5px';
-                statusDiv.style.fontSize = '12px';
-                statusDiv.style.zIndex = '9999';
-                statusDiv.style.maxWidth = '80%';
-                statusDiv.style.maxHeight = '200px';
-                statusDiv.style.overflow = 'auto';
-                statusDiv.innerHTML = 'Initializing...';
-                
-                // Add to body or create body if it doesn't exist
-                if (document.body) {
-                    document.body.appendChild(statusDiv);
-                } else {
-                    document.addEventListener('DOMContentLoaded', function() {
-                        document.body.appendChild(statusDiv);
-                    });
-                }
-                
-                return statusDiv;
-            }
-            
-            // Create status indicator immediately
-            var statusDiv = createStatusIndicator();
-            
-            // Log status to indicator
-            function logStatus(message) {
-                console.log('BOOTSTRAP: ' + message);
-                if (statusDiv) {
-                    statusDiv.innerHTML += '<br>' + message;
-                    statusDiv.scrollTop = statusDiv.scrollHeight;
-                }
-            }
-            
-            // Log error to indicator
-            function logError(message) {
-                console.error('BOOTSTRAP ERROR: ' + message);
-                if (statusDiv) {
-                    statusDiv.innerHTML += '<br><span style="color:red">ERROR: ' + message + '</span>';
-                    statusDiv.scrollTop = statusDiv.scrollHeight;
-                }
-            }
-            
-            // Check if Telegram WebApp is available
+            // Immediately initialize Telegram WebApp when available
             if (window.Telegram && window.Telegram.WebApp) {
-                logStatus('Telegram WebApp detected');
+                console.log('Telegram WebApp detected, initializing...');
                 
-                // Set up WebApp ready
-                try {
-                    window.Telegram.WebApp.ready();
-                    logStatus('WebApp.ready() called');
-                    
-                    window.Telegram.WebApp.expand();
-                    logStatus('WebApp.expand() called');
-                } catch (e) {
-                    logError('Failed to initialize WebApp: ' + e.message);
-                }
+                // Tell Telegram WebApp is ready (CRITICAL)
+                window.Telegram.WebApp.ready();
+                
+                // Expand WebApp to full height
+                window.Telegram.WebApp.expand();
+                
+                // Set flag that we're running in Telegram
+                window.IS_TELEGRAM_MINI_APP = true;
+                
+                console.log('Telegram WebApp initialized successfully');
             } else {
-                logStatus('Telegram WebApp not detected, running in browser mode');
+                console.log('Not running in Telegram, using standard web mode');
+                window.IS_TELEGRAM_MINI_APP = false;
             }
-            
-            // Set up global error handler
-            window.onerror = function(message, source, lineno, colno, error) {
-                logError(message + ' at ' + source + ':' + lineno);
-                return false;
-            };
-            
-            logStatus('Bootstrap completed');
         })();
-    </script>
-    
-    <!-- Debugging script to track initialization -->
-    <script>
-        console.log('DEBUG: HTML loading started');
-        
-        // Global error handler
-        window.onerror = function(message, source, lineno, colno, error) {
-            console.error('Global error:', message, 'at', source, lineno, colno);
-            console.error('Error stack:', error?.stack);
-            
-            // Create visible error message for debugging in Telegram
-            const errorDiv = document.createElement('div');
-            errorDiv.style.position = 'fixed';
-            errorDiv.style.top = '0';
-            errorDiv.style.left = '0';
-            errorDiv.style.backgroundColor = 'red';
-            errorDiv.style.color = 'white';
-            errorDiv.style.padding = '10px';
-            errorDiv.style.zIndex = '9999';
-            errorDiv.style.width = '100%';
-            errorDiv.style.maxHeight = '200px';
-            errorDiv.style.overflow = 'auto';
-            errorDiv.textContent = `Error: ${message} at ${source}:${lineno}:${colno}`;
-            document.body.appendChild(errorDiv);
-            
-            return false;
-        };
     </script>
     
     <!-- GitHub Pages SPA redirect script -->
@@ -141,54 +55,37 @@
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <script>console.log('DEBUG: Before loading config.js');</script>
     <!-- CRITICAL: LOAD IN CORRECT ORDER - Load configuration first -->
     <script src="js/config.js"></script>
-    <script>console.log('DEBUG: After loading config.js');</script>
     
-    <script>console.log('DEBUG: Before loading Telegram Web App SDK');</script>
-    <!-- Telegram Web App SDK - we're already loading it in the bootstrap, but include again for completeness -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script>
-        console.log('DEBUG: After loading Telegram Web App SDK');
-        console.log('DEBUG: window.Telegram exists?', !!window.Telegram);
-        console.log('DEBUG: window.Telegram.WebApp exists?', !!(window.Telegram && window.Telegram.WebApp));
-    </script>
-    
-    <script>console.log('DEBUG: Before loading router.js');</script>
-    <!-- CRITICAL: LOAD IN CORRECT ORDER - App components -->
+    <!-- App components - maintain original order for compatibility -->
     <script src="js/router.js"></script>
-    <script>console.log('DEBUG: After loading router.js');</script>
-    
-    <script>console.log('DEBUG: Before loading telegram-app.js');</script>
     <script src="js/telegram-app.js"></script>
-    <script>console.log('DEBUG: After loading telegram-app.js');</script>
-    
-    <script>console.log('DEBUG: Before loading api-service.js');</script>
     <script src="js/api-service.js"></script>
-    <script>console.log('DEBUG: After loading api-service.js');</script>
-    
-    <script>console.log('DEBUG: Before loading main.js');</script>
     <script src="js/main.js"></script>
-    <script>console.log('DEBUG: After loading main.js, all scripts loaded');</script>
 </head>
 <body>
-    <!-- Debug status display -->
-    <div id="debug-status" style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 10px; border-radius: 5px; font-size: 10px; z-index: 9999; max-width: 300px; max-height: 200px; overflow: auto; display: none;">
-        Initialization logs will appear here
+    <!-- Telegram status indicator (hidden by default) -->
+    <div id="telegram-status" style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 10px; border-radius: 5px; font-size: 12px; z-index: 9999; max-width: 300px; max-height: 200px; overflow: auto; display: none;">
+        Telegram integration status
     </div>
+    
     <script>
-        // Show debug in Telegram
+        // Show Telegram status
         setTimeout(function() {
-            const debugStatus = document.getElementById('debug-status');
-            if (debugStatus) {
-                debugStatus.style.display = 'block';
-                debugStatus.innerHTML = 'DEBUG: App initialization started<br>' + 
-                    'URL: ' + window.location.href + '<br>' +
-                    'Telegram SDK: ' + (window.Telegram ? 'Loaded' : 'Not loaded') + '<br>' +
-                    'WebApp ready: ' + (window.Telegram?.WebApp ? 'Yes' : 'No');
+            const statusDiv = document.getElementById('telegram-status');
+            if (statusDiv) {
+                if (window.Telegram && window.Telegram.WebApp) {
+                    statusDiv.innerHTML = 'Running in Telegram WebApp<br>Version: ' + 
+                        (window.Telegram.WebApp.version || 'Unknown');
+                    
+                    // Only show in debug mode
+                    if (window.StreamFlixConfig && window.StreamFlixConfig.DEBUG_MODE) {
+                        statusDiv.style.display = 'block';
+                    }
+                }
             }
-        }, 500);
+        }, 1000);
     </script>
     
     <div class="app-container">
@@ -545,7 +442,7 @@
             </div>
             <div class="nav-item">
                 <a href="pages/activity.html">
-                    <i class="fas fa-chart-line"></i>
+                    <i class="fas fa-compact-disc"></i>
                     <p>Activity</p>
                 </a>
             </div>
@@ -558,6 +455,246 @@
         </div>
     </div>
 
-    <!-- IMPORTANT: NO INLINE SCRIPTS HERE -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up search functionality
+            const searchInput = document.getElementById('search-input');
+            const searchField = document.querySelector('.search-field');
+            
+            // Make the entire search field clickable
+            searchField.addEventListener('click', function() {
+                window.location.href = "pages/search";
+            });
+            
+            // Make search input focus also redirect to search page
+            searchInput.addEventListener('focus', function() {
+                window.location.href = "pages/search";
+            });
+            
+            // Handle input clicks - no need to stop propagation anymore since we want the same behavior
+            searchInput.addEventListener('click', function() {
+                window.location.href = "pages/search";
+            });
+            
+            // Handle enter key just in case
+            searchInput.addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') {
+                    const query = searchInput.value.trim();
+                    window.location.href = `pages/search?query=${encodeURIComponent(query)}`;
+                }
+            });
+            
+            // Set up voice search to redirect to search page
+            const voiceIcon = document.querySelector('.fa-microphone');
+            voiceIcon.addEventListener('click', function(e) {
+                e.stopPropagation(); // Stop propagation to prevent double redirect
+                alert("Voice search feature coming soon!");
+            });
+            
+            // Set up hero card click
+            document.getElementById('featured-movie').addEventListener('click', function() {
+                // Use the correct URL with origin to ensure absolute path
+                const baseUrl = window.location.origin;
+                const id = '67d919a32437ccb3a8680549'; // Featured movie ID
+                console.log('Navigating to featured movie page with ID:', id);
+                window.location.href = `${baseUrl}/pages/watch.html?id=${id}`;
+            });
+            
+            // Set up like button
+            document.getElementById('featured-like').addEventListener('click', function(e) {
+                e.stopPropagation();
+                this.classList.toggle('active');
+                const likeIcon = this.querySelector('i');
+                const likeCount = this.querySelector('span');
+                
+                if (this.classList.contains('active')) {
+                    likeCount.textContent = '1.6K';
+                } else {
+                    likeCount.textContent = '1.5K';
+                }
+            });
+            
+            // Load content for each row
+            loadContent();
+
+            // Handle test video card click
+            const testVideoCard = document.getElementById('test-video-card');
+            if (testVideoCard) {
+                testVideoCard.addEventListener('click', function() {
+                    console.log('Test video card clicked, navigating to sample-video-1');
+                    const baseUrl = window.location.origin;
+                    // Using watch.html instead of pages/watch (prevent 301 redirect)
+                    window.location.href = `${baseUrl}/pages/watch.html?id=sample-video-1`;
+                    // Stop any other event handlers
+                    return false;
+                });
+                // Add pointer cursor for better UX
+                testVideoCard.style.cursor = 'pointer';
+            }
+        });
+
+        // Helper function to ensure each row has exactly 15 items
+        function ensureItemCount(items, count = 15) {
+            if (items.length === 0) return [];
+            if (items.length >= count) return items.slice(0, count);
+            
+            // If we have fewer items than needed, duplicate them until we reach the count
+            const result = [...items];
+            while (result.length < count) {
+                // Add items from the beginning until we reach the desired count
+                const needed = count - result.length;
+                const itemsToAdd = items.slice(0, Math.min(needed, items.length));
+                result.push(...itemsToAdd);
+            }
+            return result;
+        }
+
+        async function loadContent() {
+            try {
+                // Fetch content from API
+                const content = await getAllContent();
+                
+                if (content && content.length > 0) {
+                    // Clear loading indicators
+                    document.querySelectorAll('.loading-spinner').forEach(spinner => {
+                        spinner.remove();
+                    });
+                    
+                    // Reference all row containers
+                    const newReleasesRow = document.getElementById('new-releases-row');
+                    const popularMoviesRow = document.getElementById('popular-movies-row');
+                    const classicsRow = document.getElementById('classics-row');
+                    const actionRow = document.getElementById('action-row');
+                    const scifiRow = document.getElementById('scifi-row');
+                    const dramaRow = document.getElementById('drama-row');
+                    const comedyRow = document.getElementById('comedy-row');
+                    const horrorRow = document.getElementById('horror-row');
+                    const documentaryRow = document.getElementById('documentary-row');
+                    const animationRow = document.getElementById('animation-row');
+                    const familyRow = document.getElementById('family-row');
+                    const mysteryRow = document.getElementById('mystery-row');
+                    const thrillerRow = document.getElementById('thriller-row');
+                    const romanceRow = document.getElementById('romance-row');
+                    const westernRow = document.getElementById('western-row');
+                    const warRow = document.getElementById('war-row');
+                    const fantasyRow = document.getElementById('fantasy-row');
+                    const crimeRow = document.getElementById('crime-row');
+                    const adventureRow = document.getElementById('adventure-row');
+                    const biographyRow = document.getElementById('biography-row');
+                    const historyRow = document.getElementById('history-row');
+                    const musicRow = document.getElementById('music-row');
+                    const sportRow = document.getElementById('sport-row');
+                    const shortFilmsRow = document.getElementById('short-films-row');
+                    const foreignRow = document.getElementById('foreign-row');
+                    
+                    // Sort content by date (newest first) for new releases
+                    const sortedByDate = [...content].sort((a, b) => {
+                        return new Date(b.createdAt) - new Date(a.createdAt);
+                    });
+                    
+                    // Populate new releases with exactly 15 items
+                    const newReleases = ensureItemCount(sortedByDate);
+                    newReleases.forEach(item => {
+                        newReleasesRow.appendChild(createContentCard(item));
+                    });
+                    
+                    // Populate popular movies (by likes) with exactly 15 items
+                    const sortedByLikes = [...content].sort((a, b) => {
+                        return (b.likes || 0) - (a.likes || 0);
+                    });
+                    
+                    const popularMovies = ensureItemCount(sortedByLikes);
+                    popularMovies.forEach(item => {
+                        popularMoviesRow.appendChild(createContentCard(item));
+                    });
+                    
+                    // Filter for classics (older movies or specifically categorized as classics)
+                    const classicsContent = content.filter(item => 
+                        (item.releaseYear && parseInt(item.releaseYear) < 1980) ||
+                        (item.genre && item.genre.some(g => 
+                            g.toLowerCase().includes('classic') || 
+                            g.toLowerCase().includes('public domain')
+                        ))
+                    );
+                    
+                    // Make sure we have exactly 15 classics
+                    const classics = ensureItemCount(classicsContent.length > 0 ? classicsContent : content);
+                    classics.forEach(item => {
+                        classicsRow.appendChild(createContentCard(item));
+                    });
+                    
+                    // Helper function to populate genre rows with exactly 15 items
+                    function populateGenreRow(rowElement, genreName) {
+                        const genreContent = content.filter(item => 
+                            item.genre && item.genre.some(g => 
+                                g.toLowerCase().includes(genreName.toLowerCase())
+                            )
+                        );
+                        
+                        // Make sure we have exactly 15 items
+                        const itemsToRender = ensureItemCount(genreContent.length > 0 ? genreContent : content);
+                        itemsToRender.forEach(item => {
+                            rowElement.appendChild(createContentCard(item));
+                        });
+                    }
+                    
+                    // Populate genre-specific rows, each with exactly 15 items
+                    populateGenreRow(actionRow, 'action');
+                    populateGenreRow(scifiRow, 'sci-fi');
+                    populateGenreRow(dramaRow, 'drama');
+                    populateGenreRow(comedyRow, 'comedy');
+                    populateGenreRow(horrorRow, 'horror');
+                    populateGenreRow(documentaryRow, 'documentary');
+                    populateGenreRow(animationRow, 'animation');
+                    populateGenreRow(familyRow, 'family');
+                    populateGenreRow(mysteryRow, 'mystery');
+                    populateGenreRow(thrillerRow, 'thriller');
+                    populateGenreRow(romanceRow, 'romance');
+                    populateGenreRow(westernRow, 'western');
+                    populateGenreRow(warRow, 'war');
+                    populateGenreRow(fantasyRow, 'fantasy');
+                    populateGenreRow(crimeRow, 'crime');
+                    populateGenreRow(adventureRow, 'adventure');
+                    populateGenreRow(biographyRow, 'biography');
+                    populateGenreRow(historyRow, 'history');
+                    populateGenreRow(musicRow, 'music');
+                    populateGenreRow(sportRow, 'sport');
+                    populateGenreRow(shortFilmsRow, 'short');
+                    populateGenreRow(foreignRow, 'foreign');
+                }
+            } catch (error) {
+                console.error('Error loading content:', error);
+                document.querySelectorAll('.loading-spinner').forEach(spinner => {
+                    spinner.textContent = 'Error loading content. Please try again later.';
+                });
+            }
+        }
+
+        // Update these URLs to use .html extension
+        function createContentCard(item) {
+            const div = document.createElement('div');
+            div.className = 'content-card';
+            
+            // Use absolute path with window.location.origin
+            const baseUrl = window.location.origin;
+            
+            div.innerHTML = `
+                <a href="${baseUrl}/pages/watch.html?id=${item._id}">
+                    <img src="${item.posterImage}" alt="${item.title}">
+                    <div class="card-info">
+                        <p>${item.title}</p>
+                    </div>
+                </a>
+            `;
+            
+            div.addEventListener('click', function(e) {
+                e.preventDefault(); // Prevent default to manually handle navigation
+                console.log('Navigating to watch page with ID:', item._id);
+                window.location.href = `${baseUrl}/pages/watch.html?id=${item._id}`;
+            });
+            
+            return div;
+        }
+    </script>
 </body>
 </html>
