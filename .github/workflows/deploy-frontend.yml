@@ -13,6 +13,10 @@ on:
       - 'assets/**'
       - '.github/workflows/deploy-frontend.yml'
 
+# Add permissions for GitHub Actions
+permissions:
+  contents: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -48,4 +52,5 @@ jobs:
             node_modules
             server-config.js
             README.md
-            .gitignore 
+            .gitignore
+          token: ${{ secrets.ACTIONS_DEPLOY_KEY }} 
