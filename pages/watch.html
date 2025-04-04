@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- URL Redirection - Ensures users get the working version of the page -->
+    <script>
+    // Only run on watch.html
+    if (window.location.pathname.endsWith('/watch.html')) {
+        // Get the current query string
+        const queryString = window.location.search || '';
+        
+        // Build the new URL
+        const newUrl = window.location.origin + 
+                      window.location.pathname.replace('watch.html', 'watch') + 
+                      queryString;
+        
+        // Redirect to the clean URL
+        window.location.replace(newUrl);
+    }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' blob:; script-src 'self' 'unsafe-eval' https://cdnjs.cloudflare.com; style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; media-src 'self' blob: https://*; connect-src 'self' http://* https://* ws://* wss://* blob: *; font-src https://cdnjs.cloudflare.com data:; img-src 'self' https://* data:; worker-src 'self' blob:;">
+    <title>Watch - StreamFlix</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/watch.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Global config -->
+    <script src="../js/config.js"></script>
+    <!-- URL Normalizer - ensures consistent behavior between URLs -->
+    <script src="../js/url-normalizer.js"></script>
+    <!-- WebTorrent library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/webtorrent/1.9.7/webtorrent.min.js"></script>
+    <!-- WebTorrent fix script -->
+    <script src="../js/webtorrent-fix.js"></script>
+    <!-- WebTorrent debug script -->
+    <script src="../js/webtorrent-debug.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header with back button -->
+        <header class="watch-header">
+            <button id="back-button" class="back-button">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <div id="persistent-seeding-indicator" style="display: none; align-items: center; position: absolute; right: 20px; top: 20px; background-color: rgba(0,255,0,0.2); color: #4CAF50; padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s ease;">
+                <span class="seeding-pulse" style="width: 8px; height: 8px; background-color: #4CAF50; border-radius: 50%; margin-right: 8px; animation: pulse 1.5s infinite;"></span>
+                <span>Seeding Active</span>
+            </div>
+        </header>
+
+        <!-- Main content -->
+        <main class="watch-content">
+            <!-- Video player section -->
+            <section class="video-player-container">
+                <div class="video-player">
+                    <!-- Video thumbnail (shown before playback) -->
+                    <img src="https://images.unsplash.com/photo-1536440136628-849c177e76a1" alt="Movie Thumbnail" class="video-thumbnail">
+                    
+                    <!-- Video element for streaming -->
+                    <video id="video-player" controls playsinline style="display:none; width:100%; height:100%; max-height: 100%; object-fit: contain; background: #000;">
+                        Your browser does not support HTML5 video.
+                    </video>
+                    
+                    <!-- Overlay play button -->
+                    <div class="play-button" id="play-button">
+                        <i class="fas fa-play"></i>
+                    </div>
+                    
+                    <!-- Loading indicator - with improved positioning and containment -->
+                    <div class="loading-indicator" id="loading-indicator" style="display:none; max-width: 80%; max-height: 80%; overflow: hidden; box-sizing: border-box;">
+                        <div class="spinner"></div>
+                        <div class="loading-text">Loading: <span id="loading-progress">0%</span></div>
+                    </div>
+                </div>
+                
+                <!-- Updated Torrent Info Section -->
+                <div class="torrent-stats-container" id="torrent-info" style="display: none;">
+                    <div class="torrent-header" id="torrent-header">
+                        <div class="torrent-title">
+                            <h3>Torrent Stats <i class="fas fa-chevron-down toggle-icon"></i></h3>
+                            <div class="torrent-summary">
+                                <!-- Kept for layout spacing -->
+                            </div>
+                        </div>
+                        <div class="reward-badge">
+                            <i class="fas fa-coins"></i> <span class="reward-amount" id="earning-rate">0</span>&nbsp;points earned
+                        </div>
+                    </div>
+                    
+                    <div class="torrent-details" id="torrent-details">
+                        <div class="torrent-stats-grid">
+                            <div class="stat-card download">
+                                <div class="stat-label">Download Speed</div>
+                                <div class="stat-value" id="download-speed">0 KB/s</div>
+                            </div>
+                            <div class="stat-card upload">
+                                <div class="stat-label">Upload Speed</div>
+                                <div class="stat-value" id="upload-speed">0 KB/s</div>
+                            </div>
+                            <div class="stat-card peers">
+                                <div class="stat-label">Connected Peers</div>
+                                <div class="stat-value" id="peers-count">0</div>
+                            </div>
+                        </div>
+                        
+                        <div class="torrent-progress-container">
+                            <div class="progress-header">
+                                <div class="progress-label">Download Progress</div>
+                                <div class="progress-value" id="torrent-progress">0%</div>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="torrent-actions">
+                            <button id="btn-continue-seeding" class="continue-seeding" disabled>
+                                <i class="fas fa-pause"></i> Pause Seeding
+                            </button>
+                            <button id="btn-view-stats" class="secondary">
+                                <i class="fas fa-chart-line"></i> View Rewards
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Movie details section -->
+            <section class="movie-details">
+                <div class="title-row">
+                    <h1 id="movie-title"></h1>
+                    <div class="title-actions">
+                        <button class="title-like-btn">
+                            <i class="fas fa-thumbs-up"></i>
+                            <span class="like-count">0</span>
+                        </button>
+                        <button class="title-dislike-btn">
+                            <i class="fas fa-thumbs-down"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="movie-meta">
+                    <span class="year"></span>
+                    <span class="rating"></span>
+                    <span class="duration"></span>
+                    <span class="quality"></span>
+                </div>
+                <div class="genre-tags">
+                    <!-- Genre tags will be populated by JavaScript -->
+                </div>
+                <div class="action-buttons">
+                    <button class="btn-play">
+                        <i class="fas fa-gift"></i> Gift
+                    </button>
+                    <button class="btn-download">
+                        <i class="fas fa-compact-disc"></i> Seed Only
+                      </button>
+                    <button class="btn-buy">
+                        <i class="fas fa-shopping-cart"></i> Buy
+                    </button>
+                </div>
+                <div class="movie-description">
+                    <p></p>
+                </div>
+                <div class="movie-credits">
+                    <div class="movie-credit-item">
+                        <span class="credit-label">Director:</span>
+                        <span class="credit-value" id="director-info"></span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Cast section -->
+            <section class="cast-section">
+                <div class="section-header">
+                    <h2>Cast</h2>
+                    <button class="see-all-btn" data-modal="cast-modal">See All</button>
+                </div>
+                <div class="cast-carousel">
+                    <!-- Cast members will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Awards section -->
+            <section class="awards-section">
+                <div class="section-header">
+                    <h2>Awards</h2>
+                    <button class="see-all-btn" data-modal="film-awards-modal">See All</button>
+                </div>
+                <div class="awards-carousel">
+                    <!-- Awards will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Similar movies section -->
+            <section class="similar-section">
+                <div class="section-header">
+                    <h2>Similar Movies</h2>
+                    <button class="see-all-btn">See All</button>
+                </div>
+                <div class="similar-carousel">
+                    <!-- Similar movies will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Comments section -->
+            <section class="comments-section">
+                <div class="section-header">
+                    <h2>Comments</h2>
+                    <button class="see-all-btn" data-modal="comments-modal">See All</button>
+                </div>
+                <div class="comment-input-container">
+                    <textarea id="comment-input" placeholder="Add a comment..."></textarea>
+                    <div class="comment-actions" id="comment-actions">
+                        <div class="comment-actions-left">
+                            <button class="btn-emoji"><i class="far fa-smile"></i></button>
+                        </div>
+                        <div class="comment-actions-right">
+                            <button class="btn-cancel">Cancel</button>
+                            <button class="btn-comment">Comment</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="comments-list">
+                    <!-- Comments will be populated by JavaScript -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal for Cast -->
+    <div id="cast-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Cast</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="cast-grid">
+                    <!-- Cast members will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Film Awards Modal -->
+    <div id="film-awards-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-trophy"></i> Film Awards</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="film-awards-grid">
+                    <!-- Film awards will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Seeding Rewards (kept for WebTorrent functionality) -->
+    <div id="rewards-modal" class="modal">
+        <div class="modal-content rewards-modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-coins"></i> Your Rewards</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="rewards-overview">
+                    <div class="token-balance">
+                        <span class="token-icon"><i class="fas fa-coins"></i></span>
+                        <div class="token-info">
+                            <div class="token-amount" id="token-balance">0</div>
+                            <div class="token-label">StreamTokens</div>
+                        </div>
+                    </div>
+                    
+                    <div class="rank-badge" id="rank-badge">
+                        <div class="rank-icon"><i class="fas fa-award"></i></div>
+                        <div class="rank-info">
+                            <div class="rank-name" id="rank-name">Starter</div>
+                            <div class="rank-label">Rank</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stats-overview">
+                    <h3>Your Contribution Stats</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-icon"><i class="fas fa-upload"></i></div>
+                            <div class="stat-value" id="total-uploaded">0 MB</div>
+                            <div class="stat-label">Total Uploaded</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                            <div class="stat-value" id="total-seeding-time">0 hrs</div>
+                            <div class="stat-label">Total Seeding Time</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-icon"><i class="fas fa-film"></i></div>
+                            <div class="stat-value" id="content-seeded">0</div>
+                            <div class="stat-label">Content Items Seeded</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-icon"><i class="fas fa-users"></i></div>
+                            <div class="stat-value" id="peers-served">0</div>
+                            <div class="stat-label">Peers Served</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="rewards-history">
+                    <h3>Recent Activity</h3>
+                    <div class="activity-list" id="activity-list">
+                        <div class="activity-item">
+                            <div class="activity-icon"><i class="fas fa-seedling"></i></div>
+                            <div class="activity-info">
+                                <div class="activity-title">Seeding Big Buck Bunny</div>
+                                <div class="activity-meta">1 minute ago</div>
+                            </div>
+                            <div class="activity-tokens">+0.05 tokens</div>
+                        </div>
+                        <!-- More activity items will be added dynamically -->
+                    </div>
+                </div>
+                
+                <div class="rewards-footer">
+                    <button id="reward-info-btn" class="btn-secondary">
+                        <i class="fas fa-info-circle"></i> How Awards Work
+                    </button>
+                    <button id="leaderboard-btn" class="btn-primary">
+                        <i class="fas fa-trophy"></i> View Leaderboard
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Comments -->
+    <div id="comments-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>All Comments</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="all-comments-list">
+                    <!-- All comments will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Include API service script -->
+    <script src="../js/api-service.js"></script>
+    <!-- Include player and watch scripts -->
+    <script src="../js/watch-player.js"></script>
+    <script src="../js/torrent-stats.js"></script>
+    <script src="../js/cast.js"></script>
+    <script src="../js/title-like-dislike.js"></script>
+    <script src="../js/comments.js"></script>
+    <script src="../js/awards.js"></script>
+    <script src="../js/watch.js"></script>
+</body>
+</html>

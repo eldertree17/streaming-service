@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: streamflix-backend
+    env: node
+    rootDir: streaming-service-backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: APP_URL
+        # This should be set to your Telegram Mini App URL (GitHub Pages)
+        value: https://eldertree17.github.io/streaming-service
+      - key: JWT_SECRET
+        generateValue: true
+    healthCheckPath: /
+    autoDeploy: true 

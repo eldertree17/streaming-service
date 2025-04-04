@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streaming Service</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+    <!-- Search Bar -->
+    <div class="search-bar">
+            <div class="search-field">
+            <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search movies..." id="search-input">
+                <i class="fas fa-microphone"></i>
+        </div>
+    </div>
+        
+        <!-- Hero Card (Featured Content) -->
+        <div class="hero-card">
+            <div class="featured-card" id="featured-movie">
+                <div class="badge">Featured</div>
+                <div class="likes" id="featured-like">
+                    <i class="fas fa-thumbs-up"></i>
+                    <span>1.5K</span>
+                </div>
+                <img src="https://archive.org/services/img/earth-vs-the-flying-saucers-color" alt="Featured Movie">
+                <div class="title-container">
+                    <h2>Earth vs the Flying Saucers</h2>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Category Container -->
+        <div id="category-container">
+            <!-- Test Video Section - Guaranteed to work -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Test Video Player</h3>
+                    <span class="subtitle" style="font-size: 0.8rem; color: #ccc; margin-left: 10px;">Guaranteed to work</span>
+                </div>
+                <div class="content-row" id="test-video-row">
+                    <div class="content-card" id="test-video-card" style="min-width: 300px;">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Big_buck_bunny_poster_big.jpg/800px-Big_buck_bunny_poster_big.jpg" alt="Big Buck Bunny">
+                        <div class="card-info">
+                            <p>Big Buck Bunny (Test Video)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Releases Section -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>New Releases</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="new-releases-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Popular Movies Section -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Popular Movies</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="popular-movies-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Public Domain Classics -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Public Domain Classics</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="classics-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Action Movies -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Action Movies</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="action-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Sci-Fi -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Sci-Fi</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="scifi-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Drama -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Drama</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="drama-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Comedy -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Comedy</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="comedy-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Horror -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Horror</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="horror-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Documentary -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Documentary</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="documentary-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Animation -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Animation</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="animation-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Family -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Family</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="family-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Mystery -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Mystery</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="mystery-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Thriller -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Thriller</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="thriller-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Romance -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Romance</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="romance-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Western -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Western</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="western-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- War -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>War</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="war-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Fantasy -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Fantasy</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="fantasy-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Crime -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Crime</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="crime-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Adventure -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Adventure</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="adventure-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Biography -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Biography</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="biography-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- History -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>History</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="history-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Music -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Music</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="music-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Sport -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Sport</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="sport-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Short Films -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Short Films</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="short-films-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- Foreign -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Foreign</h3>
+                    <span class="see-all">See All</span>
+                </div>
+                <div class="content-row" id="foreign-row">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="loading-spinner">Loading...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Navigation Bar -->
+        <div class="nav-bar">
+            <div class="nav-item active">
+                <a href="index.html">
+                    <i class="fas fa-home"></i>
+                    <p>Home</p>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="pages/activity.html">
+                    <i class="fas fa-compact-disc"></i>
+                    <p>Activity</p>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="pages/account.html">
+                    <i class="fas fa-user"></i>
+                    <p>Account</p>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api-service.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up search functionality
+            const searchInput = document.getElementById('search-input');
+            const searchField = document.querySelector('.search-field');
+            
+            // Make the entire search field clickable
+            searchField.addEventListener('click', function() {
+                window.location.href = "pages/search";
+            });
+            
+            // Make search input focus also redirect to search page
+            searchInput.addEventListener('focus', function() {
+                window.location.href = "pages/search";
+            });
+            
+            // Handle input clicks - no need to stop propagation anymore since we want the same behavior
+            searchInput.addEventListener('click', function() {
+                window.location.href = "pages/search";
+            });
+            
+            // Handle enter key just in case
+            searchInput.addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') {
+                    const query = searchInput.value.trim();
+                    window.location.href = `pages/search?query=${encodeURIComponent(query)}`;
+                }
+            });
+            
+            // Set up voice search to redirect to search page
+            const voiceIcon = document.querySelector('.fa-microphone');
+            voiceIcon.addEventListener('click', function(e) {
+                e.stopPropagation(); // Stop propagation to prevent double redirect
+                alert("Voice search feature coming soon!");
+            });
+            
+            // Set up hero card click
+            document.getElementById('featured-movie').addEventListener('click', function() {
+                // Use the correct URL with origin to ensure absolute path
+                const baseUrl = window.location.origin;
+                const id = '67d919a32437ccb3a8680549'; // Featured movie ID
+                console.log('Navigating to featured movie page with ID:', id);
+                window.location.href = `${baseUrl}/pages/watch?id=${id}`;
+            });
+            
+            // Set up like button
+            document.getElementById('featured-like').addEventListener('click', function(e) {
+                e.stopPropagation();
+                this.classList.toggle('active');
+                const likeIcon = this.querySelector('i');
+                const likeCount = this.querySelector('span');
+                
+                if (this.classList.contains('active')) {
+                    likeCount.textContent = '1.6K';
+                } else {
+                    likeCount.textContent = '1.5K';
+                }
+            });
+            
+            // Load content for each row
+            loadContent();
+
+            // Handle test video card click
+            const testVideoCard = document.getElementById('test-video-card');
+            if (testVideoCard) {
+                testVideoCard.addEventListener('click', function() {
+                    console.log('Test video card clicked, navigating to sample-video-1');
+                    const baseUrl = window.location.origin;
+                    // Using watch.html instead of pages/watch (prevent 301 redirect)
+                    window.location.href = `${baseUrl}/pages/watch?id=sample-video-1`;
+                    // Stop any other event handlers
+                    return false;
+                });
+                // Add pointer cursor for better UX
+                testVideoCard.style.cursor = 'pointer';
+            }
+        });
+
+        // Helper function to ensure each row has exactly 15 items
+        function ensureItemCount(items, count = 15) {
+            if (items.length === 0) return [];
+            if (items.length >= count) return items.slice(0, count);
+            
+            // If we have fewer items than needed, duplicate them until we reach the count
+            const result = [...items];
+            while (result.length < count) {
+                // Add items from the beginning until we reach the desired count
+                const needed = count - result.length;
+                const itemsToAdd = items.slice(0, Math.min(needed, items.length));
+                result.push(...itemsToAdd);
+            }
+            return result;
+        }
+
+        async function loadContent() {
+            try {
+                // Fetch content from API
+                const content = await getAllContent();
+                
+                if (content && content.length > 0) {
+                    // Clear loading indicators
+                    document.querySelectorAll('.loading-spinner').forEach(spinner => {
+                        spinner.remove();
+                    });
+                    
+                    // Reference all row containers
+                    const newReleasesRow = document.getElementById('new-releases-row');
+                    const popularMoviesRow = document.getElementById('popular-movies-row');
+                    const classicsRow = document.getElementById('classics-row');
+                    const actionRow = document.getElementById('action-row');
+                    const scifiRow = document.getElementById('scifi-row');
+                    const dramaRow = document.getElementById('drama-row');
+                    const comedyRow = document.getElementById('comedy-row');
+                    const horrorRow = document.getElementById('horror-row');
+                    const documentaryRow = document.getElementById('documentary-row');
+                    const animationRow = document.getElementById('animation-row');
+                    const familyRow = document.getElementById('family-row');
+                    const mysteryRow = document.getElementById('mystery-row');
+                    const thrillerRow = document.getElementById('thriller-row');
+                    const romanceRow = document.getElementById('romance-row');
+                    const westernRow = document.getElementById('western-row');
+                    const warRow = document.getElementById('war-row');
+                    const fantasyRow = document.getElementById('fantasy-row');
+                    const crimeRow = document.getElementById('crime-row');
+                    const adventureRow = document.getElementById('adventure-row');
+                    const biographyRow = document.getElementById('biography-row');
+                    const historyRow = document.getElementById('history-row');
+                    const musicRow = document.getElementById('music-row');
+                    const sportRow = document.getElementById('sport-row');
+                    const shortFilmsRow = document.getElementById('short-films-row');
+                    const foreignRow = document.getElementById('foreign-row');
+                    
+                    // Sort content by date (newest first) for new releases
+                    const sortedByDate = [...content].sort((a, b) => {
+                        return new Date(b.createdAt) - new Date(a.createdAt);
+                    });
+                    
+                    // Populate new releases with exactly 15 items
+                    const newReleases = ensureItemCount(sortedByDate);
+                    newReleases.forEach(item => {
+                        newReleasesRow.appendChild(createContentCard(item));
+                    });
+                    
+                    // Populate popular movies (by likes) with exactly 15 items
+                    const sortedByLikes = [...content].sort((a, b) => {
+                        return (b.likes || 0) - (a.likes || 0);
+                    });
+                    
+                    const popularMovies = ensureItemCount(sortedByLikes);
+                    popularMovies.forEach(item => {
+                        popularMoviesRow.appendChild(createContentCard(item));
+                    });
+                    
+                    // Filter for classics (older movies or specifically categorized as classics)
+                    const classicsContent = content.filter(item => 
+                        (item.releaseYear && parseInt(item.releaseYear) < 1980) ||
+                        (item.genre && item.genre.some(g => 
+                            g.toLowerCase().includes('classic') || 
+                            g.toLowerCase().includes('public domain')
+                        ))
+                    );
+                    
+                    // Make sure we have exactly 15 classics
+                    const classics = ensureItemCount(classicsContent.length > 0 ? classicsContent : content);
+                    classics.forEach(item => {
+                        classicsRow.appendChild(createContentCard(item));
+                    });
+                    
+                    // Helper function to populate genre rows with exactly 15 items
+                    function populateGenreRow(rowElement, genreName) {
+                        const genreContent = content.filter(item => 
+                            item.genre && item.genre.some(g => 
+                                g.toLowerCase().includes(genreName.toLowerCase())
+                            )
+                        );
+                        
+                        // Make sure we have exactly 15 items
+                        const itemsToRender = ensureItemCount(genreContent.length > 0 ? genreContent : content);
+                        itemsToRender.forEach(item => {
+                            rowElement.appendChild(createContentCard(item));
+                        });
+                    }
+                    
+                    // Populate genre-specific rows, each with exactly 15 items
+                    populateGenreRow(actionRow, 'action');
+                    populateGenreRow(scifiRow, 'sci-fi');
+                    populateGenreRow(dramaRow, 'drama');
+                    populateGenreRow(comedyRow, 'comedy');
+                    populateGenreRow(horrorRow, 'horror');
+                    populateGenreRow(documentaryRow, 'documentary');
+                    populateGenreRow(animationRow, 'animation');
+                    populateGenreRow(familyRow, 'family');
+                    populateGenreRow(mysteryRow, 'mystery');
+                    populateGenreRow(thrillerRow, 'thriller');
+                    populateGenreRow(romanceRow, 'romance');
+                    populateGenreRow(westernRow, 'western');
+                    populateGenreRow(warRow, 'war');
+                    populateGenreRow(fantasyRow, 'fantasy');
+                    populateGenreRow(crimeRow, 'crime');
+                    populateGenreRow(adventureRow, 'adventure');
+                    populateGenreRow(biographyRow, 'biography');
+                    populateGenreRow(historyRow, 'history');
+                    populateGenreRow(musicRow, 'music');
+                    populateGenreRow(sportRow, 'sport');
+                    populateGenreRow(shortFilmsRow, 'short');
+                    populateGenreRow(foreignRow, 'foreign');
+                }
+            } catch (error) {
+                console.error('Error loading content:', error);
+                document.querySelectorAll('.loading-spinner').forEach(spinner => {
+                    spinner.textContent = 'Error loading content. Please try again later.';
+                });
+            }
+        }
+
+        function createContentCard(item) {
+            const div = document.createElement('div');
+            div.className = 'content-card';
+            
+            // Use absolute path with window.location.origin
+            const baseUrl = window.location.origin;
+            
+            div.innerHTML = `
+                <a href="${baseUrl}/pages/watch?id=${item._id}">
+                    <img src="${item.posterImage}" alt="${item.title}">
+                    <div class="card-info">
+                        <p>${item.title}</p>
+                    </div>
+                </a>
+            `;
+            
+            div.addEventListener('click', function(e) {
+                e.preventDefault(); // Prevent default to manually handle navigation
+                console.log('Navigating to watch page with ID:', item._id);
+                window.location.href = `${baseUrl}/pages/watch?id=${item._id}`;
+            });
+            
+            return div;
+        }
+    </script>
+</body>
+</html>

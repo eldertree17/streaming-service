@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Settings - StreamFlix</title>
+    <link rel="stylesheet" href="../css/account-settings.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-content">
+                <div class="back-button" id="back-button">
+                    <i class="fas fa-arrow-left"></i>
+                </div>
+                <h1>Account Settings</h1>
+            </div>
+        </header>
+
+        <main>
+            <!-- Notifications Section -->
+            <div class="settings-section">
+                <div class="setting-item notification-setting">
+                    <div class="setting-icon">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <div class="setting-label">Notifications</div>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="notifications-toggle" checked>
+                        <label for="notifications-toggle"></label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Membership & Billing Section -->
+            <div class="settings-section">
+                <h2>Membership & Billing</h2>
+                <div class="setting-item">
+                    <div class="setting-label">Username</div>
+                    <div class="setting-value">@GPM_FLIX</div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">Password</div>
+                    <div class="setting-value password-value">••••••</div>
+                    <div class="setting-action">
+                        <i class="fas fa-pen"></i>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">Phone</div>
+                    <div class="setting-value">+888 123 456 789</div>
+                    <div class="setting-action">
+                        <i class="fas fa-pen"></i>
+                    </div>
+                </div>
+                <div class="divider"></div>
+                <div class="setting-item">
+                    <div class="setting-label">Wallet address</div>
+                    <div class="setting-value wallet-address">0x123...a91K5</div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">Next billing date</div>
+                    <div class="setting-value">18th March 2032</div>
+                </div>
+                <div class="setting-item clickable">
+                    <div class="setting-label">Billing history</div>
+                    <div class="setting-action">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+                <div class="button-container">
+                    <button class="cancel-button">Cancel subscription</button>
+                </div>
+            </div>
+
+            <!-- Seeding Preferences Section -->
+            <div class="settings-section">
+                <h2>Seeding Preferences</h2>
+                <div class="setting-item">
+                    <div class="setting-label">Auto-seed new content</div>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="auto-seed-toggle" checked>
+                        <label for="auto-seed-toggle"></label>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">Storage allocation</div>
+                    <div class="setting-value">25GB</div>
+                </div>
+                <div class="slider-container">
+                    <input type="range" min="1" max="50" value="25" class="slider" id="storage-slider">
+                    <div class="slider-labels">
+                        <span>1GB</span>
+                        <span>50GB</span>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">Seeding schedule</div>
+                    <div class="setting-value">Always</div>
+                    <div class="setting-action">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">Bandwidth limit</div>
+                    <div class="setting-value">Unlimited</div>
+                </div>
+                <div class="slider-container">
+                    <input type="range" min="1" max="100" value="100" class="slider" id="bandwidth-slider">
+                    <div class="slider-labels">
+                        <span>1Mbps</span>
+                        <span>Unlimited</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment & Rewards Section -->
+            <div class="settings-section">
+                <h2>Payment & Rewards</h2>
+                <div class="setting-item">
+                    <div class="setting-label">Default withdrawal method</div>
+                    <div class="setting-value">Crypto wallet</div>
+                    <div class="setting-action">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">Auto-claim rewards</div>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="auto-claim-toggle">
+                        <label for="auto-claim-toggle"></label>
+                    </div>
+                </div>
+                <div class="setting-item auto-claim-threshold">
+                    <div class="setting-label">Claim when rewards reach</div>
+                    <div class="setting-value">$50</div>
+                </div>
+                <div class="slider-container threshold-slider">
+                    <input type="range" min="10" max="100" value="50" step="10" class="slider" id="threshold-slider">
+                    <div class="slider-labels">
+                        <span>$10</span>
+                        <span>$100</span>
+                    </div>
+                </div>
+                <div class="setting-item clickable">
+                    <div class="setting-label">Transaction history</div>
+                    <div class="setting-action">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+                <div class="button-container">
+                    <button class="connect-wallet-button">Connect wallet</button>
+                </div>
+            </div>
+
+            <!-- Manage Access & Devices Section -->
+            <div class="settings-section">
+                <h2>Manage Access & Devices</h2>
+                
+                <!-- Device 1 -->
+                <div class="device-item">
+                    <div class="device-info">
+                        <div class="device-name">iPhone Safari - Mobile Browser</div>
+                        <div class="device-profile">
+                            <i class="fas fa-user-circle"></i> No profile to show
+                        </div>
+                        <div class="device-time">21/04/2033, 10:00 am UTC+8</div>
+                    </div>
+                    <div class="button-container">
+                        <button class="signout-button">Sign out</button>
+                    </div>
+                </div>
+                
+                <!-- Device 2 -->
+                <div class="device-item">
+                    <div class="device-info">
+                        <div class="device-name">Apple - iPhone</div>
+                        <div class="device-profile">
+                            <i class="fas fa-user-circle"></i> Alice & Bob
+                        </div>
+                        <div class="device-time">21/04/2033, 11:00 am UTC+8</div>
+                    </div>
+                    <div class="button-container">
+                        <button class="signout-button">Sign out</button>
+                    </div>
+                </div>
+                
+                <!-- Device 3 -->
+                <div class="device-item">
+                    <div class="device-info">
+                        <div class="device-name">Apple - Macbook Air</div>
+                        <div class="device-profile">
+                            <i class="fas fa-user-circle"></i> Mom & Dad
+                        </div>
+                        <div class="device-time">21/04/2033, 11:00 am UTC+8</div>
+                    </div>
+                    <div class="button-container">
+                        <button class="signout-button">Sign out</button>
+                    </div>
+                </div>
+                
+                <!-- Device 4 -->
+                <div class="device-item">
+                    <div class="device-info">
+                        <div class="device-name">LG - Smart TV</div>
+                        <div class="device-profile">
+                            <i class="fas fa-user-circle"></i> Freddy
+                        </div>
+                        <div class="device-time">21/04/2033, 11:00 am UTC+8</div>
+                    </div>
+                    <div class="button-container">
+                        <button class="signout-button">Sign out</button>
+                    </div>
+                </div>
+                
+                <div class="button-container">
+                    <button class="signout-all-button">Sign out of all devices</button>
+                </div>
+            </div>
+
+            <!-- Privacy & Security Section -->
+            <div class="settings-section">
+                <h2>Privacy & Security</h2>
+                <div class="setting-item">
+                    <div class="setting-label">Two-factor authentication</div>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="twofa-toggle">
+                        <label for="twofa-toggle"></label>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">Biometric login</div>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="biometric-toggle" checked>
+                        <label for="biometric-toggle"></label>
+                    </div>
+                </div>
+                <div class="setting-item clickable">
+                    <div class="setting-label">Privacy controls</div>
+                    <div class="setting-action">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+                <div class="setting-item clickable">
+                    <div class="setting-label">Data sharing preferences</div>
+                    <div class="setting-action">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- App Preferences Section -->
+            <div class="settings-section">
+                <h2>App Preferences</h2>
+                <div class="setting-item clickable">
+                    <div class="setting-label">Theme</div>
+                    <div class="setting-value">Dark</div>
+                    <div class="setting-action">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+                <div class="setting-item clickable">
+                    <div class="setting-label">Language</div>
+                    <div class="setting-value">English</div>
+                    <div class="setting-action">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+                <div class="setting-item clickable">
+                    <div class="setting-label">Video playback quality</div>
+                    <div class="setting-value">Auto</div>
+                    <div class="setting-action">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+                <div class="setting-item clickable">
+                    <div class="setting-label">Download quality</div>
+                    <div class="setting-value">High</div>
+                    <div class="setting-action">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">Auto-play</div>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="autoplay-toggle" checked>
+                        <label for="autoplay-toggle"></label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Help & Support Section -->
+            <div class="settings-section">
+                <h2>Help & Support</h2>
+                <div class="setting-item clickable">
+                    <div class="setting-label">FAQ</div>
+                    <div class="setting-action">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+                <div class="setting-item clickable">
+                    <div class="setting-label">Contact support</div>
+                    <div class="setting-action">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+                <div class="setting-item clickable">
+                    <div class="setting-label">Report an issue</div>
+                    <div class="setting-action">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legal Section -->
+            <div class="settings-section">
+                <h2>Legal</h2>
+                <div class="setting-item clickable">
+                    <div class="setting-label">Terms of service</div>
+                    <div class="setting-action">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+                <div class="setting-item clickable">
+                    <div class="setting-label">Privacy policy</div>
+                    <div class="setting-action">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+                <div class="setting-item clickable">
+                    <div class="setting-label">Copyright information</div>
+                    <div class="setting-action">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- App Version -->
+            <div class="app-version">
+                Version 1.0.0
+            </div>
+
+            <!-- Delete Account -->
+            <div class="delete-account">
+                <button class="delete-account-button">Delete account</button>
+            </div>
+        </main>
+
+        <!-- Navigation Bar -->
+        <nav class="nav-bar">
+            <div class="nav-item">
+                <a href="../index.html">
+                    <i class="fas fa-home"></i>
+                    <p>Home</p>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="activity.html">
+                    <i class="fas fa-compact-disc"></i>
+                    <p>Activity</p>
+                </a>
+            </div>
+            <div class="nav-item active">
+                <a href="account.html">
+                    <i class="fas fa-user"></i>
+                    <p>Account</p>
+                </a>
+            </div>
+        </nav>
+    </div>
+
+    <script src="../js/account-settings.js"></script>
+</body>
+</html>
