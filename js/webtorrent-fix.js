@@ -19,12 +19,19 @@
       // Get Telegram user ID if available
       const telegramUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 'browser-test-user';
       
-      // Use the API_URL constant if defined
-      const apiUrl = typeof API_URL !== 'undefined' ? API_URL : 'http://localhost:5003/api';
+      // Use the API_URL from config
+      const apiUrl = window.StreamFlixConfig?.API_URL || 'http://localhost:5003/api';
+      
+      console.log('Fetching points for user:', telegramUserId, 'from:', apiUrl);
       
       // Fetch user points from server
       fetch(`${apiUrl}/user/points?userId=${telegramUserId}`)
-        .then(response => response.json())
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`API returned status ${response.status}`);
+          }
+          return response.json();
+        })
         .then(data => {
           if (data.points !== undefined) {
             window.totalTokensEarned = data.points;
@@ -299,8 +306,10 @@
         userId: telegramUserId // Include Telegram user ID
       };
       
-      // Use the API_URL constant if defined
-      const apiUrl = typeof API_URL !== 'undefined' ? API_URL : 'http://localhost:5003/api';
+      // Use the API_URL from config
+      const apiUrl = window.StreamFlixConfig?.API_URL || 'http://localhost:5003/api';
+      
+      console.log('Reporting metrics for user:', telegramUserId, 'to:', apiUrl);
       
       // Send metrics to server
       fetch(`${apiUrl}/metrics/seeding`, {
@@ -310,7 +319,12 @@
         },
         body: JSON.stringify(metricsData)
       })
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`API returned status ${response.status}`);
+        }
+        return response.json();
+      })
       .then(data => {
         // Update tokens earned
         if (data.tokensEarned) {
@@ -326,6 +340,8 @@
           if (earningRate) {
             earningRate.textContent = Math.round(window.totalTokensEarned);
           }
+          
+          console.log('Updated user points:', window.totalTokensEarned);
         }
         
         window.isReportingMetrics = false;
