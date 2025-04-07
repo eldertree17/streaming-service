@@ -37,6 +37,12 @@
             log("Current path: " + path);
             log("Is Telegram: " + isTelegram);
             
+            // Handle duplicate /pages/pages/ issue causing redirect loop
+            if (path.includes('/pages/pages/')) {
+                path = path.replace('/pages/pages/', '/pages/');
+                log("Detected duplicate pages pattern, normalized to: " + path);
+            }
+            
             // Find our destination
             let destinationUrl = '/streaming-service/index.html';
             
@@ -70,6 +76,12 @@
                 // Default to index for any other path
                 destinationUrl = '/streaming-service/index.html';
                 log("Unknown path, defaulting to index.html");
+            }
+            
+            // Avoid redirect loops by not redirecting if already at the destination
+            if (path === destinationUrl) {
+                log("Already at destination, not redirecting to avoid loop");
+                return;
             }
             
             // Construct full URL with host

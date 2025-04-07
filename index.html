@@ -6,6 +6,34 @@
     <title>StreamFlix - Streaming Service</title>
     <!-- Version: 2023-04-05 Telegram Mini App Fix v3 -->
     
+    <!-- URL Normalizer - ensures consistent behavior between URLs -->
+    <script>
+        // URL Normalizer for GitHub Pages
+        (function() {
+            // Get the repository name from current URL or use default
+            var repoName = '/streaming-service';
+            var baseUrl = window.location.origin + repoName;
+            
+            // Create a global function to get proper URLs
+            window.getAssetUrl = function(path) {
+                // Remove leading slash if present
+                if (path.startsWith('/')) {
+                    path = path.substring(1);
+                }
+                
+                // Return full URL with repository name
+                return baseUrl + '/' + path;
+            };
+            
+            // Create a global function to navigate to URLs
+            window.navigateTo = function(path) {
+                window.location.href = window.getAssetUrl(path);
+            };
+            
+            console.log('URL Normalizer initialized');
+        })();
+    </script>
+    
     <!-- Critical timing improvements for Telegram Mini App -->
     <script>
         // Create global namespace to avoid conflicts
