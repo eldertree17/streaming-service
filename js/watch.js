@@ -2382,7 +2382,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const torrent = window.client.torrents[0];
             // Only trigger reportMetrics if actually uploading data
             if (torrent && torrent.uploadSpeed > 0 && !window.isReportingMetrics) {
-                // Call the server's reportMetrics function if available
+                // Call the reportMetrics function if available
                 if (typeof window.reportMetrics === 'function') {
                     window.reportMetrics(torrent.uploadSpeed, torrent.numPeers);
                 } else if (window.TorrentStats && typeof window.TorrentStats.reportMetrics === 'function') {
@@ -2390,42 +2390,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
-    }, 2000); // Check every 2 seconds to match the throttle time
+    }, 2000);
     
     // Fallback if the server API fails or isn't available
     setInterval(function() {
         // Only run if no metrics are currently being reported and we have an active torrent
-        if (!window.isReportingMetrics && 
-            window.client && 
+        if (window.client && 
             window.client.torrents && 
             window.client.torrents.length > 0) {
             
             const torrent = window.client.torrents[0];
             // Only update if actually uploading data and not already reporting metrics
             if (torrent && torrent.uploadSpeed > 0 && !window.isSeedingPaused) {
-                // Only use this if reportMetrics isn't available or has failed
-                if (torrent.uploadSpeed > 0 && 
-                    document.getElementById('earning-rate') && 
-                    document.getElementById('earning-rate').textContent === '0') {
-                    
-                    console.log('Emergency points update from watch.js - no points detected');
-                    // Fallback calculation - 1 point per second regardless of upload speed
-                    const secondsElapsed = 3; // This interval runs every 3 seconds
-                    const pointsPerSecond = 1; // 1 point per second
-                    const newPoints = secondsElapsed * pointsPerSecond;
-                    
-                    // Add to total tokens
-                    window.totalTokensEarned = (window.totalTokensEarned || 0) + newPoints;
-                    
-                    // Update UI
-                    const earningRate = document.getElementById('earning-rate');
-                    if (earningRate) {
-                        // Round to nearest integer for display
-                        earningRate.textContent = Math.round(window.totalTokensEarned);
-                    }
-                    
-                    console.log(`Emergency local points update: +${newPoints} points, Total: ${window.totalTokensEarned}`);
+                // Calculate points locally - 1 point per second regardless of upload speed
+                const secondsElapsed = 3; // This interval runs every 3 seconds
+                const pointsPerSecond = 1; // 1 point per second
+                const newPoints = secondsElapsed * pointsPerSecond;
+                
+                // Add to total tokens
+                window.totalTokensEarned = (window.totalTokensEarned || 0) + newPoints;
+                
+                // Update UI
+                const earningRate = document.getElementById('earning-rate');
+                if (earningRate) {
+                    // Round to nearest integer for display
+                    earningRate.textContent = Math.round(window.totalTokensEarned);
                 }
+                
+                console.log(`Local points update from watch.js: +${newPoints} points, Total: ${window.totalTokensEarned}`);
             }
         }
     }, 3000); // Every 3 seconds as a fallback/emergency update

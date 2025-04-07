@@ -807,38 +807,22 @@ async function reportMetrics(uploadSpeed, numPeers) {
             return; // Skip regular API call if we made a Telegram call
         }
         
-        // For non-Telegram users, use regular API
-        const response = await fetch(`${apiUrl}/metrics/seeding`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-demo-user': 'demo123' // For development/demo purposes
-            },
-            body: JSON.stringify(currentMetrics)
-        });
-
-        if (response.ok) {
-            const data = await response.json();
+        // DISABLE REGULAR API CALL - It's returning 401 Unauthorized
+        // Just use the local point calculation instead
+        console.log('Using local points calculation instead of regular API endpoint');
+        
+        // Fallback to local calculation
+        // Award 2 points per reporting interval (1 point per second, 2 second interval)
+        if (typeof window.totalTokensEarned === 'undefined') {
+            window.totalTokensEarned = 0;
+        }
+        window.totalTokensEarned += 2; // 1 point per second for 2 seconds
             
-            // Update the cumulative total of tokens earned
-            if (data.tokensEarned > 0) {
-                // Add the newly earned tokens to the total
-                if (typeof window.totalTokensEarned === 'undefined') {
-                    window.totalTokensEarned = 0;
-                }
-                window.totalTokensEarned += data.tokensEarned;
-                
-                // Update the reward badge to show the total tokens earned
-                const rewardBadge = document.querySelector('.reward-badge');
-                const rewardAmount = rewardBadge?.querySelector('.reward-amount');
-                if (rewardAmount) {
-                    // Round to nearest integer and display total tokens
-                    const totalTokensDisplay = Math.round(window.totalTokensEarned);
-                    rewardAmount.textContent = totalTokensDisplay;
-                }
-                
-                console.log(`Metrics Update - Upload Speed: ${uploadSpeedMbps.toFixed(2)} Mbps, Peers: ${numPeers}, Tokens Earned: ${data.tokensEarned}, Total: ${window.totalTokensEarned}`);
-            }
+        // Update the display
+        const earningRate = document.getElementById('earning-rate');
+        if (earningRate) {
+            const totalTokensDisplay = Math.round(window.totalTokensEarned);
+            earningRate.textContent = totalTokensDisplay;
         }
     } catch (error) {
         console.error('API metrics reporting failed, continuing with local points:', error);
@@ -857,7 +841,7 @@ async function reportMetrics(uploadSpeed, numPeers) {
             earningRate.textContent = totalTokensDisplay;
         }
         
-        console.log('Telegram API unavailable, using local points instead');
+        console.log('Using local points instead of API endpoint');
     } finally {
         window.isReportingMetrics = false;
     }

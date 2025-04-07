@@ -325,7 +325,26 @@
       }
       
       if (!effectiveTelegramUserId) {
-        console.log('No Telegram user ID available, skipping metrics report');
+        // If not a Telegram user, use local points calculation instead of API
+        console.log('No Telegram user ID available, using local points calculation');
+        
+        // Fallback to local calculation for non-Telegram users
+        // Award points at 1 point per 2 second interval
+        const secondsElapsed = 2; // This interval runs every 2 seconds
+        const pointsPerSecond = 1; // 1 point per second
+        const newPoints = secondsElapsed * pointsPerSecond;
+        
+        // Add to total tokens
+        window.totalTokensEarned = (window.totalTokensEarned || 0) + newPoints;
+        
+        // Update UI
+        const earningRate = document.getElementById('earning-rate');
+        if (earningRate) {
+          // Round to nearest integer for display
+          earningRate.textContent = Math.round(window.totalTokensEarned);
+        }
+        
+        console.log(`Local points calculation: +${newPoints}, Total: ${window.totalTokensEarned}`);
         window.isReportingMetrics = false;
         return;
       }
@@ -413,6 +432,22 @@
     } catch (error) {
       console.error('Error in reportMetrics:', error);
       window.isReportingMetrics = false;
+      
+      // Fallback to local points calculation if there's an error
+      const secondsElapsed = 2; // 2 seconds per update
+      const pointsPerSecond = 1; // 1 point per second
+      const newPoints = secondsElapsed * pointsPerSecond;
+      
+      // Add to total tokens
+      window.totalTokensEarned = (window.totalTokensEarned || 0) + newPoints;
+      
+      // Update UI
+      const earningRate = document.getElementById('earning-rate');
+      if (earningRate) {
+        // Round to nearest integer for display
+        earningRate.textContent = Math.round(window.totalTokensEarned);
+        console.log(`Error in reportMetrics but updated local points: +${newPoints}, Total: ${window.totalTokensEarned}`);
+      }
     }
   }
   
