@@ -307,7 +307,24 @@
       const telegramUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '';
       const telegramUsername = window.Telegram?.WebApp?.initDataUnsafe?.user?.username || '';
       
-      if (!telegramUserId) {
+      // Log Telegram detection info for debugging
+      console.log(`Telegram detection: window.Telegram=${!!window.Telegram}, WebApp=${!!window.Telegram?.WebApp}, initDataUnsafe=${!!window.Telegram?.WebApp?.initDataUnsafe}, user=${!!window.Telegram?.WebApp?.initDataUnsafe?.user}`);
+      
+      // If we're in a Telegram Mini App but couldn't get the user ID, try using window.IS_TELEGRAM_MINI_APP flag
+      const isTelegramApp = telegramUserId || window.IS_TELEGRAM_MINI_APP || (window.StreamFlixConfig && window.StreamFlixConfig.IS_TELEGRAM_MINI_APP);
+      
+      // Create a variable we can modify if needed
+      let effectiveTelegramUserId = telegramUserId;
+      
+      if (!effectiveTelegramUserId && isTelegramApp) {
+        console.warn('In Telegram environment but could not get telegramUserId, using fallback ID');
+        // Use a fallback ID based on local storage or generate a random one that persists
+        const fallbackId = localStorage.getItem('telegram_fallback_id') || 'tg_' + Math.random().toString(36).substring(2, 15);
+        localStorage.setItem('telegram_fallback_id', fallbackId);
+        effectiveTelegramUserId = fallbackId;
+      }
+      
+      if (!effectiveTelegramUserId) {
         console.log('No Telegram user ID available, skipping metrics report');
         window.isReportingMetrics = false;
         return;
@@ -319,7 +336,7 @@
         uploadSpeed: uploadSpeed / 1024, // Convert to KB/s
         peersConnected: numPeers,
         seedingTime: 2, // Report in 2 second increments
-        telegramUserId: telegramUserId,
+        telegramUserId: effectiveTelegramUserId,
         telegramUsername: telegramUsername
       };
       
@@ -328,7 +345,7 @@
       const endpoint = `${apiUrl}/metrics/telegram-seeding`;
       
       // Send metrics to server
-      console.log(`Reporting metrics to ${endpoint} for Telegram user: ${telegramUserId}, upload speed: ${metricsData.uploadSpeed.toFixed(2)} KB/s, peers: ${numPeers}`);
+      console.log(`Reporting metrics to ${endpoint} for Telegram user: ${effectiveTelegramUserId}, upload speed: ${metricsData.uploadSpeed.toFixed(2)} KB/s, peers: ${numPeers}`);
       
       fetch(endpoint, {
         method: 'POST',
@@ -376,6 +393,22 @@
       .catch(err => {
         console.error('Error reporting metrics:', err);
         window.isReportingMetrics = false;
+        
+        // Fallback to local points calculation if API fails
+        const secondsElapsed = 2; // 2 seconds per update
+        const pointsPerSecond = 1; // 1 point per second
+        const newPoints = secondsElapsed * pointsPerSecond;
+        
+        // Add to total tokens
+        window.totalTokensEarned = (window.totalTokensEarned || 0) + newPoints;
+        
+        // Update UI
+        const earningRate = document.getElementById('earning-rate');
+        if (earningRate) {
+          // Round to nearest integer for display
+          earningRate.textContent = Math.round(window.totalTokensEarned);
+          console.log(`API failed but updated local points: +${newPoints}, Total: ${window.totalTokensEarned}`);
+        }
       });
     } catch (error) {
       console.error('Error in reportMetrics:', error);

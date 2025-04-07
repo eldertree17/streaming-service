@@ -758,65 +758,106 @@ async function reportMetrics(uploadSpeed, numPeers) {
             timestamp: new Date().toISOString()
         };
 
-        // Try to send metrics to backend - but don't block points for failure
-        let apiTokensEarned = 0;
-        try {
-            const response = await fetch('http://localhost:5003/api/metrics/seeding', {
+        // Use the API_URL constant if defined, never use localhost
+        const apiUrl = typeof API_URL !== 'undefined' ? API_URL : 'https://streamflix-backend.onrender.com/api';
+        
+        // Send metrics to Telegram API endpoint if user is from Telegram
+        const telegramUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+        if (telegramUserId) {
+            // Use Telegram API endpoint
+            const telegramUsername = window.Telegram?.WebApp?.initDataUnsafe?.user?.username || '';
+            
+            // Prepare Telegram-specific payload
+            const telegramMetrics = {
+                contentId: contentId,
+                uploadSpeed: uploadSpeed / 1024, // Convert to KB/s
+                peersConnected: numPeers,
+                seedingTime: 2, // Report in 2 second increments
+                telegramUserId: telegramUserId,
+                telegramUsername: telegramUsername
+            };
+            
+            console.log(`Reporting metrics to Telegram API for user: ${telegramUserId}`);
+            const response = await fetch(`${apiUrl}/metrics/telegram-seeding`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'x-demo-user': 'demo123' // For development/demo purposes
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(currentMetrics)
+                body: JSON.stringify(telegramMetrics)
             });
-
+            
             if (response.ok) {
                 const data = await response.json();
-                apiTokensEarned = data.tokensEarned || 0;
+                console.log('Telegram API response:', data);
+                
+                // Update the tokens display
+                if (data && typeof data.totalTokens !== 'undefined') {
+                    window.totalTokensEarned = data.totalTokens;
+                    
+                    // Update UI
+                    const earningRate = document.getElementById('earning-rate');
+                    if (earningRate) {
+                        earningRate.textContent = Math.round(window.totalTokensEarned);
+                    }
+                    
+                    console.log(`Telegram tokens earned: ${data.tokensEarned || 0}, Total: ${data.totalTokens}`);
+                }
             }
-        } catch (apiError) {
-            console.log('API metrics reporting failed, continuing with local points:', apiError);
-            // We'll still award points below even if API fails
+            window.isReportingMetrics = false;
+            return; // Skip regular API call if we made a Telegram call
         }
         
-        // If API didn't return tokens, calculate them locally
-        let tokensEarned = apiTokensEarned;
-        if (tokensEarned <= 0) {
-            // Generate some points based on upload speed
-            tokensEarned = uploadSpeedMbps * 0.1; // 0.1 tokens per Mbps
+        // For non-Telegram users, use regular API
+        const response = await fetch(`${apiUrl}/metrics/seeding`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-demo-user': 'demo123' // For development/demo purposes
+            },
+            body: JSON.stringify(currentMetrics)
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            
+            // Update the cumulative total of tokens earned
+            if (data.tokensEarned > 0) {
+                // Add the newly earned tokens to the total
+                if (typeof window.totalTokensEarned === 'undefined') {
+                    window.totalTokensEarned = 0;
+                }
+                window.totalTokensEarned += data.tokensEarned;
+                
+                // Update the reward badge to show the total tokens earned
+                const rewardBadge = document.querySelector('.reward-badge');
+                const rewardAmount = rewardBadge?.querySelector('.reward-amount');
+                if (rewardAmount) {
+                    // Round to nearest integer and display total tokens
+                    const totalTokensDisplay = Math.round(window.totalTokensEarned);
+                    rewardAmount.textContent = totalTokensDisplay;
+                }
+                
+                console.log(`Metrics Update - Upload Speed: ${uploadSpeedMbps.toFixed(2)} Mbps, Peers: ${numPeers}, Tokens Earned: ${data.tokensEarned}, Total: ${window.totalTokensEarned}`);
+            }
         }
+    } catch (error) {
+        console.error('API metrics reporting failed, continuing with local points:', error);
         
-        // Add the newly earned tokens to the total
+        // Fallback to local calculation
+        // Award 2 points per reporting interval (1 point per second, 2 second interval)
         if (typeof window.totalTokensEarned === 'undefined') {
             window.totalTokensEarned = 0;
         }
-        
-        // Add the points
-        window.totalTokensEarned += tokensEarned;
-        
-        // Update the reward badge to show the total tokens earned
-        const rewardBadge = document.querySelector('.reward-badge');
-        const rewardAmount = rewardBadge?.querySelector('.reward-amount');
-        if (rewardAmount) {
-            // Round to nearest integer and display total tokens
+        window.totalTokensEarned += 2; // 1 point per second for 2 seconds
+            
+        // Update the display
+        const earningRate = document.getElementById('earning-rate');
+        if (earningRate) {
             const totalTokensDisplay = Math.round(window.totalTokensEarned);
-            rewardAmount.textContent = totalTokensDisplay;
+            earningRate.textContent = totalTokensDisplay;
         }
         
-        console.log(`Metrics Update - Upload Speed: ${uploadSpeedMbps.toFixed(2)} Mbps, Peers: ${numPeers}, Tokens Earned: ${tokensEarned}, Total: ${window.totalTokensEarned}`);
-        
-        // Send points earned to Telegram if TelegramApp is available
-        if (window.telegramApp && typeof window.telegramApp.addPoints === 'function') {
-            const roundedTokens = Math.round(tokensEarned);
-            if (roundedTokens > 0) {
-                console.log(`Adding ${roundedTokens} points to Telegram user account`);
-                window.telegramApp.addPoints(roundedTokens);
-            }
-        } else {
-            console.log('TelegramApp not available, points stored locally only');
-        }
-    } catch (error) {
-        console.error('Error reporting metrics:', error);
+        console.log('Telegram API unavailable, using local points instead');
     } finally {
         window.isReportingMetrics = false;
     }
@@ -865,26 +906,28 @@ function updateMetricsDisplay() {
         const torrent = window.client.torrents[0];
         
         if (torrent && torrent.uploadSpeed > 0) {
-            // Convert bytes to megabits
-            const uploadSpeedMbps = (torrent.uploadSpeed * 8) / 1000000;
-            
-            // Generate some points based on upload speed
-            const newTokens = uploadSpeedMbps * 0.1; // 0.1 tokens per Mbps
+            // Award 1 point per second of seeding, regardless of upload speed
+            // This is a fallback for when the API call fails
+            const secondsElapsed = 1; // Since this is called every second
+            const pointsPerSecond = 1; // 1 point per second
+            const newTokens = secondsElapsed * pointsPerSecond;
             
             // Initialize if needed
             if (typeof window.totalTokensEarned === 'undefined') {
                 window.totalTokensEarned = 0;
             }
             
-            // Add to total with a small fraction to avoid overwhelming the display
+            // Add to total
             window.totalTokensEarned += newTokens;
             
             // Update the display
-            const earningRateElement = document.getElementById('earning-rate');
-            if (earningRateElement) {
+            const earningRate = document.getElementById('earning-rate');
+            if (earningRate) {
                 const totalTokensDisplay = Math.round(window.totalTokensEarned);
-                earningRateElement.textContent = totalTokensDisplay;
+                earningRate.textContent = totalTokensDisplay;
             }
+            
+            console.log(`Local points update: +${newTokens} points (1 point/second), Total: ${window.totalTokensEarned}`);
         }
     }
 }

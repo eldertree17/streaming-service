@@ -2373,27 +2373,26 @@ function updateDownloadCompleteUI() {
 
 // Fix for points not updating properly
 document.addEventListener('DOMContentLoaded', function() {
-    // Existing code...
-    
-    // Fix for reward amount display
+    // Primary metrics reporter - uses server API
     setInterval(function() {
         const earningRateElement = document.getElementById('earning-rate');
         
-        // Instead of calculating locally, rely on the server calculation
         // Check if we're actually seeding (have an active torrent with upload)
         if (window.client && window.client.torrents && window.client.torrents.length > 0) {
             const torrent = window.client.torrents[0];
             // Only trigger reportMetrics if actually uploading data
             if (torrent && torrent.uploadSpeed > 0 && !window.isReportingMetrics) {
-                // Call the reportMetrics function from webtorrent-fix.js
+                // Call the server's reportMetrics function if available
                 if (typeof window.reportMetrics === 'function') {
                     window.reportMetrics(torrent.uploadSpeed, torrent.numPeers);
+                } else if (window.TorrentStats && typeof window.TorrentStats.reportMetrics === 'function') {
+                    window.TorrentStats.reportMetrics(torrent.uploadSpeed, torrent.numPeers);
                 }
             }
         }
     }, 2000); // Check every 2 seconds to match the throttle time
     
-    // Set up a fallback for updating points display if API points aren't working
+    // Fallback if the server API fails or isn't available
     setInterval(function() {
         // Only run if no metrics are currently being reported and we have an active torrent
         if (!window.isReportingMetrics && 
@@ -2402,21 +2401,18 @@ document.addEventListener('DOMContentLoaded', function() {
             window.client.torrents.length > 0) {
             
             const torrent = window.client.torrents[0];
-            // Only update if actually uploading data
+            // Only update if actually uploading data and not already reporting metrics
             if (torrent && torrent.uploadSpeed > 0 && !window.isSeedingPaused) {
-                // Call reportMetrics to update server if available
-                if (typeof window.reportMetrics === 'function') {
-                    // Only call if we're not already reporting metrics
-                    if (!window.isReportingMetrics) {
-                        console.log('Emergency points update from watch.js');
-                        window.reportMetrics(torrent.uploadSpeed, torrent.numPeers);
-                    }
-                } else {
-                    console.log('No reportMetrics function available, using fallback UI update');
-                    // Fallback calculation for UI display at least
-                    const uploadSpeedMBps = torrent.uploadSpeed / (1024 * 1024);
-                    const pointsPerMB = 0.01; // Reduced rate compared to server to avoid overstating
-                    const newPoints = uploadSpeedMBps * pointsPerMB;
+                // Only use this if reportMetrics isn't available or has failed
+                if (torrent.uploadSpeed > 0 && 
+                    document.getElementById('earning-rate') && 
+                    document.getElementById('earning-rate').textContent === '0') {
+                    
+                    console.log('Emergency points update from watch.js - no points detected');
+                    // Fallback calculation - 1 point per second regardless of upload speed
+                    const secondsElapsed = 3; // This interval runs every 3 seconds
+                    const pointsPerSecond = 1; // 1 point per second
+                    const newPoints = secondsElapsed * pointsPerSecond;
                     
                     // Add to total tokens
                     window.totalTokensEarned = (window.totalTokensEarned || 0) + newPoints;
@@ -2427,6 +2423,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Round to nearest integer for display
                         earningRate.textContent = Math.round(window.totalTokensEarned);
                     }
+                    
+                    console.log(`Emergency local points update: +${newPoints} points, Total: ${window.totalTokensEarned}`);
                 }
             }
         }
