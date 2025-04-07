@@ -1212,6 +1212,12 @@ function seedOnlyTorrent() {
                 if (earningRate && earningRate.textContent === '0') {
                     earningRate.textContent = '0';
                 }
+                
+                // Ensure the pause button has a listener attached
+                const continueButton = document.getElementById('btn-continue-seeding');
+                if (continueButton) {
+                    ensurePauseButtonWorks(continueButton);
+                }
             });
             
             // Track upload/seeding activity for seed-only mode
@@ -1295,6 +1301,9 @@ function updateSeedOnlyUI() {
     const continueButton = document.getElementById('btn-continue-seeding');
     if (continueButton) {
         continueButton.disabled = false;
+        
+        // Ensure the pause button has a listener attached
+        ensurePauseButtonWorks(continueButton);
     }
     
     // Other UI updates specific to seed-only mode could be added here
@@ -2398,6 +2407,9 @@ function handleTorrentDone(torrent) {
     if (continueButton) {
         continueButton.disabled = false;
         console.log('Pause Seeding button enabled');
+        
+        // Ensure the button has a listener attached (primarily for Seed Only mode)
+        ensurePauseButtonWorks(continueButton);
     }
     
     // Make sure torrent is available globally
@@ -2453,6 +2465,107 @@ function handleTorrentDone(torrent) {
     
     // Update UI to show download is complete
     updateDownloadCompleteUI();
+}
+
+/**
+ * Ensure the Pause Seeding button works by attaching necessary event listeners
+ * @param {HTMLElement} buttonElement - The button element
+ */
+function ensurePauseButtonWorks(buttonElement) {
+    // Only do this if we don't already have a listener attached
+    if (buttonElement && !buttonElement.hasAttribute('data-listener-attached')) {
+        console.log('Adding event listener to Pause Seeding button');
+        
+        // Mark the button as having a listener attached
+        buttonElement.setAttribute('data-listener-attached', 'true');
+        
+        // Add the event listener
+        buttonElement.addEventListener('click', function() {
+            console.log('Pause button clicked');
+            
+            // Toggle button state
+            const isPaused = buttonElement.classList.toggle('active');
+            
+            if (isPaused) {
+                // Update button text to Continue Seeding
+                buttonElement.innerHTML = '<i class="fas fa-seedling"></i> Continue Seeding';
+                
+                // Set global flag for paused state
+                window.isSeedingPaused = true;
+                console.log('Setting isSeedingPaused flag to true');
+                
+                // Stop reporting metrics to pause points counting
+                if (window.metricsInterval) {
+                    clearInterval(window.metricsInterval);
+                    window.metricsInterval = null;
+                    console.log('Cleared metrics interval');
+                    window.isReportingMetrics = false; // Mark metrics reporting as stopped
+                }
+                
+                // Also clear the earning rate interval to completely stop updates
+                if (window.earningRateInterval) {
+                    clearInterval(window.earningRateInterval);
+                    window.earningRateInterval = null;
+                    console.log('Cleared earning rate interval');
+                }
+                
+                // Save the current total tokens to prevent any updates while paused
+                window.pausedTotalTokens = window.totalTokensEarned;
+                console.log('Saved paused total tokens:', window.pausedTotalTokens);
+            } else {
+                // Update button text to Pause Seeding
+                buttonElement.innerHTML = '<i class="fas fa-pause"></i> Pause Seeding';
+                
+                // Reset global flag for paused state
+                window.isSeedingPaused = false;
+                console.log('Setting isSeedingPaused flag to false');
+                
+                // Restore the metrics reporting interval
+                if (!window.metricsInterval && window.currentTorrent) {
+                    console.log('Restoring metrics reporting interval');
+                    window.metricsInterval = setInterval(function() {
+                        if (window.TorrentStats && typeof window.TorrentStats.reportMetrics === 'function') {
+                            window.TorrentStats.reportMetrics(
+                                window.currentTorrent.uploadSpeed,
+                                window.currentTorrent.numPeers
+                            );
+                        } else if (typeof window.reportMetrics === 'function') {
+                            window.reportMetrics(
+                                window.currentTorrent.uploadSpeed,
+                                window.currentTorrent.numPeers
+                            );
+                        }
+                    }, 2000);
+                }
+                
+                // Restore the earning rate interval
+                if (!window.earningRateInterval) {
+                    console.log('Restoring earning rate interval');
+                    window.earningRateInterval = setInterval(function() {
+                        if (window.totalTokensEarned > 0) {
+                            const earningRateElement = document.getElementById('earning-rate');
+                            if (earningRateElement) {
+                                const totalTokensDisplay = Math.round(window.totalTokensEarned);
+                                earningRateElement.textContent = totalTokensDisplay;
+                            }
+                        }
+                    }, 500);
+                }
+                
+                // Restore direct metrics interval
+                if (!window.directMetricsInterval) {
+                    console.log('Restoring direct metrics interval');
+                    window.directMetricsInterval = setInterval(() => {
+                        if (!window.isSeedingPaused) {
+                            if (window.TorrentStats && typeof window.TorrentStats.updateMetricsDisplay === 'function') {
+                                window.TorrentStats.updateMetricsDisplay();
+                            }
+                        }
+                    }, 1000);
+                }
+            }
+        });
+    }
 }
 
 // Helper function to update UI when download completes
