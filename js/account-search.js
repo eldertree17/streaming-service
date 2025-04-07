@@ -1,8 +1,8 @@
 /**
  * account-search.js - Telegram User Search Functionality
  * 
- * This module handles the search functionality for finding Telegram users
- * directly from our app, connecting to Telegram's native search capabilities.
+ * This module integrates with Telegram's native search functionality
+ * to find real Telegram users directly from within our app.
  * 
  * Features:
  * - Integration with Telegram WebApp API
@@ -55,7 +55,7 @@ function initTelegramWebApp() {
         
         console.log('Telegram WebApp initialized');
     } else {
-        console.log('Telegram WebApp not available, running in browser mode');
+        console.error('Telegram WebApp not available. This feature requires running in Telegram.');
     }
 }
 
@@ -70,10 +70,22 @@ function setupSearchField() {
         return;
     }
     
-    // Focus event - expand search UI
+    // Focus event - prepare for search
     searchField.addEventListener('focus', function() {
-        document.body.classList.add('search-active');
-        showResultsContainer();
+        if (window.Telegram && window.Telegram.WebApp) {
+            // Let the user know they can search
+            searchField.placeholder = "Type to search Telegram users...";
+        } else {
+            // Let the user know this is Telegram-only
+            searchField.placeholder = "Search requires Telegram app";
+        }
+    });
+    
+    // Blur event - restore placeholder
+    searchField.addEventListener('blur', function() {
+        if (!this.value.trim()) {
+            searchField.placeholder = "Search Telegram users...";
+        }
     });
     
     // Input event - trigger search with debounce
@@ -85,56 +97,47 @@ function setupSearchField() {
             clearTimeout(searchTimeout);
         }
         
-        // Update current query
-        currentSearchQuery = query;
-        
-        // If query is too short, clear results
+        // If query is too short, do nothing
         if (query.length < CONFIG.MIN_SEARCH_LENGTH) {
-            clearSearchResults();
             return;
         }
         
-        // Show loading indicator
-        showLoadingIndicator();
-        
         // Debounce the search
         searchTimeout = setTimeout(function() {
-            searchTelegramUsers(query);
+            openTelegramSearch(query);
         }, CONFIG.DEBOUNCE_TIME);
     });
     
-    // Add a close button to the search field
-    addSearchCloseButton(searchField);
+    // Add a clear button to the search field
+    addSearchClearButton(searchField);
 }
 
 /**
- * Add a close button to the search field
+ * Add a clear button to the search field
  */
-function addSearchCloseButton(searchField) {
-    // Create close button if it doesn't exist
-    let closeButton = document.querySelector('.search-close-btn');
+function addSearchClearButton(searchField) {
+    // Create clear button if it doesn't exist
+    let clearButton = document.querySelector('.search-clear-btn');
     
-    if (!closeButton) {
-        closeButton = document.createElement('i');
-        closeButton.className = 'fas fa-times search-close-btn';
-        closeButton.style.display = 'none';
+    if (!clearButton) {
+        clearButton = document.createElement('i');
+        clearButton.className = 'fas fa-times search-clear-btn';
+        clearButton.style.display = 'none';
         
         // Insert after the input field
-        searchField.parentNode.insertBefore(closeButton, searchField.nextSibling);
+        searchField.parentNode.insertBefore(clearButton, searchField.nextSibling);
     }
     
-    // Show/hide close button based on input content
+    // Show/hide clear button based on input content
     searchField.addEventListener('input', function() {
-        closeButton.style.display = this.value.length > 0 ? 'block' : 'none';
+        clearButton.style.display = this.value.length > 0 ? 'block' : 'none';
     });
     
-    // Clear search when close button is clicked
-    closeButton.addEventListener('click', function() {
+    // Clear search when clear button is clicked
+    clearButton.addEventListener('click', function() {
         searchField.value = '';
-        closeButton.style.display = 'none';
-        clearSearchResults();
-        hideResultsContainer();
-        document.body.classList.remove('search-active');
+        clearButton.style.display = 'none';
+        searchField.focus();
     });
 }
 
@@ -199,6 +202,27 @@ function clearSearchResults() {
     const resultsContainer = document.getElementById('telegram-search-results');
     if (resultsContainer) {
         resultsContainer.innerHTML = '';
+    }
+}
+
+/**
+ * Open Telegram's native search interface
+ * @param {string} query - The search query
+ */
+function openTelegramSearch(query) {
+    console.log('Opening Telegram search for:', query);
+    
+    if (window.Telegram && window.Telegram.WebApp) {
+        try {
+            // Tell Telegram to open its native search interface
+            // Using the Telegram deep link protocol to open user search
+            window.Telegram.WebApp.openTelegramLink(`tg://search?query=${encodeURIComponent(query)}`);
+        } catch (error) {
+            console.error('Error opening Telegram search:', error);
+            alert('Unable to open Telegram search. Please make sure you are using the latest version of Telegram.');
+        }
+    } else {
+        alert('This feature is only available when running inside the Telegram app.');
     }
 }
 
@@ -375,6 +399,7 @@ function showSearchError(message) {
 
 // Expose functions for use in other modules
 window.TelegramUserSearch = {
+    openSearch: openTelegramSearch,
     search: searchTelegramUsers,
     clearResults: clearSearchResults,
     showResults: showResultsContainer,
