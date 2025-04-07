@@ -374,6 +374,14 @@ body {
   text-align: center;
 }
 
+/* Force all navigation text to display properly in Telegram */
+nav.nav-bar .nav-item a p {
+  min-width: 60px;
+  text-overflow: visible;
+  overflow: visible;
+  white-space: normal;
+}
+
 html {
   background-color: #0D0402;
 }
