@@ -13,50 +13,27 @@
   window.isSeedingPaused = false;
   window.isReportingMetrics = false;
   
-  // Helper to ensure window.totalTokensEarned is properly initialized
-  function ensureTotalTokensInitialized() {
-    if (typeof window.totalTokensEarned !== 'number') {
-      window.totalTokensEarned = 0;
-      console.log('Initialized totalTokensEarned to 0');
-    }
-  }
-  
-  // Call this immediately
-  ensureTotalTokensInitialized();
-  
   // Fetch user points from server
   function fetchUserPoints() {
     try {
       // Get Telegram user ID if available
-      const telegramUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 'browser-test-user';
+      const telegramUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '';
+      const telegramUsername = window.Telegram?.WebApp?.initDataUnsafe?.user?.username || '';
       
-      // Initialize from localStorage first as a backup
-      try {
-        const localPoints = localStorage.getItem(`points_${telegramUserId}`);
-        if (localPoints) {
-          window.totalTokensEarned = parseInt(localPoints, 10) || 0;
-          console.log('Loaded points from localStorage:', window.totalTokensEarned);
-          
-          // Update UI immediately with local data
-          const earningRate = document.getElementById('earning-rate');
-          if (earningRate) {
-            earningRate.textContent = Math.round(window.totalTokensEarned);
-          }
-        }
-      } catch (e) {
-        console.warn('Could not load from localStorage:', e);
+      if (!telegramUserId) {
+        console.log('No Telegram user ID available, skipping points fetch');
+        return;
       }
       
-      // Use the API_URL from config
-      const apiUrl = window.StreamFlixConfig?.API_URL || 'http://localhost:5003/api';
-      
-      console.log('Fetching points for user:', telegramUserId, 'from:', apiUrl);
+      // Use the API_URL constant if defined
+      const apiUrl = typeof API_URL !== 'undefined' ? API_URL : 'https://streamflix-backend.onrender.com/api';
       
       // Fetch user points from server
-      fetch(`${apiUrl}/user/points?userId=${telegramUserId}`)
+      console.log(`Fetching points for Telegram user ID: ${telegramUserId}`);
+      fetch(`${apiUrl}/metrics/user-points?telegramUserId=${telegramUserId}`)
         .then(response => {
           if (!response.ok) {
-            throw new Error(`API returned status ${response.status}`);
+            throw new Error(`Server responded with status: ${response.status}`);
           }
           return response.json();
         })
@@ -64,25 +41,17 @@
           if (data.points !== undefined) {
             window.totalTokensEarned = data.points;
             
-            // Save to localStorage as backup
-            try {
-              localStorage.setItem(`points_${telegramUserId}`, window.totalTokensEarned.toString());
-            } catch (e) {
-              console.warn('Could not save to localStorage:', e);
-            }
-            
             // Update UI
             const earningRate = document.getElementById('earning-rate');
             if (earningRate) {
               earningRate.textContent = Math.round(window.totalTokensEarned);
             }
             
-            console.log('Fetched user points from API:', window.totalTokensEarned);
+            console.log('Fetched user points:', window.totalTokensEarned);
           }
         })
         .catch(err => {
           console.error('Error fetching user points:', err);
-          // We've already loaded from localStorage as fallback
         });
     } catch (error) {
       console.error('Error in fetchUserPoints:', error);
@@ -120,19 +89,6 @@
     return ensureWebTorrentLoaded()
       .then(() => {
         try {
-          // If there's already a client, destroy it first to avoid duplicate torrent errors
-          if (window.client) {
-            console.log('Destroying existing WebTorrent client');
-            try {
-              window.client.destroy(function() {
-                console.log('Existing WebTorrent client destroyed');
-              });
-            } catch (e) {
-              console.error('Error destroying WebTorrent client:', e);
-            }
-            window.client = null;
-          }
-          
           // Create client with specific trackers to avoid CORS issues
           const client = new WebTorrent({
             tracker: {
@@ -171,21 +127,6 @@
   // Add a torrent safely
   window.addTorrentSafely = function(magnetUri, opts) {
     return new Promise((resolve, reject) => {
-      // Check if we already have this torrent
-      if (window.client && window.client.torrents) {
-        // Try to find the torrent by infoHash (extracted from magnet URI)
-        const infoHash = extractInfoHashFromMagnet(magnetUri);
-        const existingTorrent = window.client.torrents.find(t => t.infoHash === infoHash);
-        
-        if (existingTorrent) {
-          console.log('Torrent already exists, reusing:', existingTorrent);
-          window.currentTorrent = existingTorrent;
-          resolve(existingTorrent);
-          return;
-        }
-      }
-      
-      // If no client or torrent not found, proceed normally
       if (!window.client) {
         window.createWebTorrentClient()
           .then(client => addTorrent(client, magnetUri, opts, resolve, reject))
@@ -195,17 +136,6 @@
       }
     });
   };
-  
-  // Helper function to extract infoHash from magnet URI
-  function extractInfoHashFromMagnet(magnetUri) {
-    try {
-      const match = magnetUri.match(/xt=urn:btih:([a-zA-Z0-9]+)/);
-      return match ? match[1].toLowerCase() : null;
-    } catch (error) {
-      console.error('Error extracting infoHash:', error);
-      return null;
-    }
-  }
   
   function addTorrent(client, magnetUri, opts, resolve, reject) {
     try {
@@ -369,16 +299,14 @@
       const contentId = urlParams.get('id') || 'sample-video-1';
       
       // Get Telegram user ID if available
-      const telegramUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 'browser-test-user';
+      const telegramUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '';
+      const telegramUsername = window.Telegram?.WebApp?.initDataUnsafe?.user?.username || '';
       
-      // For debugging
-      console.log('Current torrent stats:', {
-        uploadSpeed: uploadSpeed,
-        uploadSpeedKB: uploadSpeed / 1024,
-        numPeers: numPeers,
-        userId: telegramUserId,
-        contentId: contentId
-      });
+      if (!telegramUserId) {
+        console.log('No Telegram user ID available, skipping metrics report');
+        window.isReportingMetrics = false;
+        return;
+      }
       
       // Prepare payload
       const metricsData = {
@@ -386,40 +314,16 @@
         uploadSpeed: uploadSpeed / 1024, // Convert to KB/s
         peersConnected: numPeers,
         seedingTime: 2, // Report in 2 second increments
-        timestamp: new Date().toISOString(),
-        userId: telegramUserId // Include Telegram user ID
+        telegramUserId: telegramUserId,
+        telegramUsername: telegramUsername
       };
       
-      // Use the API_URL from config
-      const apiUrl = window.StreamFlixConfig?.API_URL || 'http://localhost:5003/api';
+      // Use the API_URL constant if defined
+      const apiUrl = typeof API_URL !== 'undefined' ? API_URL : 'https://streamflix-backend.onrender.com/api';
       
-      console.log('Reporting metrics for user:', telegramUserId, 'to:', apiUrl);
-      
-      // Local fallback in case API is unavailable
-      const updateLocalPoints = (amount) => {
-        // Initialize if needed
-        if (typeof window.totalTokensEarned === 'undefined') {
-          window.totalTokensEarned = 0;
-        }
-        
-        // Calculate tokens (same formula as server)
-        const tokensEarned = (uploadSpeed / 1024 / 50) * numPeers * (2 / 2) * 0.01;
-        window.totalTokensEarned += tokensEarned;
-        
-        // Update UI
-        const earningRate = document.getElementById('earning-rate');
-        if (earningRate) {
-          earningRate.textContent = Math.round(window.totalTokensEarned);
-        }
-        
-        console.log('Updated local points (fallback):', {
-          added: tokensEarned,
-          total: window.totalTokensEarned
-        });
-      };
-      
-      // Attempt to send metrics to server
-      fetch(`${apiUrl}/metrics/seeding`, {
+      // Send metrics to server
+      console.log(`Reporting metrics for Telegram user: ${telegramUserId}`);
+      fetch(`${apiUrl}/metrics/telegram-seeding`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -428,9 +332,7 @@
       })
       .then(response => {
         if (!response.ok) {
-          console.warn(`API returned status ${response.status}, using local fallback`);
-          updateLocalPoints();
-          throw new Error(`API returned status ${response.status}`);
+          throw new Error(`Server responded with status: ${response.status}`);
         }
         return response.json();
       })
@@ -442,7 +344,7 @@
             window.totalTokensEarned = 0;
           }
           
-          window.totalTokensEarned += data.tokensEarned;
+          window.totalTokensEarned = data.totalTokens;
           
           // Update UI
           const earningRate = document.getElementById('earning-rate');
@@ -450,18 +352,13 @@
             earningRate.textContent = Math.round(window.totalTokensEarned);
           }
           
-          console.log('Updated user points from API:', {
-            added: data.tokensEarned,
-            total: window.totalTokensEarned
-          });
+          console.log(`Tokens earned: ${data.tokensEarned}, Total: ${data.totalTokens}`);
         }
         
         window.isReportingMetrics = false;
       })
       .catch(err => {
         console.error('Error reporting metrics:', err);
-        // Use local fallback
-        updateLocalPoints();
         window.isReportingMetrics = false;
       });
     } catch (error) {

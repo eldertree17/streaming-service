@@ -243,4 +243,183 @@ router.get('/leaderboard', async (req, res) => {
   }
 });
 
+/**
+ * @route POST /api/metrics/telegram-seeding
+ * @desc Record seeding metrics from Telegram Mini App users and award tokens
+ * @access Public (secured by Telegram user ID)
+ */
+router.post('/telegram-seeding', async (req, res) => {
+  try {
+    const { 
+      contentId, 
+      uploadSpeed, // in KB/s
+      peersConnected,
+      seedingTime, // in seconds
+      telegramUserId,
+      telegramUsername
+    } = req.body;
+
+    // Validate input
+    if (!contentId || !telegramUserId) {
+      return res.status(400).json({ error: 'Content ID and Telegram User ID are required' });
+    }
+
+    // Find user by Telegram ID or create new one
+    let user = await User.findOne({ telegramId: telegramUserId });
+    
+    if (!user) {
+      console.log(`Creating new user for Telegram ID: ${telegramUserId}`);
+      // Create a new user with telegram ID
+      user = new User({
+        username: telegramUsername || `tg_user_${telegramUserId.substring(0, 6)}`,
+        email: `${telegramUserId}@telegram.user`,
+        password: 'telegram-auth', // Not used for login
+        telegramId: telegramUserId,
+        telegramUsername: telegramUsername,
+        seedingStats: {
+          totalBytesUploaded: 0,
+          totalSeedingTime: 0,
+          totalPeersServed: 0,
+          activeSeedingCount: 0,
+          rewardsEarned: 0,
+          contentSeeded: 0
+        },
+        seedingHistory: [],
+        tokenHistory: []
+      });
+    }
+
+    // Convert KB/s to bytes for the duration period
+    const bytesUploaded = (uploadSpeed || 0) * 1024 * (seedingTime || 2);
+
+    // Update user's total seeding stats
+    user.seedingStats.totalBytesUploaded += bytesUploaded || 0;
+    user.seedingStats.totalSeedingTime += seedingTime || 2;
+    
+    if (peersConnected > 0) {
+      user.seedingStats.totalPeersServed += peersConnected;
+    }
+
+    // Find or create seeding history entry for this content
+    let seedingEntry = user.seedingHistory.find(
+      entry => entry.contentId && (entry.contentId.toString() === contentId.toString())
+    );
+
+    if (!seedingEntry) {
+      // This is a new content item being seeded
+      seedingEntry = {
+        contentId,
+        title: 'Big Buck Bunny', // Default title for now
+        startTime: new Date(),
+        bytesUploaded: 0,
+        duration: 0,
+        peers: 0
+      };
+      user.seedingHistory.push(seedingEntry);
+      user.seedingStats.contentSeeded += 1;
+    }
+
+    // Update the seeding entry
+    seedingEntry = user.seedingHistory[user.seedingHistory.length - 1];
+    seedingEntry.bytesUploaded += bytesUploaded || 0;
+    seedingEntry.duration += seedingTime || 2;
+    seedingEntry.peers = Math.max(seedingEntry.peers, peersConnected || 0);
+
+    // Calculate tokens earned for this update
+    let tokensEarned = 0;
+    
+    // Tokens for bytes uploaded (convert to GB for calculation)
+    const gbUploaded = bytesUploaded / (1024 * 1024 * 1024);
+    tokensEarned += gbUploaded * TOKENS_PER_GB_UPLOADED;
+    
+    // Tokens for seeding time
+    const secondsSeeded = seedingTime || 2;
+    tokensEarned += secondsSeeded * TOKENS_PER_SECOND_SEEDED;
+    
+    // Tokens for peers served
+    tokensEarned += (peersConnected || 0) * TOKENS_PER_PEER_SERVED;
+    
+    // Round to 2 decimal places
+    tokensEarned = Math.round(tokensEarned * 100) / 100;
+    
+    if (tokensEarned > 0) {
+      // Add tokens to user's balance
+      user.tokens += tokensEarned;
+      user.seedingStats.rewardsEarned += tokensEarned;
+      
+      // Add to token history
+      user.tokenHistory.push({
+        amount: tokensEarned,
+        reason: 'Telegram Mini App seeding reward',
+        contentId,
+        timestamp: new Date()
+      });
+    }
+    
+    // Update last active timestamp
+    user.lastActiveAt = new Date();
+    
+    await user.save();
+    
+    return res.status(200).json({
+      success: true,
+      tokensEarned,
+      totalTokens: user.tokens,
+      seedingStats: user.seedingStats,
+      seedingRank: user.seedingRank
+    });
+    
+  } catch (error) {
+    console.error('Error updating Telegram seeding metrics:', error);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
+/**
+ * @route GET /api/metrics/user-points
+ * @desc Get user's current points by Telegram User ID
+ * @access Public (secured by Telegram user ID)
+ */
+router.get('/user-points', async (req, res) => {
+  try {
+    const { telegramUserId } = req.query;
+    
+    if (!telegramUserId) {
+      return res.status(400).json({ error: 'Telegram User ID is required' });
+    }
+    
+    // Find user by Telegram ID
+    const user = await User.findOne({ telegramId: telegramUserId });
+    
+    if (!user) {
+      // Return zero points for new users
+      return res.status(200).json({
+        points: 0,
+        rank: 'Starter',
+        stats: {
+          totalUploaded: 0,
+          totalSeedingTime: 0,
+          totalPeersServed: 0,
+          contentSeeded: 0
+        }
+      });
+    }
+    
+    return res.status(200).json({
+      points: user.tokens,
+      rank: user.seedingRank,
+      stats: {
+        totalUploaded: user.seedingStats.totalBytesUploaded,
+        totalSeedingTime: user.seedingStats.totalSeedingTime,
+        totalPeersServed: user.seedingStats.totalPeersServed,
+        contentSeeded: user.seedingStats.contentSeeded
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error fetching user points:', error);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router; 

@@ -18,8 +18,8 @@ const config = {
   // In production, this needs to be a publicly accessible HTTPS server (not GitHub Pages)
   // GitHub Pages can only serve static content, not run a backend server
   API_URL: isProduction 
-    ? 'https://streaming-service-api.onrender.com/api'  // Render-hosted backend API URL
-    : 'http://localhost:5003/api',
+    ? 'https://streamflix-backend.onrender.com/api'  // Render-hosted backend API URL
+    : 'http://localhost:5006/api',
     
   // FRONTEND URL settings (for the Telegram Mini App)
   FRONTEND: {
@@ -51,6 +51,9 @@ const config = {
 
 // Make config globally available
 window.StreamFlixConfig = config;
+
+// Set API_URL as a global variable for direct access
+window.API_URL = config.API_URL;
 
 // Log configuration in development mode
 if (!isProduction) {
@@ -131,7 +134,4 @@ window.debugError = function(message, error) {
             }, 5000);
         });
     }
-};
-
-// Log API URL
-console.log('Using API URL:', window.API_URL); 
+}; 
