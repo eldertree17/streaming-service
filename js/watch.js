@@ -1920,6 +1920,13 @@ function handleTorrentDone(torrent) {
         ensurePauseButtonWorks(continueButton);
     }
     
+    // Enable the Stop Seeding button
+    const stopSeedingButton = document.getElementById('btn-stop-seeding');
+    if (stopSeedingButton) {
+        stopSeedingButton.disabled = false;
+        console.log('Stop Seeding button enabled');
+    }
+    
     // Make sure torrent is available globally
     window.currentTorrent = torrent;
     

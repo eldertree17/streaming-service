@@ -120,6 +120,9 @@ function initTorrentStats() {
             stopSeedingButton.parentNode.replaceChild(oldStopButton, stopSeedingButton);
         }
         
+        // Make sure the button is enabled
+        oldStopButton.disabled = false;
+        
         // Now add our direct handler to the fresh button
         oldStopButton.setAttribute('data-direct-handler', 'true');
         oldStopButton.onclick = function() {
@@ -1380,6 +1383,9 @@ function initTorrentStats() {
         if (stopSeedingButton.parentNode) {
             stopSeedingButton.parentNode.replaceChild(oldStopButton, stopSeedingButton);
         }
+        
+        // Make sure the button is enabled
+        oldStopButton.disabled = false;
         
         // Now add our direct handler to the fresh button
         oldStopButton.setAttribute('data-direct-handler', 'true');
