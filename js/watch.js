@@ -2105,7 +2105,7 @@ function updateDownloadCompleteUI() {
     // Update progress label for seeding mode
     const progressLabel = document.querySelector('.progress-label');
     if (progressLabel) {
-        progressLabel.textContent = 'Seeding Time: 0m | Total Upload: 0 B';
+        progressLabel.textContent = 'Seeding Time: 0m 0s | Total Upload: 0 B';
         
         // Start periodic updates of seeding duration if not already started
         if (!window.seedingDurationInterval) {
