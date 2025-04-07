@@ -402,10 +402,6 @@ function addPersistentSeedingIndicator() {
         }
         
         // Add click handler
-        indicator.addEventListener('click', function() {
-            if (window.TorrentStats && typeof window.TorrentStats.showTemporaryMessage === 'function') {
-                window.TorrentStats.showTemporaryMessage('Seeding is active. You are sharing this content with other viewers.', 'info');
-            }
         });
         
         // Add the pulse animation if it doesn't exist
@@ -481,12 +477,6 @@ function addSeedingStatusSection() {
 /**
  * Show a temporary message to the user
  */
-function showTemporaryMessage(message, type = 'success') {
-    const notification = document.createElement('div');
-    notification.style.position = 'fixed';
-    notification.style.bottom = '20px';
-    notification.style.right = '20px';
-    notification.style.padding = '10px 15px';
     notification.style.borderRadius = '4px';
     notification.style.color = 'white';
     notification.style.zIndex = '10000';
@@ -628,7 +618,7 @@ function stopSeedingAndClearState() {
     updatePersistentSeedingIndicator();
     
     // Show a confirmation message
-    showTemporaryMessage('Seeding stopped and state cleared');
+    console.log("Seeding stopped and state cleared");
 }
 
 /**
@@ -991,102 +981,91 @@ window.TorrentStats = {
     formatDuration,
     stopSeedingAndClearState,
     forceShowSeedingUI,
-    showTemporaryMessage,
+    
     restoreSeedingSession,
     reportMetrics,
     startMetricsReporting,
     updateMetricsDisplay,
     updateProgressValue,
-    updateProgressBar
+    updateProgressBar,
+    updateProgressSummary,
+    updateSeedingDuration,
+    updateStatsDisplay
 };
 
 // Restore seeding session from localStorage
 function restoreSeedingSession(state) {
-    console.log('Restoring seeding session:', state);
-    
-    if (!state) return;
-    
     try {
-        // Parse the state if it's a string
-        const sessionState = typeof state === 'string' ? JSON.parse(state) : state;
+        console.log('Restoring seeding session from state:', state);
         
-        // Only restore if we have a valid state
-        if (sessionState && sessionState.magnetUri) {
-            console.log('Valid session state found. Attempting to restore.');
+        if (window.client) {
+            // Code to restore seeding session
+            console.log('Using WebTorrent client to restore seeding');
             
-            // If we have a client, use it to restore
-            if (window.WebTorrent && window.webTorrentClient) {
-                console.log('WebTorrent client found. Adding torrent.');
+            // Add the torrent back
+            window.client.add(state.magnetURI, torrent => {
+                console.log('Torrent restored successfully');
                 
-                // Add the torrent and set up the seeding UI
-                window.webTorrentClient.add(sessionState.magnetUri, function(torrent) {
-                    console.log('Torrent added for seeding restoration.');
-                    window.currentTorrent = torrent;
+                // Store the reference
+                window.currentTorrent = torrent;
+                
+                // Update UI for seeding
+                const seedOnlyButton = document.querySelector('.btn-download');
+                if (seedOnlyButton) {
+                    seedOnlyButton.disabled = true;
+                    seedOnlyButton.innerHTML = '<i class="fas fa-check"></i> Seeding';
+                    seedOnlyButton.classList.add('seeding-active');
+                }
+                
+                // Enable the continue/pause seeding button
+                const continueButton = document.getElementById('btn-continue-seeding');
+                if (continueButton) {
+                    continueButton.disabled = false;
                     
-                    // Update the persistent indicator
-                    updatePersistentSeedingIndicator();
-                    
-                    // Show notification that seeding has been restored
-                    showTemporaryMessage('Seeding session restored. You are sharing content with other viewers.');
-                    
-                    // Restore session tracking data
-                    window.seedingSessionStartTime = new Date(sessionState.startTime || new Date());
-                    window.seedingSessionStartTokens = sessionState.startTokens || 0;
-                    window.seedingSessionStartUploaded = sessionState.startUploaded || 0;
-                    
-                    // Force show the seeding UI (only the indicator, not the section)
-                    forceShowSeedingUI();
-                });
-            } else {
-                console.warn('WebTorrent client not found. Could not restore seeding session.');
-            }
+                    // Set button state based on paused state
+                    if (state.paused) {
+                        pauseSeeding();
+                    } else {
+                        resumeSeeding();
+                    }
+                }
+                
+                // Update the torrent statistics
+                updateInitialStats(torrent, state);
+                
+                // Start periodic updates
+                if (!window.seedingStatusInterval) {
+                    startSeedingStatusUpdates();
+                }
+                
+                console.log('Seeding session restored. You are sharing content with other viewers.');
+            });
+        } else {
+            console.warn('WebTorrent client not found. Could not restore seeding session.');
         }
     } catch (e) {
         console.error('Error restoring seeding session:', e);
     }
 }
 
-// Show a temporary notification message
-function showTemporaryMessage(message, duration = 5000) {
-    // Create message element if it doesn't exist
-    let messageElement = document.getElementById('torrent-notification');
-    
-    if (!messageElement) {
-        messageElement = document.createElement('div');
-        messageElement.id = 'torrent-notification';
-        messageElement.style.position = 'fixed';
-        messageElement.style.bottom = '20px';
-        messageElement.style.right = '20px';
-        messageElement.style.padding = '10px 20px';
-        messageElement.style.backgroundColor = '#333';
-        messageElement.style.color = '#fff';
-        messageElement.style.borderRadius = '4px';
-        messageElement.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-        messageElement.style.zIndex = '1000';
-        messageElement.style.transition = 'opacity 0.3s ease';
-        messageElement.style.opacity = '0';
-        document.body.appendChild(messageElement);
-    }
-    
-    // Set message and show
-    messageElement.textContent = message;
-    messageElement.style.opacity = '1';
-    
-    // Hide after duration
-    setTimeout(() => {
-        messageElement.style.opacity = '0';
-        // Remove from DOM after fade out
-        setTimeout(() => {
-            if (messageElement && messageElement.parentNode) {
-                messageElement.parentNode.removeChild(messageElement);
-            }
-        }, 300);
-    }, duration);
-}
-
-// Make it available globally through TorrentStats namespace
+// Make functions available globally through TorrentStats namespace
 if (!window.TorrentStats) {
     window.TorrentStats = {};
 }
-window.TorrentStats.showTemporaryMessage = showTemporaryMessage;
-window.TorrentStats.updatePersistentSeedingIndicator = updatePersistentSeedingIndicator; 
+
+window.TorrentStats.updatePersistentSeedingIndicator = updatePersistentSeedingIndicator;
+window.TorrentStats.addPersistentSeedingIndicator = addPersistentSeedingIndicator;
+window.TorrentStats.forceGreenProgressBar = forceGreenProgressBar;
+window.TorrentStats.updateProgressValue = updateProgressValue;
+window.TorrentStats.updateProgressBar = updateProgressBar;
+window.TorrentStats.updateProgressSummary = updateProgressSummary;
+window.TorrentStats.updateSeedingDuration = updateSeedingDuration;
+window.TorrentStats.reportMetrics = reportMetrics;
+window.TorrentStats.updateMetricsDisplay = updateMetricsDisplay;
+window.TorrentStats.formatDuration = formatDuration;
+window.TorrentStats.formatBytes = formatBytes;
+window.TorrentStats.stopSeedingAndClearState = stopSeedingAndClearState;
+window.TorrentStats.startSeedingStatusUpdates = startSeedingStatusUpdates;
+window.TorrentStats.updateSeedingStatusInfo = updateSeedingStatusInfo;
+window.TorrentStats.updateStatsDisplay = updateStatsDisplay;
+window.TorrentStats.addSeedingStatusSection = addSeedingStatusSection; 

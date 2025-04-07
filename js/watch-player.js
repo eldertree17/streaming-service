@@ -194,37 +194,32 @@ function monitorTorrentProgress() {
  * Show notification that seeding has begun
  */
 function showSeedingNotification() {
-    // Check if we have the TorrentStats module with its showTemporaryMessage function
-    if (window.TorrentStats && typeof window.TorrentStats.showTemporaryMessage === 'function') {
-        window.TorrentStats.showTemporaryMessage('Download complete! Now seeding to others.');
-    } else {
-        // Fallback implementation if TorrentStats is not available
-        const notification = document.createElement('div');
-        notification.style.position = 'fixed';
-        notification.style.bottom = '20px';
-        notification.style.right = '20px';
-        notification.style.padding = '10px 15px';
-        notification.style.backgroundColor = 'rgba(76, 175, 80, 0.9)';
-        notification.style.color = 'white';
-        notification.style.borderRadius = '4px';
-        notification.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-        notification.style.zIndex = '10000';
-        notification.style.transition = 'opacity 0.3s ease-in-out';
-        
-        notification.innerHTML = '<div style="display: flex; align-items: center;"><i class="fas fa-check-circle" style="margin-right: 10px;"></i>Download complete! Now seeding to others.</div>';
-        
-        document.body.appendChild(notification);
-        
-        // Remove after a few seconds
+    // Create a simple notification
+    const notification = document.createElement('div');
+    notification.style.position = 'fixed';
+    notification.style.bottom = '20px';
+    notification.style.right = '20px';
+    notification.style.padding = '10px 15px';
+    notification.style.backgroundColor = 'rgba(76, 175, 80, 0.9)';
+    notification.style.color = 'white';
+    notification.style.borderRadius = '4px';
+    notification.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+    notification.style.zIndex = '10000';
+    notification.style.transition = 'opacity 0.3s ease-in-out';
+    
+    notification.innerHTML = '<div style="display: flex; align-items: center;"><i class="fas fa-check-circle" style="margin-right: 10px;"></i>Download complete! Now seeding to others.</div>';
+    
+    document.body.appendChild(notification);
+    
+    // Remove after a few seconds
+    setTimeout(function() {
+        notification.style.opacity = '0';
         setTimeout(function() {
-            notification.style.opacity = '0';
-            setTimeout(function() {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 300);
-        }, 5000);
-    }
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 5000);
 }
 
 /**

@@ -2196,10 +2196,40 @@ setInterval(function() {
  * This functionality has been moved to torrent-stats.js
  */
 function forceShowSeedingUI() {
-    // This function has been moved to torrent-stats.js
-    console.log('forceShowSeedingUI called from watch.js - this function has been moved to torrent-stats.js');
-    if (window.TorrentStats && typeof window.TorrentStats.forceShowSeedingUI === 'function') {
-        window.TorrentStats.forceShowSeedingUI();
+    // Show loading status (but hide spinner)
+    const loadingStatus = document.getElementById('loading-status');
+    if (loadingStatus) {
+        loadingStatus.style.display = 'block';
+        
+        // Hide the spinner, we're already seeding
+        const loadingSpinner = loadingStatus.querySelector('.spinner');
+        if (loadingSpinner) {
+            loadingSpinner.style.display = 'none';
+        }
+        
+        // Update text
+        const loadingText = loadingStatus.querySelector('.loading-text');
+        if (loadingText) {
+            loadingText.textContent = 'Seeding Active';
+        }
+    }
+    
+    // Show torrent info
+    const torrentInfo = document.getElementById('torrent-info');
+    if (torrentInfo) {
+        torrentInfo.style.display = 'grid';
+    }
+    
+    // Show the control buttons section
+    const controlButtons = document.getElementById('control-buttons');
+    if (controlButtons) {
+        controlButtons.style.display = 'flex';
+    }
+    
+    // Make sure the seeding badge is visible
+    const seedingBadge = document.getElementById('seeding-badge');
+    if (seedingBadge) {
+        seedingBadge.style.display = 'flex';
     }
 }
 
@@ -2282,16 +2312,6 @@ function forceShowSeedingUI() {
 }
 
 /**
- * Show a temporary message to the user
- * This functionality has been moved to torrent-stats.js
- */
-function showTemporaryMessage(message, type = 'success') {
-    // This function has been moved to torrent-stats.js
-    console.log('showTemporaryMessage called from watch.js - this function has been moved to torrent-stats.js');
-    if (window.TorrentStats && typeof window.TorrentStats.showTemporaryMessage === 'function') {
-        window.TorrentStats.showTemporaryMessage(message, type);
-    }
-}
 
 /**
  * Start periodic updates of the seeding status section
