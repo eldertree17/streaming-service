@@ -2,7 +2,7 @@
  * account-search.js - Telegram User Search
  * 
  * This module provides a clean, simple interface for searching Telegram users
- * by integrating directly with Telegram's native search functionality.
+ * by integrating with Telegram's Mini App capabilities.
  */
 
 // Configuration
@@ -89,7 +89,7 @@ function setupSearchField() {
         
         // Debounce the search
         searchTimeout = setTimeout(function() {
-            openTelegramSearch(query);
+            performTelegramSearch(query);
         }, CONFIG.DEBOUNCE_TIME);
     });
     
@@ -127,27 +127,65 @@ function addSearchClearButton(searchField) {
 }
 
 /**
- * Open Telegram's native search interface
+ * Perform a Telegram user search using WebApp methods
  * @param {string} query - The search query
  */
-function openTelegramSearch(query) {
-    console.log('Opening Telegram search for:', query);
+function performTelegramSearch(query) {
+    console.log('Performing Telegram search for:', query);
     
     if (window.Telegram && window.Telegram.WebApp) {
         try {
-            // Tell Telegram to open its native search interface
-            // Using the Telegram deep link protocol to open user search
-            window.Telegram.WebApp.openTelegramLink(`tg://search?query=${encodeURIComponent(query)}`);
+            // Method 1: Use requestContact to add a user by phone number
+            // This works if the query looks like a phone number
+            if (/^[0-9+\s()-]{6,}$/.test(query)) {
+                console.log('Query appears to be a phone number, using requestContact');
+                window.Telegram.WebApp.requestContact((result) => {
+                    if (result) {
+                        console.log('Contact selected:', result);
+                    }
+                });
+                return;
+            }
+            
+            // Method 2: Use requestWriteAccess to prompt for contact access
+            // This at least gets the user to their contacts list
+            console.log('Using requestWriteAccess as fallback');
+            window.Telegram.WebApp.requestWriteAccess((result) => {
+                if (result) {
+                    // Show a popup with instructions
+                    window.Telegram.WebApp.showPopup({
+                        title: "Search for Telegram Users",
+                        message: `To find "${query}", please use Telegram's main search feature after closing this mini app.`,
+                        buttons: [
+                            {type: "default", text: "Got it"}
+                        ]
+                    });
+                }
+            });
         } catch (error) {
-            console.error('Error opening Telegram search:', error);
-            alert('Unable to open Telegram search. Please make sure you are using the latest version of Telegram.');
+            console.error('Error with Telegram search:', error);
+            
+            // Fallback to simple popup with instructions
+            try {
+                window.Telegram.WebApp.showPopup({
+                    title: "Search Telegram Users",
+                    message: `To find "${query}", please use Telegram's search after closing this mini app.`,
+                    buttons: [
+                        {type: "default", text: "OK"}
+                    ]
+                });
+            } catch (popupError) {
+                // Ultimate fallback - simple alert
+                alert(`To find "${query}", please use Telegram's main search feature.`);
+            }
         }
     } else {
+        // Not running in Telegram
         alert('This feature is only available when running inside the Telegram app.');
     }
 }
 
 // Expose only the necessary function
 window.TelegramUserSearch = {
-    openSearch: openTelegramSearch
+    search: performTelegramSearch
 }; 
