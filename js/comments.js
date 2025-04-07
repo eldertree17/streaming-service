@@ -12,31 +12,87 @@
 // Track if we've verified Telegram integration
 let telegramUserVerified = false;
 let cachedTelegramUser = null;
+let telegramInitAttempts = 0;
+const MAX_TELEGRAM_INIT_ATTEMPTS = 10;
 
 // Initialize comments functionality when the document is ready
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Initializing comments module');
+    
+    // Start immediate verification attempts
+    tryInitTelegram();
+    
+    // Set up comment functionality
     setupCommentInput();
     loadComments();
+});
+
+// Try to initialize Telegram with multiple attempts
+function tryInitTelegram() {
+    console.log(`Telegram init attempt ${telegramInitAttempts + 1}/${MAX_TELEGRAM_INIT_ATTEMPTS}`);
     
-    // Try to verify Telegram user immediately and cache result
+    // Try to verify immediately
     verifyTelegramUser();
     
-    // Set up periodic checks in case Telegram loads after our module
-    setTimeout(verifyTelegramUser, 1000);
-    setTimeout(verifyTelegramUser, 3000);
-});
+    // If not verified, try again until max attempts
+    if (!telegramUserVerified && telegramInitAttempts < MAX_TELEGRAM_INIT_ATTEMPTS) {
+        telegramInitAttempts++;
+        setTimeout(tryInitTelegram, 500); // Try every 500ms
+    }
+}
 
 // Verify and cache Telegram user data
 function verifyTelegramUser() {
-    if (telegramUserVerified) return;
-    
-    const user = getCurrentTelegramUser(true);
-    if (user.id !== 'local-user') {
-        telegramUserVerified = true;
-        cachedTelegramUser = user;
-        console.log('Telegram user verified:', user.name, 'ID:', user.id);
+    // Try direct access to Telegram WebApp first - most reliable
+    if (window.Telegram && window.Telegram.WebApp) {
+        const webAppUser = window.Telegram.WebApp.initDataUnsafe?.user;
+        if (webAppUser) {
+            cachedTelegramUser = {
+                id: webAppUser.id,
+                name: webAppUser.first_name + (webAppUser.last_name ? ` ${webAppUser.last_name}` : ''),
+                username: webAppUser.username || `user${webAppUser.id}`
+            };
+            
+            telegramUserVerified = true;
+            console.log('SUCCESS: Telegram user verified directly:', cachedTelegramUser.name, 'ID:', cachedTelegramUser.id);
+            
+            // Update any existing comments with the proper username if needed
+            updateExistingComments();
+            return true;
+        }
     }
+    
+    // Try fallback to telegramApp if direct access failed
+    if (window.telegramApp && window.telegramApp.user) {
+        const user = window.telegramApp.user;
+        cachedTelegramUser = {
+            id: user.id,
+            name: user.first_name + (user.last_name ? ` ${user.last_name}` : ''),
+            username: user.username || `user${user.id}`
+        };
+        
+        telegramUserVerified = true;
+        console.log('SUCCESS: Telegram user verified via telegramApp:', cachedTelegramUser.name, 'ID:', cachedTelegramUser.id);
+        
+        // Update any existing comments with the proper username if needed
+        updateExistingComments();
+        return true;
+    }
+    
+    console.log('Could not verify Telegram user this attempt, will retry');
+    return false;
+}
+
+// Update any existing comments from "You" to the proper username
+function updateExistingComments() {
+    if (!cachedTelegramUser) return;
+    
+    const yourComments = document.querySelectorAll('.comment-author');
+    yourComments.forEach(author => {
+        if (author.textContent === 'You') {
+            author.textContent = cachedTelegramUser.name;
+        }
+    });
 }
 
 // Function to load comments
@@ -190,43 +246,24 @@ function getCurrentTelegramUser(forceCheck = false) {
         return cachedTelegramUser;
     }
     
-    // Try to access Telegram WebApp directly first (most reliable method)
-    if (window.Telegram && window.Telegram.WebApp) {
-        const webAppUser = window.Telegram.WebApp.initDataUnsafe?.user;
-        if (webAppUser) {
-            const user = {
-                id: webAppUser.id,
-                name: webAppUser.first_name + (webAppUser.last_name ? ` ${webAppUser.last_name}` : ''),
-                username: webAppUser.username
-            };
-            
-            // Cache the result
-            cachedTelegramUser = user;
-            telegramUserVerified = true;
-            
-            return user;
-        }
+    // If not verified yet, force another verification attempt
+    if (!telegramUserVerified) {
+        verifyTelegramUser();
     }
     
-    // Fall back to telegramApp if direct access failed
-    if (window.telegramApp && window.telegramApp.user) {
-        const user = window.telegramApp.user;
-        const telegramUser = {
-            id: user.id,
-            name: user.first_name + (user.last_name ? ` ${user.last_name}` : ''),
-            username: user.username
-        };
-        
-        // Cache the result
-        cachedTelegramUser = telegramUser;
-        telegramUserVerified = true;
-        
-        return telegramUser;
-    }
-    
-    // If we've previously cached a user, return that even if current checks fail
+    // If we have cached user after verification, return it
     if (cachedTelegramUser) {
         return cachedTelegramUser;
+    }
+    
+    // If initialized in browser (no Telegram), generate fake data
+    // This is just for demo purposes
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return {
+            id: 'browser-test-user',
+            name: 'Test User',
+            username: 'test_user'
+        };
     }
     
     // Last fallback to default user if everything fails
@@ -248,6 +285,11 @@ function setupCommentInput() {
     // Show actions when input is focused
     commentInput.addEventListener('focus', function() {
       commentActions.style.display = 'flex';
+      
+      // Try verifying one more time on focus, in case it's loaded by now
+      if (!telegramUserVerified) {
+        verifyTelegramUser();
+      }
     });
     
     // Submit comment when comment button is clicked
@@ -301,6 +343,11 @@ function submitComment() {
 function addComment(text) {
     const commentsList = document.querySelector('.comments-list');
     const allCommentsList = document.querySelector('.all-comments-list');
+    
+    // Force another verification attempt before posting
+    if (!telegramUserVerified) {
+        verifyTelegramUser();
+    }
     
     // Get current user info from Telegram
     const telegramUser = getCurrentTelegramUser();
@@ -482,6 +529,11 @@ function createReplyForm(commentId) {
 function submitReply(commentId, replyText) {
     const comment = document.querySelector(`.comment[data-comment-id="${commentId}"]`);
     
+    // Force another verification attempt before posting the reply
+    if (!telegramUserVerified) {
+        verifyTelegramUser();
+    }
+    
     // Get current user info from Telegram
     const telegramUser = getCurrentTelegramUser();
     
@@ -575,5 +627,6 @@ window.CommentsModule = {
     submitComment,
     createCommentElement,
     getCurrentTelegramUser,
-    verifyTelegramUser
+    verifyTelegramUser,
+    updateExistingComments
 }; 
