@@ -7,6 +7,45 @@
 (function() {
   console.log('WebTorrent Fix Script loaded');
   
+  // Global constants
+  window.REWARD_UPDATE_THROTTLE = 2000; // 2 seconds
+  window.totalTokensEarned = 0;
+  window.isSeedingPaused = false;
+  window.isReportingMetrics = false;
+  
+  // Fetch user points from server
+  function fetchUserPoints() {
+    try {
+      // Get Telegram user ID if available
+      const telegramUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 'browser-test-user';
+      
+      // Use the API_URL constant if defined
+      const apiUrl = typeof API_URL !== 'undefined' ? API_URL : 'http://localhost:5003/api';
+      
+      // Fetch user points from server
+      fetch(`${apiUrl}/user/points?userId=${telegramUserId}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.points !== undefined) {
+            window.totalTokensEarned = data.points;
+            
+            // Update UI
+            const earningRate = document.getElementById('earning-rate');
+            if (earningRate) {
+              earningRate.textContent = Math.round(window.totalTokensEarned);
+            }
+            
+            console.log('Fetched user points:', window.totalTokensEarned);
+          }
+        })
+        .catch(err => {
+          console.error('Error fetching user points:', err);
+        });
+    } catch (error) {
+      console.error('Error in fetchUserPoints:', error);
+    }
+  }
+  
   // Make sure WebTorrent is properly loaded
   function ensureWebTorrentLoaded() {
     return new Promise((resolve, reject) => {
@@ -247,31 +286,95 @@
       const urlParams = new URLSearchParams(window.location.search);
       const contentId = urlParams.get('id') || 'sample-video-1';
       
-      // Update points using the points system
-      if (window.pointsSystem) {
-        window.pointsSystem.addPoints(uploadSpeed, numPeers);
-      }
+      // Get Telegram user ID if available
+      const telegramUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 'browser-test-user';
       
-      // Update UI with current upload speed
-      const earningRate = document.getElementById('earning-rate');
-      if (earningRate) {
-        // Show upload speed in KB/s
-        const uploadSpeedKB = Math.floor(uploadSpeed / 1024);
-        earningRate.textContent = window.pointsSystem ? window.pointsSystem.getPoints() : uploadSpeedKB;
-      }
+      // Prepare payload
+      const metricsData = {
+        contentId: contentId,
+        uploadSpeed: uploadSpeed / 1024, // Convert to KB/s
+        peersConnected: numPeers,
+        seedingTime: 2, // Report in 2 second increments
+        timestamp: new Date().toISOString(),
+        userId: telegramUserId // Include Telegram user ID
+      };
       
-      window.isReportingMetrics = false;
+      // Use the API_URL constant if defined
+      const apiUrl = typeof API_URL !== 'undefined' ? API_URL : 'http://localhost:5003/api';
+      
+      // Send metrics to server
+      fetch(`${apiUrl}/metrics/seeding`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(metricsData)
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Update tokens earned
+        if (data.tokensEarned) {
+          // Initialize totalTokensEarned if needed
+          if (typeof window.totalTokensEarned === 'undefined') {
+            window.totalTokensEarned = 0;
+          }
+          
+          window.totalTokensEarned += data.tokensEarned;
+          
+          // Update UI
+          const earningRate = document.getElementById('earning-rate');
+          if (earningRate) {
+            earningRate.textContent = Math.round(window.totalTokensEarned);
+          }
+        }
+        
+        window.isReportingMetrics = false;
+      })
+      .catch(err => {
+        console.error('Error reporting metrics:', err);
+        window.isReportingMetrics = false;
+      });
     } catch (error) {
-      console.error('Error reporting metrics:', error);
+      console.error('Error in reportMetrics:', error);
       window.isReportingMetrics = false;
+    }
+  }
+  
+  // Update rewards modal with user points
+  function updateRewardsModal() {
+    if (window.totalTokensEarned) {
+      const tokenBalance = document.getElementById('token-balance');
+      if (tokenBalance) {
+        tokenBalance.textContent = Math.round(window.totalTokensEarned);
+      }
     }
   }
   
   // Initialize WebTorrent
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', ensureWebTorrentLoaded);
+    document.addEventListener('DOMContentLoaded', function() {
+      ensureWebTorrentLoaded();
+      fetchUserPoints(); // Fetch user points when DOM is loaded
+      
+      // Set up rewards modal button click
+      const btnViewStats = document.getElementById('btn-view-stats');
+      if (btnViewStats) {
+        btnViewStats.addEventListener('click', function() {
+          // Fetch latest points before showing modal
+          fetchUserPoints();
+          
+          // Show the rewards modal
+          const rewardsModal = document.getElementById('rewards-modal');
+          if (rewardsModal) {
+            updateRewardsModal();
+            rewardsModal.style.display = 'flex';
+          }
+        });
+      }
+    });
   } else {
     ensureWebTorrentLoaded();
+    fetchUserPoints(); // Fetch user points immediately
   }
   
 })(); 
