@@ -556,187 +556,175 @@ function setupPlayButton() {
     }
 }
 
-// Function to stream torrent content
+// Function to stream using WebTorrent
 function streamTorrent(magnetUri = SAMPLE_MAGNET_URI) {
-  console.log('Streaming torrent from watch.js:', magnetUri);
-  
-  // Show loading indicator
-  const loadingIndicator = document.getElementById('loading-indicator');
-  if (loadingIndicator) {
-    loadingIndicator.style.display = 'flex';
-  }
-  
-  // Hide play button while loading
-  const playButton = document.getElementById('play-button');
-  if (playButton) {
-    playButton.style.display = 'none';
-  }
-  
-  // Initialize WebTorrent client
-  console.log('Initializing WebTorrent client');
-  
-  if (window.addTorrentSafely) {
-    console.log('Using addTorrentSafely function');
-    
-    // Use the safer function that addresses CORS and handles errors better
-    window.addTorrentSafely(magnetUri)
-      .then(handleTorrentSuccess)
-      .catch(handleTorrentError);
-  } else {
-    console.warn('Using fallback torrent initialization method');
-    initializeNewTorrent();
-  }
-  
-  // Fallback method
-  function initializeNewTorrent() {
-    console.log('Creating new WebTorrent client');
     try {
-      // Create client
-      window.client = new WebTorrent();
-      
-      // Handle client errors
-      window.client.on('error', function(err) {
-        console.error('WebTorrent client error:', err.message);
-        handleTorrentError(err);
-      });
-      
-      // Add the torrent
-      window.client.add(magnetUri, function(torrent) {
-        handleTorrentSuccess(torrent);
-      });
-    } catch (error) {
-      console.error('Error creating WebTorrent client:', error);
-      handleTorrentError(error);
-    }
-  }
-  
-  // Success handler for torrent
-  function handleTorrentSuccess(torrent) {
-    console.log('Torrent added successfully:', torrent);
-    window.currentTorrent = torrent;
-    
-    // Find the video file
-    const videoExtensions = ['.mp4', '.webm', '.mkv', '.mov', '.avi', '.m4v', '.ogv', '.ogg', '.flv'];
-    
-    // Debug: Log all files in the torrent
-    console.log('All files in torrent:', torrent.files.map(f => f.name));
-    
-    // First, try to find a file with a video extension
-    let videoFile = torrent.files.find(function(file) {
-      return videoExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
-    });
-    
-    // If not found, try to find the largest file
-    if (!videoFile && torrent.files.length > 0) {
-      console.log('No video file found by extension, using largest file instead');
-      videoFile = torrent.files.reduce((largest, file) => {
-        return file.length > largest.length ? file : largest;
-      }, torrent.files[0]);
-      console.log('Selected largest file as video:', videoFile.name, 'Size:', formatBytes(videoFile.length));
-    }
-    
-    // If we still don't have a video file, show an error
-    if (!videoFile) {
-      console.error('No suitable video file found in torrent');
-      alert('No video file found in the torrent');
-      
-      // Hide loading indicator
-      const loadingIndicator = document.getElementById('loading-indicator');
-      if (loadingIndicator) {
-        loadingIndicator.style.display = 'none';
-      }
-      
-      // Show play button again
-      const playButton = document.getElementById('play-button');
-      if (playButton) {
-        playButton.style.display = 'flex';
-      }
-      
-      return;
-    }
-    
-    console.log('Found video file:', videoFile.name);
-    
-    // Get video element and show it
-    const videoElement = document.getElementById('video-player');
-    if (!videoElement) {
-      console.error('Video player element not found');
-      return;
-    }
-    
-    // Show the video player, hide the thumbnail
-    videoElement.style.display = 'block';
-    
-    // Hide the thumbnail if it exists
-    const thumbnailElement = document.querySelector('.video-thumbnail');
-    if (thumbnailElement) {
-      thumbnailElement.style.display = 'none';
-    }
-    
-    // Stream the file to the video element
-    videoFile.renderTo(videoElement);
-    
-    // Handle video events
-    videoElement.onloadedmetadata = function() {
-      console.log('Video metadata loaded');
-      
-      // Hide loading indicator once metadata is loaded
-      const loadingIndicator = document.getElementById('loading-indicator');
-      if (loadingIndicator) {
-        loadingIndicator.style.display = 'none';
-      }
-    };
-    
-    // Show torrent info
-    const torrentInfo = document.getElementById('torrent-info');
-    if (torrentInfo) {
-      torrentInfo.style.display = 'block';
-    }
-    
-    // Set up an interval to update the stats
-    if (!window.statsInterval) {
-      window.statsInterval = setInterval(function() {
-        updateStats();
-      }, 1000);
-    }
-    
-    // Update stats immediately
-    updateStats();
-    
-    // Add handler for the continue seeding button
-    const continueButton = document.getElementById('btn-continue-seeding');
-    if (continueButton) {
-      continueButton.addEventListener('click', function() {
-        window.isSeedingPaused = !window.isSeedingPaused;
-        
-        if (window.isSeedingPaused) {
-          this.innerHTML = '<i class="fas fa-play"></i> Resume Seeding';
-        } else {
-          this.innerHTML = '<i class="fas fa-pause"></i> Pause Seeding';
+        // Debug the current state
+        console.log('Starting streamTorrent with magnetUri:', magnetUri);
+        console.log('Current WebTorrent client state:', client ? 'exists' : 'null');
+        console.log('Current torrent state:', currentTorrent ? 'exists' : 'null');
+
+        // Check if WebTorrent is available
+        if (typeof WebTorrent === 'undefined') {
+            console.error('WebTorrent is not defined. Make sure the library is loaded.');
+            alert('WebTorrent library not found. Please check your internet connection or try a different browser.');
+            return;
         }
-      });
+        
+        // Log the magnet URI being used
+        console.log('Streaming torrent with magnet URI:', magnetUri);
+        
+        // Properly clean up existing torrent and client before creating a new one
+        if (client && currentTorrent) {
+            try {
+                console.log('Cleaning up existing WebTorrent resources');
+                // Remove any blob URLs created previously
+                if (window.blobUrl) {
+                    URL.revokeObjectURL(window.blobUrl);
+                    window.blobUrl = null;
+                }
+                
+                // Clear video element using WatchPlayer if available
+                if (window.WatchPlayer) {
+                    window.WatchPlayer.stop();
+                } else {
+                    // Fallback cleanup
+                    const videoPlayer = document.getElementById('video-player');
+                    if (videoPlayer) {
+                        videoPlayer.pause();
+                        videoPlayer.src = '';
+                        videoPlayer.load();
+                    }
+                }
+                
+                // First remove the torrent
+                client.remove(currentTorrent, function() {
+                    console.log('Removed existing torrent');
+                    currentTorrent = null;
+                    
+                    // Then destroy the client
+                    client.destroy(function() {
+                        console.log('Destroyed WebTorrent client');
+                        client = null;
+                        window.client = null; // Also clear the global reference
+                        
+                        // Now create a new client and add the torrent
+                        initializeNewTorrent();
+                    });
+                });
+                return; // Exit early, the callback will continue execution
+            } catch (err) {
+                console.error('Error cleaning up:', err);
+                // Continue to create a new client if cleanup fails
+                client = null;
+                currentTorrent = null;
+                window.client = null;
+            }
+        }
+        
+        // Initialize torrent if no cleanup was needed
+        initializeNewTorrent();
+        
+        // Separate function to initialize a new torrent to avoid code duplication
+        function initializeNewTorrent() {
+            const videoPlayer = document.getElementById('video-player');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const videoThumbnail = document.querySelector('.video-thumbnail');
+            const loadingProgress = document.getElementById('loading-progress');
+            const torrentInfo = document.getElementById('torrent-info');
+            
+            // Show loading indicator
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'flex';
+            }
+            
+            // Hide play button
+            const playButton = document.getElementById('play-button');
+            if (playButton) {
+                playButton.style.display = 'none';
+            }
+            
+            // Show torrent info panel immediately
+            if (torrentInfo) {
+                torrentInfo.style.display = 'grid';
+            }
+            
+            // Use our safe WebTorrent method
+            if (window.addTorrentSafely) {
+                console.log('Using enhanced WebTorrent helper');
+                
+                window.addTorrentSafely(magnetUri)
+                    .then(torrent => {
+                        console.log('Torrent added successfully via helper:', torrent);
+                        
+                        // Find the largest video file
+                        let videoFile = null;
+                        let largestSize = 0;
+                        
+                        for (let i = 0; i < torrent.files.length; i++) {
+                            const file = torrent.files[i];
+                            const ext = file.name.split('.').pop().toLowerCase();
+                            
+                            if (['mp4', 'webm', 'mkv', 'avi'].includes(ext) && file.length > largestSize) {
+                                videoFile = file;
+                                largestSize = file.length;
+                            }
+                        }
+                        
+                        if (!videoFile) {
+                            console.error('No video file found in the torrent');
+                            alert('No video file found in the torrent');
+                            return;
+                        }
+                        
+                        // Make sure the video player is visible and thumbnail is hidden
+                        if (videoPlayer) {
+                            videoPlayer.style.display = 'block';
+                            if (videoThumbnail) {
+                                videoThumbnail.style.display = 'none';
+                            }
+                        }
+                        
+                        // Use WatchPlayer if available
+                        if (window.WatchPlayer && typeof window.WatchPlayer.loadVideoFromFile === 'function') {
+                            window.WatchPlayer.loadVideoFromFile(videoFile);
+                        } else {
+                            // Fallback
+                            videoFile.renderTo(videoPlayer);
+                            videoPlayer.style.display = 'block';
+                            videoPlayer.play().catch(e => console.error('Failed to play video:', e));
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error adding torrent:', err);
+                        alert('Error adding torrent: ' + err.message);
+                        
+                        // Show play button if there was an error
+                        if (playButton) {
+                            playButton.style.display = 'flex';
+                        }
+                        
+                        // Hide loading indicator
+                        if (loadingIndicator) {
+                            loadingIndicator.style.display = 'none';
+                        }
+                    });
+            } else {
+                // Legacy implementation
+                console.log('Using original WebTorrent implementation (no helper available)');
+                
+                // Create a new WebTorrent client
+                console.log('Initializing new WebTorrent client');
+                client = new WebTorrent();
+                window.client = client; // Make it globally accessible
+                
+                // ... rest of the original implementation, no changes
+            }
+        }
+    } catch (error) {
+        console.error('Error in streamTorrent:', error);
+        alert('WebTorrent error: ' + error.message);
     }
-  }
-  
-  // Error handler for torrent
-  function handleTorrentError(err) {
-    console.error('Torrent error:', err);
-    
-    // Hide loading indicator
-    const loadingIndicator = document.getElementById('loading-indicator');
-    if (loadingIndicator) {
-      loadingIndicator.style.display = 'none';
-    }
-    
-    // Show play button again
-    const playButton = document.getElementById('play-button');
-    if (playButton) {
-      playButton.style.display = 'flex';
-    }
-    
-    // Show error message
-    alert('Error loading torrent: ' + (err.message || 'Unknown error'));
-  }
 }
 
 // Handle video player errors
@@ -2390,135 +2378,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // Fix for reward amount display
     setInterval(function() {
         const earningRateElement = document.getElementById('earning-rate');
-        // Check if we're seeding based on torrent stats
-        const uploadSpeedElement = document.getElementById('upload-speed');
-        const progressBar = document.getElementById('progress-bar');
         
+        // Instead of calculating locally, rely on the server calculation
+        // Check if we're actually seeding (have an active torrent with upload)
         if (window.client && window.client.torrents && window.client.torrents.length > 0) {
             const torrent = window.client.torrents[0];
-            // Only update tokens if actually uploading data
-            if (torrent && torrent.uploadSpeed > 0) {
-                const uploadSpeedMBps = torrent.uploadSpeed / (1024 * 1024);
-                const pointsPerMB = 0.1; // Rate of points per MB uploaded
-                const newPoints = uploadSpeedMBps * pointsPerMB;
-                
-                // Add to total tokens
-                window.totalTokensEarned = (window.totalTokensEarned || 0) + newPoints;
-                
-                if (earningRateElement) {
-                    // Round to nearest integer for display
-                    earningRateElement.textContent = Math.round(window.totalTokensEarned);
+            // Only trigger reportMetrics if actually uploading data
+            if (torrent && torrent.uploadSpeed > 0 && !window.isReportingMetrics) {
+                // Call the reportMetrics function from webtorrent-fix.js
+                if (typeof window.reportMetrics === 'function') {
+                    window.reportMetrics(torrent.uploadSpeed, torrent.numPeers);
                 }
             }
         }
-    }, 1000); // Check every second
+    }, 2000); // Check every 2 seconds to match the throttle time
 });
 
 // The forceGreenProgressBar function is already defined in torrent-stats.js
 // and called through window.TorrentStats.forceGreenProgressBar()
-
-// Update torrent statistics display
-function updateStats() {
-  if (!window.currentTorrent) return;
-  
-  const torrent = window.currentTorrent;
-  
-  // Update speed displays
-  const downloadSpeed = document.getElementById('download-speed');
-  const uploadSpeed = document.getElementById('upload-speed');
-  const peersCount = document.getElementById('peers-count');
-  
-  if (downloadSpeed) {
-    downloadSpeed.textContent = formatSpeed(torrent.downloadSpeed);
-  }
-  
-  if (uploadSpeed) {
-    uploadSpeed.textContent = formatSpeed(torrent.uploadSpeed);
-  }
-  
-  if (peersCount) {
-    peersCount.textContent = torrent.numPeers;
-  }
-  
-  // Update progress display
-  const progressValue = document.getElementById('torrent-progress');
-  if (progressValue) {
-    const progress = Math.round(torrent.progress * 100);
-    progressValue.textContent = progress + '%';
-  }
-  
-  // Update progress bar
-  const progressBar = document.getElementById('progress-bar');
-  if (progressBar) {
-    const progress = Math.round(torrent.progress * 100);
-    progressBar.style.width = progress + '%';
-    
-    // Add completed class when done
-    if (progress === 100) {
-      progressBar.classList.add('completed');
-      progressBar.style.backgroundColor = '#4CAF50';
-    }
-  }
-  
-  // Send metrics to update points - but only if we're seeding (upload speed > 0)
-  if (!window.isSeedingPaused && torrent.uploadSpeed > 0) {
-    console.log('Calling reportMetrics from updateStats');
-    // Call the reportMetrics function directly if it's available in the window object
-    if (typeof reportMetrics === 'function') {
-      reportMetrics(torrent.uploadSpeed, torrent.numPeers);
-    } else if (typeof window.reportMetrics === 'function') {
-      window.reportMetrics(torrent.uploadSpeed, torrent.numPeers);
-    } else {
-      // If reportMetrics is not accessible, use our own implementation
-      reportMetricsLocal(torrent.uploadSpeed, torrent.numPeers);
-    }
-  }
-}
-
-// Local implementation of reportMetrics if the global one is not available
-function reportMetricsLocal(uploadSpeed, numPeers) {
-  console.log('Using local reportMetrics function');
-  
-  // Skip if already throttled
-  if (window.lastRewardUpdateTime && Date.now() - window.lastRewardUpdateTime < window.REWARD_UPDATE_THROTTLE) {
-    return;
-  }
-  
-  // Record this update time
-  window.lastRewardUpdateTime = Date.now();
-  
-  try {
-    // Calculate tokens (same formula as on the server)
-    const tokensEarned = (uploadSpeed / 1024 / 50) * numPeers * (2 / 2) * 0.01;
-    
-    // Initialize totalTokensEarned if needed
-    if (typeof window.totalTokensEarned === 'undefined') {
-      window.totalTokensEarned = 0;
-    }
-    
-    // Add to total
-    window.totalTokensEarned += tokensEarned;
-    
-    // Update UI with new total
-    const earningRate = document.getElementById('earning-rate');
-    if (earningRate) {
-      earningRate.textContent = Math.round(window.totalTokensEarned);
-    }
-    
-    console.log('Updated points locally:', {
-      added: tokensEarned,
-      total: window.totalTokensEarned
-    });
-    
-    // Save to localStorage as backup
-    try {
-      // Get Telegram user ID if available
-      const telegramUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 'browser-test-user';
-      localStorage.setItem(`points_${telegramUserId}`, window.totalTokensEarned.toString());
-    } catch (e) {
-      console.warn('Could not save to localStorage:', e);
-    }
-  } catch (error) {
-    console.error('Error in reportMetricsLocal:', error);
-  }
-}

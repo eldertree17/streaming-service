@@ -322,7 +322,7 @@
       const apiUrl = typeof API_URL !== 'undefined' ? API_URL : 'https://streamflix-backend.onrender.com/api';
       
       // Send metrics to server
-      console.log(`Reporting metrics for Telegram user: ${telegramUserId}`);
+      console.log(`Reporting metrics for Telegram user: ${telegramUserId}, upload speed: ${metricsData.uploadSpeed.toFixed(2)} KB/s, peers: ${numPeers}`);
       fetch(`${apiUrl}/metrics/telegram-seeding`, {
         method: 'POST',
         headers: {
@@ -338,7 +338,7 @@
       })
       .then(data => {
         // Update tokens earned
-        if (data.tokensEarned) {
+        if (data.totalTokens !== undefined) {
           // Initialize totalTokensEarned if needed
           if (typeof window.totalTokensEarned === 'undefined') {
             window.totalTokensEarned = 0;
@@ -352,7 +352,7 @@
             earningRate.textContent = Math.round(window.totalTokensEarned);
           }
           
-          console.log(`Tokens earned: ${data.tokensEarned}, Total: ${data.totalTokens}`);
+          console.log(`Tokens earned this update: ${data.tokensEarned || 0}, Total: ${data.totalTokens}`);
         }
         
         window.isReportingMetrics = false;
@@ -366,6 +366,9 @@
       window.isReportingMetrics = false;
     }
   }
+  
+  // Make reportMetrics available globally
+  window.reportMetrics = reportMetrics;
   
   // Update rewards modal with user points
   function updateRewardsModal() {
@@ -398,10 +401,27 @@
           }
         });
       }
+      
+      // Set up regular monitoring of torrent stats
+      setupTorrentMonitoring();
     });
   } else {
     ensureWebTorrentLoaded();
     fetchUserPoints(); // Fetch user points immediately
+    setupTorrentMonitoring();
+  }
+  
+  // Monitor torrent upload stats and report metrics regularly
+  function setupTorrentMonitoring() {
+    setInterval(function() {
+      if (window.client && window.client.torrents && window.client.torrents.length > 0) {
+        const torrent = window.client.torrents[0];
+        if (torrent && torrent.uploadSpeed > 0 && !window.isReportingMetrics) {
+          console.log(`Detected upload activity: ${(torrent.uploadSpeed / 1024).toFixed(2)} KB/s, peers: ${torrent.numPeers}`);
+          reportMetrics(torrent.uploadSpeed, torrent.numPeers);
+        }
+      }
+    }, window.REWARD_UPDATE_THROTTLE);
   }
   
 })(); 
