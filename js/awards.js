@@ -799,5 +799,6 @@ window.AwardsModule = {
     updateActivityList,
     fetchLeaderboard,
     showLeaderboardModal,
-    showRewardInfo
+    showRewardInfo,
+    formatSeedingTime
 }; 

@@ -506,11 +506,20 @@
           if (totalSeedingTime && window.seedingStartTime) {
             const currentSeedingTime = (Date.now() - window.seedingStartTime) / 1000; // in seconds
             const totalTime = metrics.seedingStats.totalSeedingTime + currentSeedingTime;
-            const seedingHours = totalTime / 3600;
             
-            totalSeedingTime.textContent = seedingHours < 1 
-              ? `${Math.round(seedingHours * 60)} mins` 
-              : `${seedingHours.toFixed(1)} hrs`;
+            // Use the formatSeedingTime function from awards.js
+            if (window.AwardsModule && typeof window.AwardsModule.formatSeedingTime === 'function') {
+              totalSeedingTime.textContent = window.AwardsModule.formatSeedingTime(totalTime);
+            } else if (typeof formatSeedingTime === 'function') {
+              totalSeedingTime.textContent = formatSeedingTime(totalTime);
+            } else {
+              // Fallback to the old format if the function isn't available
+              const seedingHours = totalTime / 3600;
+              totalSeedingTime.textContent = seedingHours < 1 
+                ? `${Math.round(seedingHours * 60)}m 0s` 
+                : seedingHours < 24 ? `${Math.floor(seedingHours)}h ${Math.floor((seedingHours % 1) * 60)}m` 
+                : `${Math.floor(seedingHours / 24)}d ${Math.floor(seedingHours % 24)}h`;
+            }
           }
           
           // Update content seeded count
@@ -557,11 +566,20 @@
           const totalSeedingTime = document.getElementById('total-seeding-time');
           if (totalSeedingTime && window.seedingStartTime) {
             const currentSeedingTime = (Date.now() - window.seedingStartTime) / 1000; // in seconds
-            const seedingHours = currentSeedingTime / 3600;
             
-            totalSeedingTime.textContent = seedingHours < 1 
-              ? `${Math.round(seedingHours * 60)} mins` 
-              : `${seedingHours.toFixed(1)} hrs`;
+            // Use the formatSeedingTime function from awards.js
+            if (window.AwardsModule && typeof window.AwardsModule.formatSeedingTime === 'function') {
+              totalSeedingTime.textContent = window.AwardsModule.formatSeedingTime(currentSeedingTime);
+            } else if (typeof formatSeedingTime === 'function') {
+              totalSeedingTime.textContent = formatSeedingTime(currentSeedingTime);
+            } else {
+              // Fallback to the old format if the function isn't available
+              const seedingHours = currentSeedingTime / 3600;
+              totalSeedingTime.textContent = seedingHours < 1 
+                ? `${Math.round(seedingHours * 60)}m 0s` 
+                : seedingHours < 24 ? `${Math.floor(seedingHours)}h ${Math.floor((seedingHours % 1) * 60)}m` 
+                : `${Math.floor(seedingHours / 24)}d ${Math.floor(seedingHours % 24)}h`;
+            }
           }
         }
       }
