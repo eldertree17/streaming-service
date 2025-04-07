@@ -510,15 +510,9 @@
             // Use the formatSeedingTime function from awards.js
             if (window.AwardsModule && typeof window.AwardsModule.formatSeedingTime === 'function') {
               totalSeedingTime.textContent = window.AwardsModule.formatSeedingTime(totalTime);
-            } else if (typeof formatSeedingTime === 'function') {
-              totalSeedingTime.textContent = formatSeedingTime(totalTime);
             } else {
-              // Fallback to the old format if the function isn't available
-              const seedingHours = totalTime / 3600;
-              totalSeedingTime.textContent = seedingHours < 1 
-                ? `${Math.round(seedingHours * 60)}m 0s` 
-                : seedingHours < 24 ? `${Math.floor(seedingHours)}h ${Math.floor((seedingHours % 1) * 60)}m` 
-                : `${Math.floor(seedingHours / 24)}d ${Math.floor(seedingHours % 24)}h`;
+              // Use our local formatSeedingTime function
+              totalSeedingTime.textContent = formatSeedingTime(totalTime);
             }
           }
           
@@ -570,15 +564,9 @@
             // Use the formatSeedingTime function from awards.js
             if (window.AwardsModule && typeof window.AwardsModule.formatSeedingTime === 'function') {
               totalSeedingTime.textContent = window.AwardsModule.formatSeedingTime(currentSeedingTime);
-            } else if (typeof formatSeedingTime === 'function') {
-              totalSeedingTime.textContent = formatSeedingTime(currentSeedingTime);
             } else {
-              // Fallback to the old format if the function isn't available
-              const seedingHours = currentSeedingTime / 3600;
-              totalSeedingTime.textContent = seedingHours < 1 
-                ? `${Math.round(seedingHours * 60)}m 0s` 
-                : seedingHours < 24 ? `${Math.floor(seedingHours)}h ${Math.floor((seedingHours % 1) * 60)}m` 
-                : `${Math.floor(seedingHours / 24)}d ${Math.floor(seedingHours % 24)}h`;
+              // Use our local formatSeedingTime function
+              totalSeedingTime.textContent = formatSeedingTime(currentSeedingTime);
             }
           }
         }
@@ -606,6 +594,34 @@
     if (tokens < 250) return "Gold";
     if (tokens < 500) return "Platinum";
     return "Diamond";
+  }
+  
+  /**
+   * Formats seeding time in seconds to a conventional time format
+   * Duplicate of the function in awards.js to ensure consistent formatting
+   */
+  function formatSeedingTime(seconds) {
+    if (!seconds || isNaN(seconds) || seconds < 0) {
+      return '0m 0s';
+    }
+    
+    // Calculate days, hours, minutes, seconds
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    // Format based on duration
+    if (days > 0) {
+      // If days exist, show only days and hours
+      return `${days}d ${hours}h`;
+    } else if (hours > 0) {
+      // If no days but hours exist, show hours and minutes
+      return `${hours}h ${minutes}m`;
+    } else {
+      // If less than an hour, show minutes and seconds
+      return `${minutes}m ${secs}s`;
+    }
   }
   
   /**
