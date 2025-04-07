@@ -7,6 +7,9 @@
     <!-- Telegram Web App SDK - must be loaded before redirect script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
+        // Stores the destination URL for the continue button
+        let finalDestinationUrl = '';
+        
         (function() {
             // Parse current URL for path components
             const pathSegments = window.location.pathname.split('/');
@@ -53,109 +56,89 @@
                 log("Detected duplicate pages pattern, normalized to: " + path);
             }
             
+            // Determine destination based on path
+            function getDestinationUrl(path) {
+                let destinationUrl = '/streaming-service/index.html';
+                
+                // Handle path patterns
+                if (path === repoName || path === repoName + '/' || path === '/') {
+                    // Root path - go to index.html
+                    destinationUrl = '/streaming-service/index.html';
+                    log("Root path detected, redirecting to index.html");
+                }
+                else if (path.endsWith('/account') || path.includes('/account')) {
+                    // Account path - go to account.html
+                    destinationUrl = '/streaming-service/pages/account.html';
+                    log("Account path detected, redirecting to account.html");
+                }
+                else if (path.endsWith('/activity') || path.includes('/activity')) {
+                    // Activity path - go to activity.html
+                    destinationUrl = '/streaming-service/pages/activity.html';
+                    log("Activity path detected, redirecting to activity.html");
+                }
+                else if (path.endsWith('/search') || path.includes('/search')) {
+                    // Search path - go to search.html
+                    destinationUrl = '/streaming-service/pages/search.html' + window.location.search;
+                    log("Search path detected, redirecting to search.html with query: " + window.location.search);
+                }
+                else if (path.endsWith('/watch.html') || path.includes('/watch.html')) {
+                    // Watch page - show directly
+                    destinationUrl = '/streaming-service/pages/watch.html' + window.location.search;
+                    log("Watch page detected, redirecting to watch.html with query parameters");
+                }
+                else {
+                    // Default to index for any other path
+                    destinationUrl = '/streaming-service/index.html';
+                    log("Unknown path, defaulting to index.html");
+                }
+                
+                return destinationUrl;
+            }
+            
+            // Get the appropriate destination URL
+            const destinationUrl = getDestinationUrl(path);
+            
+            // Store the full destination URL in the global variable for the continue button
+            finalDestinationUrl = window.location.origin + destinationUrl;
+            
             // Special handling for Telegram Mini App
             if (isTelegram) {
                 log("Using Telegram-specific handling");
                 
+                // Set storage flag to prevent redirect loops
+                const redirectKey = `tg_redirect_${path}`;
+                if (sessionStorage.getItem(redirectKey)) {
+                    log("Detected potential redirect loop, stopping redirection");
+                    // Show the continue button for manual navigation
+                    setTimeout(function() {
+                        document.getElementById('redirect-message').style.display = 'none';
+                        document.getElementById('continue-message').style.display = 'flex';
+                        // Set the continue button href
+                        document.getElementById('continue-button').setAttribute('href', finalDestinationUrl);
+                    }, 100);
+                    return;
+                }
+                
+                // Mark this path as being redirected
+                sessionStorage.setItem(redirectKey, "true");
+                
+                // Only redirect if needed - prevent loops
+                if (path === destinationUrl) {
+                    log("Already at destination, not redirecting to avoid loop");
+                    return;
+                }
+                
                 // For Telegram in initial loading state, delay redirect to ensure stability
                 setTimeout(function() {
-                    // Find our destination
-                    let destinationUrl = '/streaming-service/index.html';
-                    
-                    // Handle path patterns
-                    if (path === repoName || path === repoName + '/' || path === '/') {
-                        // Root path - go to index.html
-                        destinationUrl = '/streaming-service/index.html';
-                        log("Root path detected, redirecting to index.html");
-                    }
-                    else if (path.endsWith('/account') || path.includes('/account')) {
-                        // Account path - go to account.html
-                        destinationUrl = '/streaming-service/pages/account.html';
-                        log("Account path detected, redirecting to account.html");
-                    }
-                    else if (path.endsWith('/activity') || path.includes('/activity')) {
-                        // Activity path - go to activity.html
-                        destinationUrl = '/streaming-service/pages/activity.html';
-                        log("Activity path detected, redirecting to activity.html");
-                    }
-                    else if (path.endsWith('/search') || path.includes('/search')) {
-                        // Search path - go to search.html
-                        destinationUrl = '/streaming-service/pages/search.html' + window.location.search;
-                        log("Search path detected, redirecting to search.html with query: " + window.location.search);
-                    }
-                    else if (path.endsWith('/watch.html') || path.includes('/watch.html')) {
-                        // Watch page - show directly
-                        destinationUrl = '/streaming-service/pages/watch.html' + window.location.search;
-                        log("Watch page detected, redirecting to watch.html with query parameters");
-                    }
-                    else {
-                        // Default to index for any other path
-                        destinationUrl = '/streaming-service/index.html';
-                        log("Unknown path, defaulting to index.html");
-                    }
-                    
-                    // Only redirect if needed - prevent loops
-                    if (path === destinationUrl) {
-                        log("Already at destination, not redirecting to avoid loop");
-                        return;
-                    }
-                    
-                    // Set storage flag to prevent redirect loops
-                    const redirectKey = `tg_redirect_${path}`;
-                    if (sessionStorage.getItem(redirectKey)) {
-                        log("Detected potential redirect loop, stopping redirection");
-                        return;
-                    }
-                    
-                    // Mark this path as being redirected
-                    sessionStorage.setItem(redirectKey, "true");
-                    
-                    // Construct full URL with host
-                    const fullDestinationUrl = window.location.origin + destinationUrl;
-                    log("Redirecting to: " + fullDestinationUrl);
-                    
+                    log("Redirecting to: " + finalDestinationUrl);
                     // Redirect
-                    window.location.replace(fullDestinationUrl);
+                    window.location.replace(finalDestinationUrl);
                 }, 300); // Delay for Telegram stability
                 
                 return;
             }
             
             // Standard browser handling (non-Telegram)
-            // Find our destination
-            let destinationUrl = '/streaming-service/index.html';
-            
-            // Handle path patterns
-            if (path === repoName || path === repoName + '/' || path === '/') {
-                // Root path - go to index.html
-                destinationUrl = '/streaming-service/index.html';
-                log("Root path detected, redirecting to index.html");
-            }
-            else if (path.endsWith('/account') || path.includes('/account')) {
-                // Account path - go to account.html
-                destinationUrl = '/streaming-service/pages/account.html';
-                log("Account path detected, redirecting to account.html");
-            }
-            else if (path.endsWith('/activity') || path.includes('/activity')) {
-                // Activity path - go to activity.html
-                destinationUrl = '/streaming-service/pages/activity.html';
-                log("Activity path detected, redirecting to activity.html");
-            }
-            else if (path.endsWith('/search') || path.includes('/search')) {
-                // Search path - go to search.html
-                destinationUrl = '/streaming-service/pages/search.html' + window.location.search;
-                log("Search path detected, redirecting to search.html with query: " + window.location.search);
-            }
-            else if (path.endsWith('/watch.html') || path.includes('/watch.html')) {
-                // Watch page - show directly
-                destinationUrl = '/streaming-service/pages/watch.html' + window.location.search;
-                log("Watch page detected, redirecting to watch.html with query parameters");
-            }
-            else {
-                // Default to index for any other path
-                destinationUrl = '/streaming-service/index.html';
-                log("Unknown path, defaulting to index.html");
-            }
             
             // Avoid redirect loops by not redirecting if already at the destination
             if (path === destinationUrl) {
@@ -163,16 +146,20 @@
                 return;
             }
             
-            // Construct full URL with host
-            const fullDestinationUrl = window.location.origin + destinationUrl;
-            log("Redirecting to: " + fullDestinationUrl);
+            log("Redirecting to: " + finalDestinationUrl);
             
             // Set a small timeout to allow console logs to be seen
             setTimeout(function() {
                 // Redirect
-                window.location.replace(fullDestinationUrl);
+                window.location.replace(finalDestinationUrl);
             }, 100);
         })();
+        
+        // Function to allow manually continuing to the destination
+        function continueToDestination() {
+            window.location.href = finalDestinationUrl;
+            return false;
+        }
     </script>
     <style>
         body {
@@ -222,12 +209,44 @@
             max-height: 300px;
             overflow-y: auto;
         }
+        .message-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #continue-message {
+            display: none;
+        }
+        .button {
+            background-color: #1e88e5;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .button:hover {
+            background-color: #1565c0;
+        }
     </style>
 </head>
 <body>
-    <div class="spinner"></div>
-    <h1>Redirecting...</h1>
-    <p>You are being redirected to the correct page. If you are not redirected automatically, please <a href="/streaming-service/index.html" style="color: #ffffff;">click here</a>.</p>
+    <div id="redirect-message" class="message-container">
+        <div class="spinner"></div>
+        <h1>Redirecting...</h1>
+        <p>You are being redirected to the correct page. If you are not redirected automatically, please <a href="/streaming-service/index.html" style="color: #ffffff;">click here</a>.</p>
+    </div>
+    
+    <div id="continue-message" class="message-container">
+        <h1>Ready to Continue</h1>
+        <p>We've stopped an automatic redirect to prevent a loop. Click the button below to continue to your destination page.</p>
+        <a id="continue-button" href="#" class="button" onclick="continueToDestination()">Continue to Page</a>
+    </div>
     
     <!-- Debug information section -->
     <div id="debug-info">
