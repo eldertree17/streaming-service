@@ -1123,6 +1123,10 @@ function seedOnlyTorrent() {
         
         console.log('Adding torrent for seed-only using WebTorrent client');
         
+        // Add this debug logging - it will help check if client.add is even being called
+        console.log('WebTorrent client status before adding torrent:', client ? 'Available' : 'Not available', 
+                    'Torrents:', client ? client.torrents.length : 0);
+        
         // Add the torrent
         client.add(magnetUri, function(torrent) {
             console.log('Torrent added successfully for seed-only mode', torrent);
@@ -2454,7 +2458,10 @@ function setupStopSeedingButton() {
 function stopSeedingAndClaimPoints() {
     console.log('Stopping seeding and claiming points...');
     
-    // Save the current points earned
+    // Get current tokens before cleanup
+    const finalTokens = window.totalTokensEarned || 0;
+    
+    // Make sure to save the state before destroying anything
     saveSeedingState();
     
     // Reset the points counter
@@ -2538,19 +2545,27 @@ function stopSeedingAndClaimPoints() {
         try {
             window.client.destroy(function() {
                 console.log('WebTorrent client destroyed successfully');
-                // Create new client immediately instead of using setTimeout
+                
+                // Create new client immediately - no setTimeout needed
                 window.client = new WebTorrent();
-                console.log('WebTorrent client reinitialized for new seeding session');
+                console.log('Created new WebTorrent client for fresh seeding session');
+                
+                // Make sure the client is available globally
+                if (!window.client) {
+                    window.client = new WebTorrent();
+                    console.log('Fallback: Created global WebTorrent client');
+                }
             });
         } catch (error) {
             console.error('Error destroying WebTorrent client:', error);
             // Force reinitialize the client
             window.client = new WebTorrent();
+            console.log('Created new WebTorrent client after error');
         }
     } else {
         // Create a new client if none exists
         window.client = new WebTorrent();
-        console.log('Created new WebTorrent client');
+        console.log('Created new WebTorrent client (none existed)');
     }
     
     // Show a toast or notification
