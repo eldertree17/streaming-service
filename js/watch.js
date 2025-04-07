@@ -1064,15 +1064,15 @@ function setupSeedOnlyButton() {
 }
 
 // Handler function for Seed Only button to avoid event duplication
-function handleSeedOnlyClick() {
+function handleSeedOnlyClick(event) {
     console.log('Seed Only button clicked');
-    const button = this;
-        // Disable the button to prevent multiple clicks
+    const button = document.querySelector('.btn-download');
+    // Disable the button to prevent multiple clicks
     button.disabled = true;
     button.innerHTML = '<i class="fas fa-sync fa-spin"></i> Preparing...';
-        
-        // Start the seeding-only process
-        seedOnlyTorrent();
+    
+    // Start the seeding-only process
+    seedOnlyTorrent();
 }
 
 // Function to seed a torrent without playing the video
