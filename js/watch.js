@@ -210,6 +210,11 @@ async function initWatchPage() {
     
     // Add debug button for video troubleshooting
     addDebugButton();
+
+    // Set up buttons
+    setupPlayButton();
+    setupSeedOnlyButton();
+    setupBuyButton();
 }
 
 // Function to load movie data
@@ -1171,7 +1176,7 @@ function seedOnlyTorrent() {
                     // Safely call functions with explicit checks
                     if (typeof window.TorrentStats.updateProgressValue === 'function') {
                         try {
-                            window.TorrentStats.updateProgressValue(progress);
+                    window.TorrentStats.updateProgressValue(progress);
                         } catch (e) {
                             console.warn('Error calling updateProgressValue:', e);
                         }
@@ -1185,7 +1190,7 @@ function seedOnlyTorrent() {
                     
                     if (typeof window.TorrentStats.updateProgressBar === 'function') {
                         try {
-                            window.TorrentStats.updateProgressBar(progress);
+                    window.TorrentStats.updateProgressBar(progress);
                         } catch (e) {
                             console.warn('Error calling updateProgressBar:', e);
                         }
@@ -1199,11 +1204,11 @@ function seedOnlyTorrent() {
                     
                     if (typeof window.TorrentStats.updateProgressSummary === 'function') {
                         try {
-                            window.TorrentStats.updateProgressSummary(progress);
+                        window.TorrentStats.updateProgressSummary(progress);
                         } catch (e) {
                             console.warn('Error calling updateProgressSummary:', e);
-                        }
-                    } else {
+                    }
+                } else {
                         // Direct fallback
                         const summaryProgress = document.getElementById('torrent-progress-summary');
                         if (summaryProgress) {
@@ -1378,25 +1383,25 @@ const TELEGRAM_USER_KEY = 'telegram_user';
  */
 function saveSeedingState() {
     try {
-        // Only save if there's an active torrent
-        if (!window.client || !window.client.torrents || window.client.torrents.length === 0) {
-            console.log('No active torrent to save state for');
-            return;
-        }
+    // Only save if there's an active torrent
+    if (!window.client || !window.client.torrents || window.client.torrents.length === 0) {
+        console.log('No active torrent to save state for');
+        return;
+    }
 
-        const currentTorrent = window.client.torrents[0];
+    const currentTorrent = window.client.torrents[0];
         
         // Calculate total seeding time
         let seedingTime = 0;
         if (window.seedingStartTime) {
             seedingTime = (Date.now() - window.seedingStartTime) / 1000; // in seconds
         }
-        
-        // Create state object with all necessary information to resume seeding
-        const seedingState = {
-            infoHash: currentTorrent.infoHash,
-            magnetURI: currentTorrent.magnetURI,
-            uploaded: currentTorrent.uploaded,
+    
+    // Create state object with all necessary information to resume seeding
+    const seedingState = {
+        infoHash: currentTorrent.infoHash,
+        magnetURI: currentTorrent.magnetURI,
+        uploaded: currentTorrent.uploaded,
             ratio: currentTorrent.ratio,
             numPeers: currentTorrent.numPeers,
             paused: window.isSeedingPaused,
@@ -1427,8 +1432,8 @@ function saveSeedingState() {
                 const previousMetrics = JSON.parse(previousMetricsStr);
                 if (previousMetrics.activities && Array.isArray(previousMetrics.activities)) {
                     currentMetrics.activities = previousMetrics.activities;
-                }
-            } catch (error) {
+        }
+    } catch (error) {
                 console.warn('Failed to parse previous metrics', error);
             }
         }
@@ -2711,4 +2716,99 @@ function resetPlayerUI() {
     if (errorMessage && errorMessage.parentNode) {
         errorMessage.parentNode.style.display = 'none';
     }
+}
+
+// Function to set up the Buy button
+function setupBuyButton() {
+    const buyButton = document.querySelector('.btn-buy');
+    
+    if (buyButton) {
+        buyButton.addEventListener('click', function() {
+            // Get current movie data
+            const movieTitle = document.getElementById('movie-title').textContent;
+            const description = document.querySelector('.movie-description p').textContent;
+            const year = document.querySelector('.year').textContent;
+            const rating = document.querySelector('.rating').textContent;
+            
+            // Get movie image (use a default if not available)
+            const defaultImage = "https://images.unsplash.com/photo-1542204165-65bf26472b9b";
+            
+            // Determine if this is a movie or TV show based on content type or URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const contentType = urlParams.get('type') || 'movie'; // Default to movie
+            
+            // Create movie object
+            const movieData = {
+                title: movieTitle,
+                description: description,
+                rating: parseInt(rating) || 5,
+                image: defaultImage,
+                purchaseDate: new Date().toISOString()
+            };
+            
+            // Save to user's collection in localStorage
+            saveToUserCollection(movieData, contentType);
+            
+            // Show success notification
+            if (typeof showNotification === 'function') {
+                showNotification('Added to your collection!', 'success');
+            } else {
+                alert('Added to your collection!');
+            }
+        });
+    }
+}
+
+// Function to save content to user's collection in localStorage
+function saveToUserCollection(content, contentType) {
+    // Get user ID (from Telegram or fallback to demo)
+    let userId = 'demo_user';
+    
+    // Try to get from Telegram
+    if (window.Telegram && window.Telegram.WebApp && 
+        window.Telegram.WebApp.initDataUnsafe && 
+        window.Telegram.WebApp.initDataUnsafe.user) {
+        userId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
+    }
+    
+    // Key for user's collection in localStorage
+    const collectionKey = `user_collection_${userId}`;
+    
+    // Get existing collection or create new one
+    let userCollection = {};
+    const storedCollection = localStorage.getItem(collectionKey);
+    
+    if (storedCollection) {
+        try {
+            userCollection = JSON.parse(storedCollection);
+        } catch (e) {
+            console.error('Error parsing stored collection:', e);
+            userCollection = { movies: [], tvShows: [] };
+        }
+    } else {
+        userCollection = { movies: [], tvShows: [] };
+    }
+    
+    // Determine which array to add to based on content type
+    const targetArray = contentType === 'tvshow' ? 'tvShows' : 'movies';
+    
+    // Check if item already exists in collection to avoid duplicates
+    const existingIndex = userCollection[targetArray].findIndex(
+        item => item.title === content.title
+    );
+    
+    if (existingIndex >= 0) {
+        // Update existing item
+        userCollection[targetArray][existingIndex] = {
+            ...userCollection[targetArray][existingIndex],
+            ...content
+        };
+    } else {
+        // Add new item
+        userCollection[targetArray].push(content);
+    }
+    
+    // Save updated collection back to localStorage
+    localStorage.setItem(collectionKey, JSON.stringify(userCollection));
+    console.log(`Added "${content.title}" to user's ${targetArray} collection`);
 }

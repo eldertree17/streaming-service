@@ -150,8 +150,70 @@ function updateStoredFollowCounts(userId, followers, following) {
 
 // Function to load collection data
 function loadCollectionData() {
-  // Sample collection data
-  const collectionData = {
+  // Get user ID (from Telegram or fallback to demo)
+  let userId = 'demo_user';
+  
+  // Try to get from Telegram
+  if (window.Telegram && window.Telegram.WebApp && 
+      window.Telegram.WebApp.initDataUnsafe && 
+      window.Telegram.WebApp.initDataUnsafe.user) {
+      userId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
+  }
+  
+  // Key for user's collection in localStorage
+  const collectionKey = `user_collection_${userId}`;
+  
+  // Try to load user's collection from localStorage
+  let userCollection = null;
+  const storedCollection = localStorage.getItem(collectionKey);
+  
+  if (storedCollection) {
+    try {
+      userCollection = JSON.parse(storedCollection);
+      console.log('Loaded user collection from localStorage:', userCollection);
+    } catch (e) {
+      console.error('Error parsing stored collection:', e);
+    }
+  }
+  
+  // If we have a user collection with items, use it
+  if (userCollection && 
+      ((userCollection.movies && userCollection.movies.length > 0) || 
+       (userCollection.tvShows && userCollection.tvShows.length > 0))) {
+    
+    // Populate movies
+    if (userCollection.movies && userCollection.movies.length > 0) {
+      populateCollectionGrid('movies-grid', userCollection.movies);
+    } else {
+      // Hide movies section if empty
+      const moviesHeaders = document.querySelectorAll('.section-header h3');
+      const moviesSection = Array.from(moviesHeaders).find(header => header.textContent.includes('Movies'));
+      if (moviesSection) {
+        moviesSection.closest('.section-header').parentElement.style.display = 'none';
+      }
+    }
+    
+    // Populate TV shows
+    if (userCollection.tvShows && userCollection.tvShows.length > 0) {
+      populateCollectionGrid('tvshows-grid', userCollection.tvShows);
+    } else {
+      // Hide TV shows section if empty
+      const tvHeaders = document.querySelectorAll('.section-header h3');
+      const tvShowsSection = Array.from(tvHeaders).find(header => header.textContent.includes('TV Shows'));
+      if (tvShowsSection) {
+        tvShowsSection.closest('.section-header').parentElement.style.display = 'none';
+      }
+    }
+    
+    // Games section uses sample data for now
+    populateCollectionGrid('games-grid', getSampleGames());
+    
+  } else {
+    // Fallback to sample data if no user collection exists
+    console.log('No user collection found, using sample data');
+    
+    // Sample collection data
+    const collectionData = {
       movies: [
           {
               title: "The Matrix",
@@ -192,30 +254,36 @@ function loadCollectionData() {
               image: "https://images.unsplash.com/photo-1581985673473-0784a7a44e39"
           }
       ],
-      games: [
-          {
-              title: "Assassin's Creed",
-              rating: 8,
-              description: "An interactive crime mystery where the player must solve a series of interconnected murders.",
-              image: "https://images.unsplash.com/photo-1547700055-b61cacebece9"
-          },
-          {
-              title: "The Dark Knight",
-              rating: 6,
-              description: "The story and plot of a detective who must solve a series of murders in a dystopian city.",
-              image: "https://images.unsplash.com/photo-1509347528160-9a9e33742cdb"
-          }
-      ]
-  };
-  
-  // Populate movies
-  populateCollectionGrid('movies-grid', collectionData.movies);
-  
-  // Populate TV shows
-  populateCollectionGrid('tvshows-grid', collectionData.tvShows);
-  
-  // Populate games
-  populateCollectionGrid('games-grid', collectionData.games);
+      games: getSampleGames()
+    };
+    
+    // Populate movies
+    populateCollectionGrid('movies-grid', collectionData.movies);
+    
+    // Populate TV shows
+    populateCollectionGrid('tvshows-grid', collectionData.tvShows);
+    
+    // Populate games
+    populateCollectionGrid('games-grid', collectionData.games);
+  }
+}
+
+// Helper function to get sample games
+function getSampleGames() {
+  return [
+    {
+        title: "Assassin's Creed",
+        rating: 8,
+        description: "An interactive crime mystery where the player must solve a series of interconnected murders.",
+        image: "https://images.unsplash.com/photo-1547700055-b61cacebece9"
+    },
+    {
+        title: "The Dark Knight",
+        rating: 6,
+        description: "The story and plot of a detective who must solve a series of murders in a dystopian city.",
+        image: "https://images.unsplash.com/photo-1509347528160-9a9e33742cdb"
+    }
+  ];
 }
 
 // Function to populate a collection grid
