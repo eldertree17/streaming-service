@@ -2626,9 +2626,31 @@ function resetPlayerUI() {
     // Reset the video player if it exists
     const videoPlayer = document.getElementById('video-player');
     if (videoPlayer) {
+        // Properly remove event listeners to avoid error messages
+        videoPlayer.oncanplay = null;
+        videoPlayer.onerror = null;
+        videoPlayer.onloadedmetadata = null;
+        videoPlayer.onprogress = null;
+        
+        // Pause the video first before clearing source
         videoPlayer.pause();
+        
+        // Clear the source by setting srcObject to null first (if it exists)
+        if (videoPlayer.srcObject) {
+            videoPlayer.srcObject = null;
+        }
+        
+        // Set empty string to src only after removing srcObject
         videoPlayer.src = '';
         videoPlayer.style.display = 'none';
+        
+        // Force load to make sure it processes the src clearing
+        try {
+            // Catch any errors that might occur during load
+            videoPlayer.load();
+        } catch (e) {
+            console.log('Video load error (expected):', e);
+        }
     }
     
     // Show the video thumbnail if it exists
@@ -2679,5 +2701,11 @@ function resetPlayerUI() {
         seedOnlyButton.disabled = false;
         seedOnlyButton.innerHTML = '<i class="fas fa-compact-disc"></i> Seed Only';
         seedOnlyButton.classList.remove('seeding-active');
+    }
+    
+    // Hide any error messages that might be displayed
+    const errorMessage = document.querySelector('.eldertree17\\.github\\.io');
+    if (errorMessage && errorMessage.parentNode) {
+        errorMessage.parentNode.style.display = 'none';
     }
 }
