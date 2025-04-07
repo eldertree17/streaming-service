@@ -1058,14 +1058,21 @@ function setupSeedOnlyButton() {
     const seedOnlyButton = document.querySelector('.btn-download');
     if (!seedOnlyButton) return;
     
-    seedOnlyButton.addEventListener('click', function() {
-        // Disable the button to prevent multiple clicks
-        seedOnlyButton.disabled = true;
-        seedOnlyButton.innerHTML = '<i class="fas fa-sync fa-spin"></i> Preparing...';
-        
-        // Start the seeding-only process
-        seedOnlyTorrent();
-    });
+    // Remove any existing listeners to avoid duplicates
+    seedOnlyButton.removeEventListener('click', handleSeedOnlyClick);
+    seedOnlyButton.addEventListener('click', handleSeedOnlyClick);
+}
+
+// Handler function for Seed Only button to avoid event duplication
+function handleSeedOnlyClick() {
+    console.log('Seed Only button clicked');
+    const button = this;
+    // Disable the button to prevent multiple clicks
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-sync fa-spin"></i> Preparing...';
+    
+    // Start the seeding-only process
+    seedOnlyTorrent();
 }
 
 // Function to seed a torrent without playing the video
@@ -2511,6 +2518,37 @@ function stopSeedingAndClaimPoints() {
     if (window.seedingDurationInterval) {
         clearInterval(window.seedingDurationInterval);
         window.seedingDurationInterval = null;
+    }
+    
+    // Reset Seed Only button and ensure it's ready for new seeding session
+    const seedOnlyButton = document.querySelector('.btn-download');
+    if (seedOnlyButton) {
+        seedOnlyButton.disabled = false; // Ensure it's enabled
+        seedOnlyButton.innerHTML = '<i class="fas fa-compact-disc"></i> Seed Only';
+        seedOnlyButton.classList.remove('seeding-active');
+        
+        // Re-initialize the click event listener to ensure it works after reset
+        // We need to remove any existing listeners first to avoid duplicates
+        seedOnlyButton.removeEventListener('click', handleSeedOnlyClick);
+        seedOnlyButton.addEventListener('click', handleSeedOnlyClick);
+    }
+    
+    // Ensure torrent client is reset for a fresh start
+    if (window.client) {
+        try {
+            window.client.destroy(function() {
+                console.log('WebTorrent client destroyed successfully');
+                // Reinitialize the client after a short delay
+                setTimeout(function() {
+                    window.client = new WebTorrent();
+                    console.log('WebTorrent client reinitialized for new seeding session');
+                }, 500);
+            });
+        } catch (error) {
+            console.error('Error destroying WebTorrent client:', error);
+            // Force reinitialize the client
+            window.client = new WebTorrent();
+        }
     }
     
     // Show a toast or notification
