@@ -32,8 +32,12 @@ function setupSettingsIcon() {
     
     if (settingsIcon) {
         settingsIcon.addEventListener('click', function() {
-            // Navigate to account settings page
-            window.location.href = 'account-settings.html';
+            // Navigate to account settings page using URL normalizer if available
+            if (window.getAssetUrl) {
+                window.location.href = window.getAssetUrl('pages/account-settings.html');
+            } else {
+                window.location.href = 'account-settings.html';
+            }
         });
     }
 }
@@ -202,8 +206,14 @@ function populateCollectionGrid(gridId, items) {
       
       // Add click event to navigate to watch page
       itemElement.addEventListener('click', function() {
-          const baseUrl = window.location.origin;
-          window.location.href = `${baseUrl}/pages/watch?movie=${encodeURIComponent(item.title)}`;
+          const movieTitle = encodeURIComponent(item.title);
+          if (window.getAssetUrl) {
+              window.location.href = window.getAssetUrl('pages/watch.html') + '?movie=' + movieTitle;
+          } else {
+              const baseUrl = window.location.origin;
+              const repoPath = '/streaming-service'; // GitHub Pages repository name
+              window.location.href = `${baseUrl}${repoPath}/pages/watch.html?movie=${movieTitle}`;
+          }
       });
       
       grid.appendChild(itemElement);
