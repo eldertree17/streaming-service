@@ -9,12 +9,35 @@
  * - Integration with Telegram user account for authoring comments
  */
 
+// Track if we've verified Telegram integration
+let telegramUserVerified = false;
+let cachedTelegramUser = null;
+
 // Initialize comments functionality when the document is ready
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Initializing comments module');
     setupCommentInput();
     loadComments();
+    
+    // Try to verify Telegram user immediately and cache result
+    verifyTelegramUser();
+    
+    // Set up periodic checks in case Telegram loads after our module
+    setTimeout(verifyTelegramUser, 1000);
+    setTimeout(verifyTelegramUser, 3000);
 });
+
+// Verify and cache Telegram user data
+function verifyTelegramUser() {
+    if (telegramUserVerified) return;
+    
+    const user = getCurrentTelegramUser(true);
+    if (user.id !== 'local-user') {
+        telegramUserVerified = true;
+        cachedTelegramUser = user;
+        console.log('Telegram user verified:', user.name, 'ID:', user.id);
+    }
+}
 
 // Function to load comments
 function loadComments() {
@@ -161,23 +184,57 @@ function createReplyElement(reply) {
 }
 
 // Function to get current user from Telegram
-function getCurrentTelegramUser() {
-  // Check if Telegram integration is available
-  if (window.telegramApp && window.telegramApp.user) {
-    const user = window.telegramApp.user;
+function getCurrentTelegramUser(forceCheck = false) {
+    // Return cached user if already verified (unless forced check)
+    if (!forceCheck && cachedTelegramUser) {
+        return cachedTelegramUser;
+    }
+    
+    // Try to access Telegram WebApp directly first (most reliable method)
+    if (window.Telegram && window.Telegram.WebApp) {
+        const webAppUser = window.Telegram.WebApp.initDataUnsafe?.user;
+        if (webAppUser) {
+            const user = {
+                id: webAppUser.id,
+                name: webAppUser.first_name + (webAppUser.last_name ? ` ${webAppUser.last_name}` : ''),
+                username: webAppUser.username
+            };
+            
+            // Cache the result
+            cachedTelegramUser = user;
+            telegramUserVerified = true;
+            
+            return user;
+        }
+    }
+    
+    // Fall back to telegramApp if direct access failed
+    if (window.telegramApp && window.telegramApp.user) {
+        const user = window.telegramApp.user;
+        const telegramUser = {
+            id: user.id,
+            name: user.first_name + (user.last_name ? ` ${user.last_name}` : ''),
+            username: user.username
+        };
+        
+        // Cache the result
+        cachedTelegramUser = telegramUser;
+        telegramUserVerified = true;
+        
+        return telegramUser;
+    }
+    
+    // If we've previously cached a user, return that even if current checks fail
+    if (cachedTelegramUser) {
+        return cachedTelegramUser;
+    }
+    
+    // Last fallback to default user if everything fails
     return {
-      id: user.id,
-      name: user.first_name + (user.last_name ? ` ${user.last_name}` : ''),
-      username: user.username
+        id: 'local-user',
+        name: 'You',
+        username: 'local_user'
     };
-  }
-  
-  // Fallback to default user if Telegram integration is not available
-  return {
-    id: 'local-user',
-    name: 'You',
-    username: 'local_user'
-  };
 }
 
 // Function to set up comment input
@@ -221,70 +278,75 @@ function setupCommentInput() {
 
 // Function to submit a new comment
 function submitComment() {
-  const commentInput = document.getElementById('comment-input');
-  const commentText = commentInput.value.trim();
-  
-  if (commentText) {
-    // Add the comment to the list
-    addComment(commentText);
+    const commentInput = document.getElementById('comment-input');
+    const commentText = commentInput.value.trim();
     
-    // Clear the input and hide actions
-    commentInput.value = '';
-    document.getElementById('comment-actions').style.display = 'none';
-    commentInput.blur();
-  }
+    if (commentText) {
+        // If not verified yet, try one more time
+        if (!telegramUserVerified) {
+            verifyTelegramUser();
+        }
+        
+        // Add the comment to the list
+        addComment(commentText);
+        
+        // Clear the input and hide actions
+        commentInput.value = '';
+        document.getElementById('comment-actions').style.display = 'none';
+        commentInput.blur();
+    }
 }
 
 // Function to add a new comment to the list
 function addComment(text) {
-  const commentsList = document.querySelector('.comments-list');
-  const allCommentsList = document.querySelector('.all-comments-list');
-  
-  // Get current user info from Telegram
-  const telegramUser = getCurrentTelegramUser();
-  
-  // Create a new comment element
-  const commentId = Date.now(); // Use timestamp as ID
-  const comment = {
-    id: commentId,
-    author: telegramUser.name,
-    time: 'Just now',
-    text: text,
-    isCurrentUser: true,
-    likes: 0,
-    replies: [],
-    telegramUserId: telegramUser.id,
-    telegramUsername: telegramUser.username
-  };
-  
-  console.log('Posting comment from Telegram user:', telegramUser.name, 'ID:', telegramUser.id);
-  
-  // Create comment for main list
-  const commentElement = createCommentElement(comment);
-  
-  // Add the comment to the top of the list
-  if (commentsList.firstChild) {
-    commentsList.insertBefore(commentElement, commentsList.firstChild);
-  } else {
-    commentsList.appendChild(commentElement);
-  }
-  
-  // Add the comment to the modal list if it exists
-  if (allCommentsList) {
-    const modalCommentElement = createCommentElement(comment);
-    if (allCommentsList.firstChild) {
-      allCommentsList.insertBefore(modalCommentElement, allCommentsList.firstChild);
+    const commentsList = document.querySelector('.comments-list');
+    const allCommentsList = document.querySelector('.all-comments-list');
+    
+    // Get current user info from Telegram
+    const telegramUser = getCurrentTelegramUser();
+    
+    // Create a new comment element
+    const commentId = Date.now(); // Use timestamp as ID
+    const comment = {
+        id: commentId,
+        author: telegramUser.name,
+        time: 'Just now',
+        text: text,
+        isCurrentUser: true,
+        likes: 0,
+        replies: [],
+        telegramUserId: telegramUser.id,
+        telegramUsername: telegramUser.username
+    };
+    
+    console.log('Posting comment from Telegram user:', telegramUser.name, 'ID:', telegramUser.id);
+    
+    // Create comment for main list
+    const commentElement = createCommentElement(comment);
+    
+    // Add the comment to the top of the list
+    if (commentsList.firstChild) {
+        commentsList.insertBefore(commentElement, commentsList.firstChild);
     } else {
-      allCommentsList.appendChild(modalCommentElement);
+        commentsList.appendChild(commentElement);
     }
-  }
-  
-  // Set up comment actions to ensure all interactive elements work
-  setupCommentActions();
-  
-  // In a real application, you would send this to your backend API
-  // along with the Telegram user ID for persistence
-  console.log('Comment would be sent to API with Telegram user ID:', telegramUser.id);
+    
+    // Add the comment to the modal list if it exists
+    if (allCommentsList) {
+        const modalCommentElement = createCommentElement(comment);
+        if (allCommentsList.firstChild) {
+            allCommentsList.insertBefore(modalCommentElement, allCommentsList.firstChild);
+        } else {
+            allCommentsList.appendChild(modalCommentElement);
+        }
+    }
+    
+    // Set up comment actions to ensure all interactive elements work
+    setupCommentActions();
+    
+    // In a real application, you would send this to your backend API
+    // along with the Telegram user ID for persistence
+    console.log('Comment would be sent to API with Telegram user ID:', telegramUser.id);
 }
 
 // Function to set up comment actions (like, reply, delete)
@@ -384,86 +446,91 @@ function toggleReplyForm(commentId) {
 
 // Function to create a reply form
 function createReplyForm(commentId) {
-  const replyForm = document.createElement('div');
-  replyForm.className = 'reply-form';
-  replyForm.innerHTML = `
-    <textarea placeholder="Write a reply..."></textarea>
-    <div class="reply-actions">
-      <button class="btn-reply-cancel">Cancel</button>
-      <button class="btn-reply-submit">Reply</button>
-    </div>
-  `;
-  
-  // Set up cancel button
-  replyForm.querySelector('.btn-reply-cancel').addEventListener('click', function() {
-    replyForm.style.display = 'none';
-  });
-  
-  // Set up submit button
-  replyForm.querySelector('.btn-reply-submit').addEventListener('click', function() {
-    const replyText = replyForm.querySelector('textarea').value.trim();
-    if (replyText) {
-      submitReply(commentId, replyText);
-      replyForm.style.display = 'none';
-    }
-  });
-  
-  return replyForm;
+    const replyForm = document.createElement('div');
+    replyForm.className = 'reply-form';
+    replyForm.innerHTML = `
+        <textarea placeholder="Write a reply..."></textarea>
+        <div class="reply-actions">
+            <button class="btn-reply-cancel">Cancel</button>
+            <button class="btn-reply-submit">Reply</button>
+        </div>
+    `;
+    
+    // Set up cancel button
+    replyForm.querySelector('.btn-reply-cancel').addEventListener('click', function() {
+        replyForm.style.display = 'none';
+    });
+    
+    // Set up submit button
+    replyForm.querySelector('.btn-reply-submit').addEventListener('click', function() {
+        const replyText = replyForm.querySelector('textarea').value.trim();
+        if (replyText) {
+            // Try to verify one last time before submitting
+            if (!telegramUserVerified) {
+                verifyTelegramUser();
+            }
+            
+            submitReply(commentId, replyText);
+            replyForm.style.display = 'none';
+        }
+    });
+    
+    return replyForm;
 }
 
 // Function to submit a reply
 function submitReply(commentId, replyText) {
-  const comment = document.querySelector(`.comment[data-comment-id="${commentId}"]`);
-  
-  // Get current user info from Telegram
-  const telegramUser = getCurrentTelegramUser();
-  
-  // Check if replies container exists, create if not
-  let repliesContainer = comment.querySelector('.replies-container');
-  if (!repliesContainer) {
-    repliesContainer = document.createElement('div');
-    repliesContainer.className = 'replies-container';
-    comment.appendChild(repliesContainer);
-  }
-  
-  // Create new reply
-  const replyId = Date.now(); // Use timestamp as temporary ID
-  const reply = {
-    id: replyId,
-    author: telegramUser.name,
-    time: 'Just now',
-    text: replyText,
-    isCurrentUser: true,
-    likes: 0,
-    telegramUserId: telegramUser.id,
-    telegramUsername: telegramUser.username
-  };
-  
-  console.log('Posting reply from Telegram user:', telegramUser.name, 'ID:', telegramUser.id);
-  
-  const replyElement = createReplyElement(reply);
-  repliesContainer.appendChild(replyElement);
-  
-  // Also update the modal if it exists
-  const modalComment = document.querySelector(`.all-comments-list .comment[data-comment-id="${commentId}"]`);
-  if (modalComment) {
-    let modalRepliesContainer = modalComment.querySelector('.replies-container');
-    if (!modalRepliesContainer) {
-      modalRepliesContainer = document.createElement('div');
-      modalRepliesContainer.className = 'replies-container';
-      modalComment.appendChild(modalRepliesContainer);
+    const comment = document.querySelector(`.comment[data-comment-id="${commentId}"]`);
+    
+    // Get current user info from Telegram
+    const telegramUser = getCurrentTelegramUser();
+    
+    // Check if replies container exists, create if not
+    let repliesContainer = comment.querySelector('.replies-container');
+    if (!repliesContainer) {
+        repliesContainer = document.createElement('div');
+        repliesContainer.className = 'replies-container';
+        comment.appendChild(repliesContainer);
     }
     
-    const modalReplyElement = createReplyElement(reply);
-    modalRepliesContainer.appendChild(modalReplyElement);
-  }
-  
-  // Set up comment actions to ensure new like buttons work
-  setupCommentActions();
-  
-  // In a real application, you would send this to your backend API
-  // along with the Telegram user ID for persistence
-  console.log('Reply would be sent to API with Telegram user ID:', telegramUser.id);
+    // Create new reply
+    const replyId = Date.now(); // Use timestamp as temporary ID
+    const reply = {
+        id: replyId,
+        author: telegramUser.name,
+        time: 'Just now',
+        text: replyText,
+        isCurrentUser: true,
+        likes: 0,
+        telegramUserId: telegramUser.id,
+        telegramUsername: telegramUser.username
+    };
+    
+    console.log('Posting reply from Telegram user:', telegramUser.name, 'ID:', telegramUser.id);
+    
+    const replyElement = createReplyElement(reply);
+    repliesContainer.appendChild(replyElement);
+    
+    // Also update the modal if it exists
+    const modalComment = document.querySelector(`.all-comments-list .comment[data-comment-id="${commentId}"]`);
+    if (modalComment) {
+        let modalRepliesContainer = modalComment.querySelector('.replies-container');
+        if (!modalRepliesContainer) {
+            modalRepliesContainer = document.createElement('div');
+            modalRepliesContainer.className = 'replies-container';
+            modalComment.appendChild(modalRepliesContainer);
+        }
+        
+        const modalReplyElement = createReplyElement(reply);
+        modalRepliesContainer.appendChild(modalReplyElement);
+    }
+    
+    // Set up comment actions to ensure new like buttons work
+    setupCommentActions();
+    
+    // In a real application, you would send this to your backend API
+    // along with the Telegram user ID for persistence
+    console.log('Reply would be sent to API with Telegram user ID:', telegramUser.id);
 }
 
 // Function to delete a comment or reply
@@ -501,11 +568,12 @@ function deleteComment(commentElement) {
 
 // Export functions for use in other modules
 window.CommentsModule = {
-  loadComments,
-  setupCommentInput,
-  setupCommentActions,
-  addComment,
-  submitComment,
-  createCommentElement,
-  getCurrentTelegramUser
+    loadComments,
+    setupCommentInput,
+    setupCommentActions,
+    addComment,
+    submitComment,
+    createCommentElement,
+    getCurrentTelegramUser,
+    verifyTelegramUser
 }; 
