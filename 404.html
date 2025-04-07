@@ -7,6 +7,9 @@
     <!-- Telegram Web App SDK - must be loaded before redirect script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
+        // Clear any existing redirect flags to prevent getting stuck
+        sessionStorage.clear();
+        
         // Stores the destination URL for the continue button
         let finalDestinationUrl = '';
         
@@ -54,6 +57,14 @@
             if (path.includes('/pages/pages/')) {
                 path = path.replace('/pages/pages/', '/pages/');
                 log("Detected duplicate pages pattern, normalized to: " + path);
+            }
+            
+            // Direct redirect for search page in Telegram
+            if (isTelegram && (path.endsWith('/search') || path.includes('/search'))) {
+                const searchUrl = window.location.origin + '/streaming-service/pages/search.html' + window.location.search;
+                log("Search page in Telegram - direct redirect to: " + searchUrl);
+                window.location.replace(searchUrl);
+                return;
             }
             
             // Determine destination based on path
@@ -105,36 +116,9 @@
             if (isTelegram) {
                 log("Using Telegram-specific handling");
                 
-                // Set storage flag to prevent redirect loops
-                const redirectKey = `tg_redirect_${path}`;
-                if (sessionStorage.getItem(redirectKey)) {
-                    log("Detected potential redirect loop, stopping redirection");
-                    // Show the continue button for manual navigation
-                    setTimeout(function() {
-                        document.getElementById('redirect-message').style.display = 'none';
-                        document.getElementById('continue-message').style.display = 'flex';
-                        // Set the continue button href
-                        document.getElementById('continue-button').setAttribute('href', finalDestinationUrl);
-                    }, 100);
-                    return;
-                }
-                
-                // Mark this path as being redirected
-                sessionStorage.setItem(redirectKey, "true");
-                
-                // Only redirect if needed - prevent loops
-                if (path === destinationUrl) {
-                    log("Already at destination, not redirecting to avoid loop");
-                    return;
-                }
-                
-                // For Telegram in initial loading state, delay redirect to ensure stability
-                setTimeout(function() {
-                    log("Redirecting to: " + finalDestinationUrl);
-                    // Redirect
-                    window.location.replace(finalDestinationUrl);
-                }, 300); // Delay for Telegram stability
-                
+                // Always redirect for Telegram - no loop checking
+                log("Redirecting to: " + finalDestinationUrl);
+                window.location.replace(finalDestinationUrl);
                 return;
             }
             
@@ -160,6 +144,13 @@
             window.location.href = finalDestinationUrl;
             return false;
         }
+        
+        // Auto-continue after a short delay if the continue button is shown
+        setTimeout(function() {
+            if (document.getElementById('continue-message').style.display === 'flex') {
+                continueToDestination();
+            }
+        }, 500);
     </script>
     <style>
         body {
@@ -252,5 +243,14 @@
     <div id="debug-info">
         <p><strong>Debug Information:</strong></p>
     </div>
+    
+    <script>
+        // Force redirect to search page after 1 second if it's a search page
+        if (window.location.pathname.includes('/search')) {
+            setTimeout(function() {
+                window.location.replace(window.location.origin + '/streaming-service/pages/search.html' + window.location.search);
+            }, 1000);
+        }
+    </script>
 </body>
 </html> 
