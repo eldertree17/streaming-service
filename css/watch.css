@@ -1783,3 +1783,28 @@ html, body {
   from { opacity: 1; }
   to { opacity: 0; visibility: hidden; }
 }
+
+/* Update modal-header specifically for rewards modal */
+.rewards-modal-content .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #333;
+  text-align: left;
+  margin-bottom: 0;
+}
+
+.rewards-modal-content .modal-header h2 {
+  color: white;
+  margin: 0;
+  font-size: 2rem;
+}
+
+.rewards-modal-content .close-modal {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 2rem;
+  cursor: pointer;
+}
