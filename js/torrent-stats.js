@@ -14,8 +14,7 @@ window.isSeedingPaused = false; // Global flag to track pause state
 // Initialize torrent stats when the document is ready
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Initializing torrent stats module');
-    setupTorrentStatsCollapsible();
-    setupTorrentActions();
+    initTorrentStats();
     
     // Initialize metrics reporting if we have an active torrent
     if (window.currentTorrent && !window.metricsInterval) {
@@ -1080,4 +1079,106 @@ window.TorrentStats.stopSeedingAndClearState = stopSeedingAndClearState;
 window.TorrentStats.startSeedingStatusUpdates = startSeedingStatusUpdates;
 window.TorrentStats.updateSeedingStatusInfo = updateSeedingStatusInfo;
 window.TorrentStats.updateStatsDisplay = updateStatsDisplay;
-window.TorrentStats.addSeedingStatusSection = addSeedingStatusSection; 
+window.TorrentStats.addSeedingStatusSection = addSeedingStatusSection;
+
+// Main initialization function
+function initTorrentStats() {
+    // Set up event listeners for toggling the torrent stats display
+    setupTorrentStatsCollapsible();
+    
+    // Set up event listeners for the continue/pause seeding button
+    setupTorrentActions();
+    
+    // Add direct handlers for buttons to ensure they work even if the earlier setup failed
+    const continueButton = document.getElementById('btn-continue-seeding');
+    const stopSeedingButton = document.getElementById('btn-stop-seeding');
+    const stopSeedingModal = document.getElementById('stop-seeding-modal');
+    
+    // Direct handler for Pause button - important fallback
+    if (continueButton && !continueButton.hasAttribute('data-direct-handler')) {
+        continueButton.setAttribute('data-direct-handler', 'true');
+        continueButton.onclick = function() {
+            console.log('Direct handler for continue button clicked');
+            
+            // Toggle button state
+            const isSeeding = continueButton.classList.toggle('active');
+            
+            if (isSeeding) {
+                // Update button text to Continue Seeding
+                continueButton.innerHTML = '<i class="fas fa-seedling"></i> Continue Seeding';
+                
+                // Set global flag for paused state
+                window.isSeedingPaused = true;
+                console.log('Setting isSeedingPaused flag to true');
+                
+                // Stop reporting metrics to pause points counting
+                if (window.metricsInterval) {
+                    clearInterval(window.metricsInterval);
+                    window.metricsInterval = null;
+                    console.log('Cleared metrics interval');
+                    window.isReportingMetrics = false; // Mark metrics reporting as stopped
+                }
+            } else {
+                // Update button text to Pause Seeding
+                continueButton.innerHTML = '<i class="fas fa-pause"></i> Pause Seeding';
+                
+                // Reset global flag for paused state
+                window.isSeedingPaused = false;
+                console.log('Setting isSeedingPaused flag to false');
+                
+                // Restore the metrics reporting interval
+                if (!window.metricsInterval && window.currentTorrent) {
+                    console.log('Restoring metrics reporting interval');
+                    window.metricsInterval = setInterval(function() {
+                        if (window.reportMetrics) {
+                            window.reportMetrics(
+                                window.currentTorrent.uploadSpeed,
+                                window.currentTorrent.numPeers
+                            );
+                        }
+                    }, 2000);
+                }
+            }
+        };
+    }
+    
+    // Direct handler for Stop Seeding button - important fallback
+    if (stopSeedingButton && !stopSeedingButton.hasAttribute('data-direct-handler')) {
+        stopSeedingButton.setAttribute('data-direct-handler', 'true');
+        stopSeedingButton.onclick = function() {
+            console.log('Direct handler for stop seeding button clicked');
+            if (stopSeedingModal) {
+                stopSeedingModal.style.display = 'flex';
+            }
+        };
+    }
+    
+    // Setup modal buttons if they exist and the modal is present
+    if (stopSeedingModal) {
+        const confirmStopButton = document.getElementById('confirm-stop-seeding');
+        const cancelStopButton = document.getElementById('cancel-stop-seeding');
+        
+        if (confirmStopButton && !confirmStopButton.hasAttribute('data-direct-handler')) {
+            confirmStopButton.setAttribute('data-direct-handler', 'true');
+            confirmStopButton.onclick = function() {
+                // Call the stopSeedingAndClaimPoints function if it exists
+                if (typeof window.stopSeedingAndClaimPoints === 'function') {
+                    window.stopSeedingAndClaimPoints();
+                }
+                // Close the modal
+                stopSeedingModal.style.display = 'none';
+            };
+        }
+        
+        if (cancelStopButton && !cancelStopButton.hasAttribute('data-direct-handler')) {
+            cancelStopButton.setAttribute('data-direct-handler', 'true');
+            cancelStopButton.onclick = function() {
+                // Just close the modal
+                stopSeedingModal.style.display = 'none';
+            };
+        }
+    }
+    
+    // Set up seeding duration update
+    setupSeedingDurationUpdate();
+} 
