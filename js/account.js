@@ -244,29 +244,68 @@ function setupFollowButton() {
   const followButton = document.querySelector('.follow-button');
   
   if (followButton) {
-      followButton.addEventListener('click', function() {
-          // Toggle follow state
-          if (this.textContent === 'Follow') {
-              this.textContent = 'Following';
-              this.style.backgroundColor = '#555';
-              
-              // Update follower count (in a real app, this would call an API)
-              const followerCount = document.querySelectorAll('.stat-number')[1];
-              let count = parseInt(followerCount.textContent.replace('K', '')) * 1000;
-              count += 1;
-              followerCount.textContent = (count / 1000).toFixed(1) + 'K';
-          } else {
-              this.textContent = 'Follow';
-              this.style.backgroundColor = '#ff6347';
-              
-              // Update follower count
-              const followerCount = document.querySelectorAll('.stat-number')[1];
-              let count = parseFloat(followerCount.textContent.replace('K', '')) * 1000;
-              count -= 1;
-              followerCount.textContent = (count / 1000).toFixed(1) + 'K';
-          }
-      });
+      // Check if this is the user's own profile
+      const isOwnProfile = isCurrentUserProfile();
+      
+      // Hide the button if it's the user's own profile
+      if (isOwnProfile) {
+          followButton.style.display = 'none';
+      } else {
+          // Only add event listener if it's not the user's profile
+          followButton.addEventListener('click', function() {
+              // Toggle follow state
+              if (this.textContent === 'Follow') {
+                  this.textContent = 'Following';
+                  this.style.backgroundColor = '#555';
+                  
+                  // Update follower count (in a real app, this would call an API)
+                  const followerCount = document.querySelectorAll('.stat-number')[1];
+                  let count = parseInt(followerCount.textContent.replace('K', '')) * 1000;
+                  count += 1;
+                  followerCount.textContent = (count / 1000).toFixed(1) + 'K';
+              } else {
+                  this.textContent = 'Follow';
+                  this.style.backgroundColor = '#ff6347';
+                  
+                  // Update follower count
+                  const followerCount = document.querySelectorAll('.stat-number')[1];
+                  let count = parseFloat(followerCount.textContent.replace('K', '')) * 1000;
+                  count -= 1;
+                  followerCount.textContent = (count / 1000).toFixed(1) + 'K';
+              }
+          });
+      }
   }
+}
+
+// Function to determine if the current profile belongs to the logged-in user
+function isCurrentUserProfile() {
+    // Get URL parameters to check if we're viewing someone else's profile
+    const urlParams = new URLSearchParams(window.location.search);
+    const profileUserId = urlParams.get('user_id');
+    
+    // If there's a user_id parameter and it's different from the current user's ID,
+    // then we're viewing someone else's profile
+    if (profileUserId) {
+        // Get current user's ID (from Telegram or localStorage)
+        let currentUserId = null;
+        
+        // Try to get from Telegram
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+            currentUserId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
+        }
+        
+        // If we have both IDs, compare them
+        if (currentUserId) {
+            return currentUserId === profileUserId;
+        }
+        
+        // If we have a profile user ID but no current user ID, it's not the user's profile
+        return false;
+    }
+    
+    // If there's no user_id parameter, we're on the user's own profile
+    return true;
 }
 
 // Initialize Telegram App
