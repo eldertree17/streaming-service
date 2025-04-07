@@ -6,6 +6,7 @@
  * - Creating comment and reply elements
  * - Setting up comment input and form handling
  * - Like, reply, and delete actions
+ * - Integration with Telegram user account for authoring comments
  */
 
 // Initialize comments functionality when the document is ready
@@ -159,6 +160,26 @@ function createReplyElement(reply) {
   return replyElement;
 }
 
+// Function to get current user from Telegram
+function getCurrentTelegramUser() {
+  // Check if Telegram integration is available
+  if (window.telegramApp && window.telegramApp.user) {
+    const user = window.telegramApp.user;
+    return {
+      id: user.id,
+      name: user.first_name + (user.last_name ? ` ${user.last_name}` : ''),
+      username: user.username
+    };
+  }
+  
+  // Fallback to default user if Telegram integration is not available
+  return {
+    id: 'local-user',
+    name: 'You',
+    username: 'local_user'
+  };
+}
+
 // Function to set up comment input
 function setupCommentInput() {
   const commentInput = document.getElementById('comment-input');
@@ -219,17 +240,24 @@ function addComment(text) {
   const commentsList = document.querySelector('.comments-list');
   const allCommentsList = document.querySelector('.all-comments-list');
   
+  // Get current user info from Telegram
+  const telegramUser = getCurrentTelegramUser();
+  
   // Create a new comment element
   const commentId = Date.now(); // Use timestamp as ID
   const comment = {
     id: commentId,
-    author: 'You',
+    author: telegramUser.name,
     time: 'Just now',
     text: text,
     isCurrentUser: true,
     likes: 0,
-    replies: []
+    replies: [],
+    telegramUserId: telegramUser.id,
+    telegramUsername: telegramUser.username
   };
+  
+  console.log('Posting comment from Telegram user:', telegramUser.name, 'ID:', telegramUser.id);
   
   // Create comment for main list
   const commentElement = createCommentElement(comment);
@@ -253,6 +281,10 @@ function addComment(text) {
   
   // Set up comment actions to ensure all interactive elements work
   setupCommentActions();
+  
+  // In a real application, you would send this to your backend API
+  // along with the Telegram user ID for persistence
+  console.log('Comment would be sent to API with Telegram user ID:', telegramUser.id);
 }
 
 // Function to set up comment actions (like, reply, delete)
@@ -383,6 +415,9 @@ function createReplyForm(commentId) {
 function submitReply(commentId, replyText) {
   const comment = document.querySelector(`.comment[data-comment-id="${commentId}"]`);
   
+  // Get current user info from Telegram
+  const telegramUser = getCurrentTelegramUser();
+  
   // Check if replies container exists, create if not
   let repliesContainer = comment.querySelector('.replies-container');
   if (!repliesContainer) {
@@ -395,13 +430,16 @@ function submitReply(commentId, replyText) {
   const replyId = Date.now(); // Use timestamp as temporary ID
   const reply = {
     id: replyId,
-    author: 'You',
-    avatar: '../img/avatars/user.jpg',
+    author: telegramUser.name,
     time: 'Just now',
     text: replyText,
     isCurrentUser: true,
-    likes: 0
+    likes: 0,
+    telegramUserId: telegramUser.id,
+    telegramUsername: telegramUser.username
   };
+  
+  console.log('Posting reply from Telegram user:', telegramUser.name, 'ID:', telegramUser.id);
   
   const replyElement = createReplyElement(reply);
   repliesContainer.appendChild(replyElement);
@@ -422,6 +460,10 @@ function submitReply(commentId, replyText) {
   
   // Set up comment actions to ensure new like buttons work
   setupCommentActions();
+  
+  // In a real application, you would send this to your backend API
+  // along with the Telegram user ID for persistence
+  console.log('Reply would be sent to API with Telegram user ID:', telegramUser.id);
 }
 
 // Function to delete a comment or reply
@@ -465,10 +507,5 @@ window.CommentsModule = {
   addComment,
   submitComment,
   createCommentElement,
-  createReplyElement,
-  toggleLike,
-  toggleReplyForm,
-  createReplyForm,
-  submitReply,
-  deleteComment
+  getCurrentTelegramUser
 }; 
