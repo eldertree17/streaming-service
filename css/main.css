@@ -682,10 +682,3 @@ a:hover {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
 }
-
-/* Simple fix specifically for Telegram Mini App navigation */
-.nav-bar .nav-item:last-child a p {
-  font-size: 12px; 
-  min-width: 40px;
-  text-align: center;
-}
