@@ -4,13 +4,15 @@
  * This module provides functionality for:
  * 1. Searching for users who have used this Mini App (internal directory)
  * 2. Searching for any Telegram user (via Telegram's API)
+ * 3. Sending referrals to users who haven't used the app yet
  */
 
 // Configuration
 const CONFIG = {
     DEBOUNCE_TIME: 300, // ms to wait between search inputs
     MIN_SEARCH_LENGTH: 2, // minimum characters to trigger search
-    API_ENDPOINT: '/api/users/search' // endpoint for searching app users
+    API_ENDPOINT: '/api/users/search', // endpoint for searching app users
+    REFERRAL_MESSAGE: 'Hey, check out this awesome streaming app! 🎬 You can join me there: https://t.me/block_stream_bot'
 };
 
 // Keep track of search timeout for debouncing
@@ -122,6 +124,9 @@ function setupSearchField() {
         searchTimeout = setTimeout(function() {
             // First try to search app users
             searchAppUsers(query);
+            
+            // Also search for external Telegram users if enabled
+            searchExternalTelegramUsers(query);
         }, CONFIG.DEBOUNCE_TIME);
     });
     
@@ -257,7 +262,8 @@ function searchAppUsers(query) {
                     lastName: 'Stone',
                     username: 'emmastone',
                     photoUrl: 'https://i.pravatar.cc/150?u=emma',
-                    dvdCount: 250
+                    dvdCount: 250,
+                    hasUsedApp: true
                 },
                 {
                     id: '987654321',
@@ -265,7 +271,8 @@ function searchAppUsers(query) {
                     lastName: 'Reynolds',
                     username: 'ryanreynolds',
                     photoUrl: 'https://i.pravatar.cc/150?u=ryan',
-                    dvdCount: 315
+                    dvdCount: 315,
+                    hasUsedApp: true
                 },
                 {
                     id: '456789123',
@@ -273,7 +280,8 @@ function searchAppUsers(query) {
                     lastName: 'Lawrence',
                     username: 'jlaw',
                     photoUrl: 'https://i.pravatar.cc/150?u=jen',
-                    dvdCount: 178
+                    dvdCount: 178,
+                    hasUsedApp: true
                 }
             ];
             
@@ -304,6 +312,66 @@ function searchAppUsers(query) {
 }
 
 /**
+ * Search for users in Telegram who haven't used the app
+ * @param {string} query - The search query
+ */
+function searchExternalTelegramUsers(query) {
+    console.log('Searching external Telegram users for:', query);
+    
+    // In a real implementation, this would be an API call to your backend
+    // which would use Telegram's Bot API to search for users
+    
+    // For demo purposes, we'll add some mock external users
+    setTimeout(() => {
+        try {
+            // Mock data - in a real app this would come from your backend via Telegram Bot API
+            const mockExternalUsers = [
+                {
+                    id: '111222333',
+                    firstName: 'Tom',
+                    lastName: 'Hanks',
+                    username: 'tomhanks',
+                    photoUrl: 'https://i.pravatar.cc/150?u=tom',
+                    hasUsedApp: false
+                },
+                {
+                    id: '444555666',
+                    firstName: 'Emma',
+                    lastName: 'Watson',
+                    username: 'emmawatson',
+                    photoUrl: 'https://i.pravatar.cc/150?u=emmaw',
+                    hasUsedApp: false
+                },
+                {
+                    id: '777888999',
+                    firstName: 'Chris',
+                    lastName: 'Evans',
+                    username: 'chrisevans',
+                    photoUrl: 'https://i.pravatar.cc/150?u=chris',
+                    hasUsedApp: false
+                }
+            ];
+            
+            // Simple filtering matching name or username
+            const filteredUsers = mockExternalUsers.filter(user => {
+                const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+                const username = user.username.toLowerCase();
+                const searchTerm = query.toLowerCase();
+                
+                return fullName.includes(searchTerm) || username.includes(searchTerm);
+            });
+            
+            // Append external users to the results (if any)
+            if (filteredUsers.length > 0) {
+                appendExternalSearchResults(filteredUsers);
+            }
+        } catch (error) {
+            console.error('Error searching external Telegram users:', error);
+        }
+    }, 800); // Slightly longer delay to ensure internal users show first
+}
+
+/**
  * Display search results in the container
  * @param {Array} users - Array of user objects
  */
@@ -324,8 +392,18 @@ function displaySearchResults(users) {
         return;
     }
     
+    // Add section title for app users
+    const titleElement = document.createElement('div');
+    titleElement.innerHTML = `
+        <div style="padding: 8px 16px; font-weight: 500; color: #888; font-size: 13px; text-transform: uppercase;">
+            App Users
+        </div>
+    `;
+    container.appendChild(titleElement);
+    
     // Create results list
     const list = document.createElement('ul');
+    list.id = 'app-users-list';
     list.style.listStyle = 'none';
     list.style.margin = '0';
     list.style.padding = '0';
@@ -361,6 +439,85 @@ function displaySearchResults(users) {
             <div style="flex: 1;">
                 <div style="font-weight: 500; font-size: 15px;">${user.firstName} ${user.lastName}</div>
                 <div style="font-size: 13px; color: #888;">@${user.username} · ${user.dvdCount} DVDs</div>
+            </div>
+        `;
+        
+        list.appendChild(item);
+    });
+    
+    container.appendChild(list);
+}
+
+/**
+ * Append external Telegram users to search results
+ * @param {Array} users - Array of external user objects
+ */
+function appendExternalSearchResults(users) {
+    if (!users || users.length === 0) return;
+    
+    const container = document.getElementById('app-users-search-results');
+    if (!container) return;
+    
+    // Check if we have any existing results
+    const hasExistingResults = container.querySelector('#app-users-list') !== null;
+    
+    // Add divider if we already have results
+    if (hasExistingResults) {
+        const divider = document.createElement('div');
+        divider.style.margin = '8px 0';
+        divider.style.borderTop = '1px solid #eee';
+        container.appendChild(divider);
+    }
+    
+    // Add section title for external users
+    const titleElement = document.createElement('div');
+    titleElement.innerHTML = `
+        <div style="padding: 8px 16px; font-weight: 500; color: #888; font-size: 13px; text-transform: uppercase;">
+            Invite to App
+        </div>
+    `;
+    container.appendChild(titleElement);
+    
+    // Create results list for external users
+    const list = document.createElement('ul');
+    list.style.listStyle = 'none';
+    list.style.margin = '0';
+    list.style.padding = '0';
+    
+    // Add each external user to the list
+    users.forEach(user => {
+        const item = document.createElement('li');
+        item.style.display = 'flex';
+        item.style.alignItems = 'center';
+        item.style.padding = '10px 16px';
+        item.style.cursor = 'pointer';
+        item.style.transition = 'background-color 0.2s';
+        
+        // Hover effect
+        item.addEventListener('mouseenter', () => {
+            item.style.backgroundColor = '#f5f5f5';
+        });
+        
+        item.addEventListener('mouseleave', () => {
+            item.style.backgroundColor = 'transparent';
+        });
+        
+        // Click to send referral
+        item.addEventListener('click', () => {
+            sendReferralToUser(user);
+        });
+        
+        // User avatar with refer badge
+        item.innerHTML = `
+            <div style="width: 40px; height: 40px; border-radius: 50%; overflow: hidden; margin-right: 12px; position: relative;">
+                <img src="${user.photoUrl}" alt="${user.firstName}" style="width: 100%; height: 100%; object-fit: cover;">
+                <div style="position: absolute; bottom: -2px; right: -2px; background-color: #4CAF50; color: white; font-size: 10px; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-paper-plane" style="font-size: 8px;"></i>
+                </div>
+            </div>
+            <div style="flex: 1;">
+                <div style="font-weight: 500; font-size: 15px;">${user.firstName} ${user.lastName}</div>
+                <div style="font-size: 13px; color: #888;">@${user.username}</div>
             </div>
         `;
         
@@ -415,12 +572,121 @@ function addTelegramSearchOption(query) {
 function navigateToUserProfile(user) {
     console.log('Navigating to user profile:', user);
     
+    if (!user.hasUsedApp) {
+        // If user hasn't used the app, send a referral instead
+        sendReferralToUser(user);
+        return;
+    }
+    
+    // Hide search results
+    hideSearchResultsContainer();
+    
     // In a real implementation, this would navigate to a profile page
-    // For now, we'll just simulate navigation
-    alert(`Would navigate to ${user.firstName} ${user.lastName}'s profile`);
+    // For now, just simulate with an alert
+    showSuccessToast(`Navigating to ${user.firstName} ${user.lastName}'s profile`);
     
     // Example of how to navigate (uncomment and modify as needed)
-    // window.location.href = `/profile.html?user_id=${user.id}`;
+    window.location.href = `/profile.html?user_id=${user.id}`;
+}
+
+/**
+ * Send a referral to a user who hasn't used the app
+ * @param {Object} user - User object to send referral to
+ */
+function sendReferralToUser(user) {
+    console.log('Sending referral to user:', user);
+    
+    // Hide search results
+    hideSearchResultsContainer();
+    
+    // Check if Telegram WebApp is available
+    if (window.Telegram && window.Telegram.WebApp) {
+        try {
+            // Use Telegram's openTelegramLink to open a conversation with the user
+            const username = user.username;
+            if (username) {
+                // Generate referral link with UTM parameters to track the source
+                const referralMessage = encodeURIComponent(CONFIG.REFERRAL_MESSAGE);
+                const telegramLink = `https://t.me/${username}?text=${referralMessage}`;
+                
+                window.Telegram.WebApp.openTelegramLink(telegramLink);
+                
+                // Show success message
+                showSuccessToast(`Opening chat with ${user.firstName} to send an invitation`);
+            } else {
+                // No username, use the share API instead
+                window.Telegram.WebApp.showPopup({
+                    title: "Send Invitation",
+                    message: `Would you like to invite ${user.firstName} ${user.lastName} to join?`,
+                    buttons: [
+                        {type: "cancel", text: "Cancel"},
+                        {type: "default", text: "Send Invitation"}
+                    ]
+                }, (buttonId) => {
+                    if (buttonId === 1) { // "Send Invitation" button
+                        // Could use Telegram Bot API methods here via your backend
+                        window.Telegram.WebApp.switchInlineQuery(CONFIG.REFERRAL_MESSAGE, [user.id]);
+                        showSuccessToast(`Invitation sent to ${user.firstName} ${user.lastName}`);
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error sending referral:', error);
+            alert(`Couldn't send a referral to ${user.firstName}. Please try again later.`);
+        }
+    } else {
+        // Fallback for testing outside Telegram
+        alert(`Would send a referral to ${user.firstName} ${user.lastName} via Telegram`);
+    }
+}
+
+/**
+ * Show a success toast notification
+ * @param {string} message - Message to display
+ */
+function showSuccessToast(message) {
+    // Create toast container if it doesn't exist
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toast-container';
+        toastContainer.style.position = 'fixed';
+        toastContainer.style.bottom = '20px';
+        toastContainer.style.left = '50%';
+        toastContainer.style.transform = 'translateX(-50%)';
+        toastContainer.style.zIndex = '9999';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Create toast
+    const toast = document.createElement('div');
+    toast.style.backgroundColor = '#4CAF50';
+    toast.style.color = 'white';
+    toast.style.padding = '12px 24px';
+    toast.style.borderRadius = '4px';
+    toast.style.marginBottom = '10px';
+    toast.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+    toast.style.minWidth = '250px';
+    toast.style.textAlign = 'center';
+    toast.style.transition = 'all 0.3s ease';
+    toast.style.opacity = '0';
+    
+    // Add message
+    toast.textContent = message;
+    
+    // Add to container and animate in
+    toastContainer.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '1';
+    }, 10);
+    
+    // Remove after delay
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 3000);
 }
 
 /**
@@ -504,5 +770,6 @@ function performTelegramSearch(query) {
 // Expose necessary functions
 window.TelegramUserSearch = {
     search: performTelegramSearch,
-    searchAppUsers: searchAppUsers
+    searchAppUsers: searchAppUsers,
+    sendReferral: sendReferralToUser
 }; 
