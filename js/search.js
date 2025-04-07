@@ -1,17 +1,17 @@
 // Search Page Functionality
 
-// Variable to prevent multiple initializations
-let isSearchPageInitialized = false;
+// Block all reload attempts directly
+window.onbeforeunload = function() {
+    console.log("Blocked reload attempt");
+    return false;
+};
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Prevent multiple initializations causing reloads
-    if (isSearchPageInitialized) {
-        console.log("Search page already initialized, preventing reload");
-        return;
+    // If we came here via redirect, clear sessionStorage to prevent loops
+    if (sessionStorage.getItem('noRedirect')) {
+        console.log("Clearing redirect flag");
+        sessionStorage.removeItem('noRedirect');
     }
-    
-    // Set initialization flag
-    isSearchPageInitialized = true;
     
     // Initialize Telegram WebApp if available
     if (window.Telegram && window.Telegram.WebApp) {
@@ -30,14 +30,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set up back button
     setupBackButton();
 });
-
-// Prevent reload when coming from redirect
-if (window.performance && window.performance.navigation) {
-    if (window.performance.navigation.type === 1) {
-        console.log("Page was reloaded, stopping initialization");
-        isSearchPageInitialized = true;
-    }
-}
 
 // Function to set up back button
 function setupBackButton() {

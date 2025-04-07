@@ -8,19 +8,24 @@
     <link rel="stylesheet" href="../css/search.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     
-    <!-- Prevent reloads by storing page state -->
+    <!-- Hard stop for any redirects or reloads -->
     <script>
-        // Check if this page was already loaded - helps prevent reload loops
-        if (sessionStorage.getItem('searchPageLoaded')) {
-            console.log("Search page was already loaded, preventing potential reload");
-        } else {
-            // Mark this page as loaded
-            sessionStorage.setItem('searchPageLoaded', 'true');
-            
-            // Clear the flag after a short delay to allow future fresh loads
-            setTimeout(function() {
-                sessionStorage.removeItem('searchPageLoaded');
-            }, 5000);
+        // Immediately stop any history manipulation
+        history.pushState = function() {};
+        history.replaceState = function() {};
+        window.onpopstate = function() {};
+        
+        // Stop any reload attempts
+        window.stop = function() {
+            console.log("Reload attempt prevented");
+            return true;
+        };
+        
+        // Initialize Telegram WebApp immediately if available
+        if (window.Telegram && window.Telegram.WebApp) {
+            console.log("Initializing Telegram WebApp early");
+            window.Telegram.WebApp.ready();
+            window.Telegram.WebApp.expand();
         }
     </script>
     

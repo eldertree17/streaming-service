@@ -13,6 +13,12 @@
             const repoName = '/streaming-service';
             let isTelegram = false;
             
+            // Skip if we're already on an HTML page
+            if (path.endsWith('.html')) {
+                console.log("Already on an HTML page, not redirecting");
+                return;
+            }
+            
             // Simple check for Telegram
             try {
                 if (window.Telegram && window.Telegram.WebApp) {
@@ -30,6 +36,9 @@
             // Special direct handling for search page
             if (path.includes('/search')) {
                 console.log("Search page detected, redirecting directly");
+                
+                // IMPORTANT: Flag to prevent loops
+                sessionStorage.setItem('noRedirect', 'true');
                 
                 // IMPORTANT: use window.location.href instead of replace() to prevent refresh loops
                 window.location.href = window.location.origin + "/streaming-service/pages/search.html" + window.location.search;
@@ -52,6 +61,9 @@
             // Create full URL
             const fullUrl = window.location.origin + destinationUrl;
             console.log("Redirecting to:", fullUrl);
+            
+            // Set flag to prevent loops
+            sessionStorage.setItem('noRedirect', 'true');
             
             // Redirect using href not replace to prevent refresh loops
             window.location.href = fullUrl;
