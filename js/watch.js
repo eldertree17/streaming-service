@@ -1374,86 +1374,79 @@ const LAST_UPDATE_KEY = 'streaming_service_last_update';
  * This allows seeding to continue after page refresh or navigation
  */
 function saveSeedingState() {
-    // Only save if there's an active torrent
-    if (!window.client || !window.client.torrents || window.client.torrents.length === 0) {
-        console.log('No active torrent to save state for');
-        return;
-    }
-
-    const currentTorrent = window.client.torrents[0];
-    
-    // Calculate total seeding time
-    let seedingTime = 0;
-    if (window.seedingStartTime) {
-        seedingTime = (Date.now() - window.seedingStartTime) / 1000; // in seconds
-    }
-    
-    // Create state object with all necessary information to resume seeding
-    const seedingState = {
-        infoHash: currentTorrent.infoHash,
-        magnetURI: currentTorrent.magnetURI,
-        downloaded: currentTorrent.downloaded,
-        uploaded: currentTorrent.uploaded,
-        progress: currentTorrent.progress,
-        paused: window.isSeedingPaused === true,
-        totalTokensEarned: window.totalTokensEarned || 0,
-        title: currentTorrent.name || 'Unknown',
-        lastActiveTime: new Date().toISOString(),
-        contentId: currentTorrent.infoHash || 'sample-video-1',
-        // Add comprehensive stats for history and calculations
-        stats: {
-            peersConnected: currentTorrent.numPeers || 0,
-            uploadSpeed: currentTorrent.uploadSpeed || 0,
-            downloadSpeed: currentTorrent.downloadSpeed || 0,
-            ratio: currentTorrent.ratio || 0,
-            seedingTime: seedingTime,
-            // Add timestamps for accurate time calculations
-            startTime: window.seedingStartTime ? new Date(window.seedingStartTime).toISOString() : new Date().toISOString(),
-            lastUpdateTime: new Date().toISOString()
-        },
-        // Store Telegram user information if available
-        telegramData: window.Telegram?.WebApp?.initDataUnsafe?.user ? {
-            telegramId: window.Telegram.WebApp.initDataUnsafe.user.id,
-            telegramUsername: window.Telegram.WebApp.initDataUnsafe.user.username || '',
-            firstName: window.Telegram.WebApp.initDataUnsafe.user.first_name || '',
-            lastName: window.Telegram.WebApp.initDataUnsafe.user.last_name || ''
-        } : null
-    };
-    
-    // Save to localStorage
     try {
-        localStorage.setItem(SEEDING_STATE_KEY, JSON.stringify(seedingState));
-        localStorage.setItem(LAST_UPDATE_KEY, new Date().toISOString());
+        // Only save if there's an active torrent
+        if (!window.client || !window.client.torrents || window.client.torrents.length === 0) {
+            console.log('No active torrent to save state for');
+            return;
+        }
+
+        const currentTorrent = window.client.torrents[0];
         
-        // Also save a metrics object for the rewards modal
-        const metrics = {
-            tokens: window.totalTokensEarned || 0,
-            seedingRank: calculateSeedingRank(window.totalTokensEarned || 0),
-            seedingStats: {
-                totalBytesUploaded: currentTorrent.uploaded || 0,
-                totalSeedingTime: seedingTime || 0,
-                contentSeeded: 1,
-                totalPeersServed: currentTorrent.numPeers || 0
-            },
-            recentHistory: [{
-                title: currentTorrent.name || 'Current Video',
-                startTime: window.seedingStartTime ? new Date(window.seedingStartTime).toISOString() : new Date().toISOString(),
-                endTime: new Date().toISOString(),
-                bytesUploaded: currentTorrent.uploaded || 0,
-                duration: seedingTime,
-                peers: currentTorrent.numPeers || 0
-            }],
-            telegramData: window.Telegram?.WebApp?.initDataUnsafe?.user ? {
-                telegramId: window.Telegram.WebApp.initDataUnsafe.user.id,
-                telegramUsername: window.Telegram.WebApp.initDataUnsafe.user.username || '',
-                telegramHandle: window.Telegram.WebApp.initDataUnsafe.user.username || ''
-            } : null
+        // Calculate total seeding time
+        let seedingTime = 0;
+        if (window.seedingStartTime) {
+            seedingTime = (Date.now() - window.seedingStartTime) / 1000; // in seconds
+        }
+        
+        // Create state object with all necessary information to resume seeding
+        const seedingState = {
+            infoHash: currentTorrent.infoHash,
+            magnetURI: currentTorrent.magnetURI,
+            uploaded: currentTorrent.uploaded,
+            ratio: currentTorrent.ratio,
+            numPeers: currentTorrent.numPeers,
+            paused: window.isSeedingPaused,
+            seedingTime: seedingTime,
+            lastUpdated: Date.now(),
+            totalTokensEarned: window.totalTokensEarned || 0
         };
         
-        localStorage.setItem('user_metrics', JSON.stringify(metrics));
+        // Save state to localStorage
+        localStorage.setItem(SEEDING_STATE_KEY, JSON.stringify(seedingState));
+        localStorage.setItem(LAST_UPDATE_KEY, Date.now().toString());
         
-        console.log('Saved seeding state and metrics:', seedingState);
-        } catch (error) {
+        // Store additional metrics
+        // This can be used to restore persistent stats even after a page refresh
+        const currentMetrics = {
+            totalTokens: window.totalTokensEarned || 0,
+            seedingRank: calculateSeedingRank(window.totalTokensEarned || 0),
+            uploadedBytes: currentTorrent.uploaded,
+            peersServed: currentTorrent.numPeers,
+            seedingTime: seedingTime,
+            activities: []
+        };
+        
+        // Get any previous metrics to preserve history
+        const previousMetricsStr = localStorage.getItem('user_metrics');
+        if (previousMetricsStr) {
+            try {
+                const previousMetrics = JSON.parse(previousMetricsStr);
+                if (previousMetrics.activities && Array.isArray(previousMetrics.activities)) {
+                    currentMetrics.activities = previousMetrics.activities;
+                }
+            } catch (error) {
+                console.warn('Failed to parse previous metrics', error);
+            }
+        }
+        
+        // Save updated metrics
+        localStorage.setItem('user_metrics', JSON.stringify(currentMetrics));
+        
+        console.log('Saved seeding state:', seedingState);
+        
+        // Save Telegram user if available
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+            const telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
+            const userInfo = {
+                telegramId: telegramUser.id,
+                telegramUsername: telegramUser.username || '',
+                firstName: telegramUser.first_name || '',
+                lastName: telegramUser.last_name || ''
+            };
+            localStorage.setItem('telegram_user', JSON.stringify(userInfo));
+        }
+    } catch (error) {
         console.error('Failed to save seeding state:', error);
     }
 }
@@ -2503,120 +2496,129 @@ function setupStopSeedingButton() {
 
 // Function to stop seeding and claim points
 function stopSeedingAndClaimPoints() {
+    // Log that we're stopping seeding and claiming points
     console.log('Stopping seeding and claiming points...');
     
-    // Get current tokens before cleanup
-    const finalTokens = window.totalTokensEarned || 0;
-    
-    // Make sure to save the state before destroying anything
-    saveSeedingState();
-    
-    // Reset the points counter
-    window.totalTokensEarned = 0;
-    
-    // Update the display
-    const earningRateElement = document.getElementById('earning-rate');
-    if (earningRateElement) {
-        earningRateElement.textContent = '0';
-    }
-    
-    // Stop the torrent if it exists
-    if (window.currentTorrent) {
-        console.log('Stopping torrent...');
-        window.currentTorrent.destroy();
-        window.currentTorrent = null;
-    }
-    
-    // Reset other relevant variables
-    window.isReportingMetrics = false;
-    window.isSeedingPaused = false;
-    window.seedingStartTime = null;
-    
-    // Hide the seeding indicator
-    const indicator = document.getElementById('persistent-seeding-indicator');
-    if (indicator) {
-        indicator.style.display = 'none';
-    }
-    
-    // Disable both Pause and Stop Seeding buttons
-    const pauseSeedingButton = document.getElementById('btn-continue-seeding');
-    const stopSeedingButton = document.getElementById('btn-stop-seeding');
-    
-    if (pauseSeedingButton) {
-        pauseSeedingButton.disabled = true;
-    }
-    
-    if (stopSeedingButton) {
-        stopSeedingButton.disabled = true;
-    }
-    
-    // Reset the video player and UI
-    resetPlayerUI();
-    
-    // Clear all intervals to prevent points from continuing to accumulate
-    if (window.metricsInterval) {
-        clearInterval(window.metricsInterval);
-        window.metricsInterval = null;
-    }
-    
-    if (window.earningRateInterval) {
-        clearInterval(window.earningRateInterval);
-        window.earningRateInterval = null;
-    }
-    
-    if (window.directMetricsInterval) {
-        clearInterval(window.directMetricsInterval);
-        window.directMetricsInterval = null;
-    }
-    
-    if (window.seedingDurationInterval) {
-        clearInterval(window.seedingDurationInterval);
-        window.seedingDurationInterval = null;
-    }
-    
-    // Reset Seed Only button and ensure it's ready for new seeding session
-    const seedOnlyButton = document.querySelector('.btn-download');
-    if (seedOnlyButton) {
-        seedOnlyButton.disabled = false; // Ensure it's enabled
-        seedOnlyButton.innerHTML = '<i class="fas fa-compact-disc"></i> Seed Only';
-        seedOnlyButton.classList.remove('seeding-active');
+    try {
+        // Get current tokens before cleanup
+        const finalTokens = window.totalTokensEarned || 0;
         
-        // Re-initialize the click event listener to ensure it works after reset
-        // We need to remove any existing listeners first to avoid duplicates
-        seedOnlyButton.removeEventListener('click', handleSeedOnlyClick);
-        seedOnlyButton.addEventListener('click', handleSeedOnlyClick);
-    }
-    
-    // Ensure torrent client is reset for a fresh start
-    if (window.client) {
+        // Safely save the state before destroying anything, but don't break if it fails
         try {
-            window.client.destroy(function() {
-                console.log('WebTorrent client destroyed successfully');
-                
-                // Create new client immediately - no setTimeout needed
-                window.client = new WebTorrent();
-                console.log('Created new WebTorrent client for fresh seeding session');
-                
-                // Make sure the client is available globally
-                if (!window.client) {
-                    window.client = new WebTorrent();
-                    console.log('Fallback: Created global WebTorrent client');
-                }
-            });
+            saveSeedingState();
         } catch (error) {
-            console.error('Error destroying WebTorrent client:', error);
-            // Force reinitialize the client
-            window.client = new WebTorrent();
-            console.log('Created new WebTorrent client after error');
+            console.error('Error saving seeding state:', error);
         }
-    } else {
-        // Create a new client if none exists
+        
+        // Reset the points counter
+        window.totalTokensEarned = 0;
+        
+        // Update the display
+        const earningRateElement = document.getElementById('earning-rate');
+        if (earningRateElement) {
+            earningRateElement.textContent = '0';
+        }
+        
+        // Stop the torrent if it exists
+        if (window.currentTorrent) {
+            console.log('Stopping torrent...');
+            window.currentTorrent.destroy();
+            window.currentTorrent = null;
+        } else {
+            console.log('No active torrent to stop');
+        }
+        
+        // Reset other relevant variables
+        window.isReportingMetrics = false;
+        window.isSeedingPaused = false;
+        window.seedingStartTime = null;
+        
+        // Hide the seeding indicator
+        const indicator = document.getElementById('persistent-seeding-indicator');
+        if (indicator) {
+            indicator.style.display = 'none';
+        }
+        
+        // Disable both Pause and Stop Seeding buttons
+        const pauseSeedingButton = document.getElementById('btn-continue-seeding');
+        const stopSeedingButton = document.getElementById('btn-stop-seeding');
+        
+        if (pauseSeedingButton) {
+            pauseSeedingButton.disabled = true;
+        }
+        
+        if (stopSeedingButton) {
+            stopSeedingButton.disabled = true;
+        }
+        
+        // Reset the video player and UI
+        resetPlayerUI();
+        
+        // Clear all intervals to prevent points from continuing to accumulate
+        if (window.metricsInterval) {
+            clearInterval(window.metricsInterval);
+            window.metricsInterval = null;
+        }
+        
+        if (window.earningRateInterval) {
+            clearInterval(window.earningRateInterval);
+            window.earningRateInterval = null;
+        }
+        
+        if (window.directMetricsInterval) {
+            clearInterval(window.directMetricsInterval);
+            window.directMetricsInterval = null;
+        }
+        
+        if (window.seedingDurationInterval) {
+            clearInterval(window.seedingDurationInterval);
+            window.seedingDurationInterval = null;
+        }
+        
+        // Reset Seed Only button and ensure it's ready for new seeding session
+        const seedOnlyButton = document.querySelector('.btn-download');
+        if (seedOnlyButton) {
+            seedOnlyButton.disabled = false; // Ensure it's enabled
+            seedOnlyButton.innerHTML = '<i class="fas fa-compact-disc"></i> Seed Only';
+            seedOnlyButton.classList.remove('seeding-active');
+            
+            // Re-initialize the click event listener to ensure it works after reset
+            seedOnlyButton.removeEventListener('click', handleSeedOnlyClick);
+            seedOnlyButton.addEventListener('click', handleSeedOnlyClick);
+        }
+        
+        // Ensure torrent client is reset for a fresh start
+        if (window.client) {
+            try {
+                window.client.destroy(function() {
+                    console.log('WebTorrent client destroyed successfully');
+                    
+                    // Create new client immediately - no setTimeout needed
+                    window.client = new WebTorrent();
+                    console.log('Created new WebTorrent client for fresh seeding session');
+                });
+            } catch (error) {
+                console.error('Error destroying WebTorrent client:', error);
+                // Force reinitialize the client
+                window.client = new WebTorrent();
+                console.log('Created new WebTorrent client after error');
+            }
+        } else {
+            // Create a new client if none exists
+            window.client = new WebTorrent();
+            console.log('Created new WebTorrent client (none existed)');
+        }
+        
+        // Show a toast or notification
+        if (typeof showNotification === 'function') {
+            showNotification('Seeding stopped. Points claimed!', 'success');
+        }
+    } catch (error) {
+        console.error('Error in stopSeedingAndClaimPoints:', error);
+        // Ensure we still reset the client even if there's an error
         window.client = new WebTorrent();
-        console.log('Created new WebTorrent client (none existed)');
+        console.log('Created new WebTorrent client after error');
     }
-    
-    // Show a toast or notification
-    showNotification('Seeding stopped. Points claimed!', 'success');
 }
 
 // Function to reset the player UI to its default state
