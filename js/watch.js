@@ -172,6 +172,7 @@ async function initWatchPage() {
     // Setup UI elements
     setupBackButton();
     setupSeedOnlyButton(); 
+    setupStopSeedingButton(); // Add setup for Stop Seeding button
     setupModals();
     setupCommentInput();
     setupCommentActions();
@@ -1218,6 +1219,12 @@ function seedOnlyTorrent() {
                 if (continueButton) {
                     ensurePauseButtonWorks(continueButton);
                 }
+                
+                // Enable the stop seeding button
+                const stopSeedingButton = document.getElementById('btn-stop-seeding');
+                if (stopSeedingButton) {
+                    stopSeedingButton.disabled = false;
+                }
             });
             
             // Track upload/seeding activity for seed-only mode
@@ -1242,8 +1249,8 @@ function seedOnlyTorrent() {
             if (!window.metricsInterval) {
                 window.metricsInterval = setInterval(() => {
                     if (!window.isSeedingPaused && !window.isReportingMetrics) {
-                        if (window.TorrentStats && typeof window.TorrentStats.reportMetrics === 'function') {
-                            window.TorrentStats.reportMetrics(torrent.uploadSpeed, torrent.numPeers);
+                    if (window.TorrentStats && typeof window.TorrentStats.reportMetrics === 'function') {
+                        window.TorrentStats.reportMetrics(torrent.uploadSpeed, torrent.numPeers);
                         } else if (typeof window.reportMetrics === 'function') {
                             window.reportMetrics(torrent.uploadSpeed, torrent.numPeers);
                         }
@@ -1401,7 +1408,7 @@ function saveSeedingState() {
         localStorage.setItem('user_metrics', JSON.stringify(metrics));
         
         console.log('Saved seeding state and metrics:', seedingState);
-    } catch (error) {
+        } catch (error) {
         console.error('Failed to save seeding state:', error);
     }
 }
@@ -2387,4 +2394,101 @@ function checkForExistingSeedingState() {
     } catch (error) {
         console.error('Error checking for existing seeding state:', error);
     }
+}
+
+// Function to set up the Stop Seeding button
+function setupStopSeedingButton() {
+    const stopSeedingButton = document.getElementById('btn-stop-seeding');
+    const stopSeedingModal = document.getElementById('stop-seeding-modal');
+    const confirmStopSeedingButton = document.getElementById('confirm-stop-seeding');
+    const cancelStopSeedingButton = document.getElementById('cancel-stop-seeding');
+    const seedOnlyButton = document.querySelector('.btn-download');
+
+    if (stopSeedingButton) {
+        // Enable button when download is complete (same as Pause Seeding button)
+        // We'll set this up in the setupTorrent function
+        
+        stopSeedingButton.addEventListener('click', function() {
+            // Show the stop seeding confirmation modal
+            if (stopSeedingModal) {
+                stopSeedingModal.style.display = 'flex';
+            }
+        });
+    }
+
+    if (confirmStopSeedingButton) {
+        confirmStopSeedingButton.addEventListener('click', function() {
+            // Stop seeding, claim points, and close modal
+            stopSeedingAndClaimPoints();
+            
+            // Close the modal
+            if (stopSeedingModal) {
+                stopSeedingModal.style.display = 'none';
+            }
+            
+            // Update the Seed Only button
+            if (seedOnlyButton) {
+                seedOnlyButton.innerHTML = '<i class="fas fa-compact-disc"></i> Seed Only';
+            }
+        });
+    }
+
+    if (cancelStopSeedingButton) {
+        cancelStopSeedingButton.addEventListener('click', function() {
+            // Just close the modal
+            if (stopSeedingModal) {
+                stopSeedingModal.style.display = 'none';
+            }
+        });
+    }
+}
+
+// Function to stop seeding and claim points
+function stopSeedingAndClaimPoints() {
+    console.log('Stopping seeding and claiming points...');
+    
+    // Save the current points earned
+    saveSeedingState();
+    
+    // Reset the points counter
+    window.totalTokensEarned = 0;
+    
+    // Update the display
+    const earningRateElement = document.getElementById('earning-rate');
+    if (earningRateElement) {
+        earningRateElement.textContent = '0';
+    }
+    
+    // Stop the torrent if it exists
+    if (window.currentTorrent) {
+        console.log('Stopping torrent...');
+        window.currentTorrent.destroy();
+        window.currentTorrent = null;
+    }
+    
+    // Reset other relevant variables
+    window.isReportingMetrics = false;
+    window.isSeedingPaused = false;
+    window.seedingStartTime = null;
+    
+    // Hide the seeding indicator
+    const indicator = document.getElementById('persistent-seeding-indicator');
+    if (indicator) {
+        indicator.style.display = 'none';
+    }
+    
+    // Disable both Pause and Stop Seeding buttons
+    const pauseSeedingButton = document.getElementById('btn-continue-seeding');
+    const stopSeedingButton = document.getElementById('btn-stop-seeding');
+    
+    if (pauseSeedingButton) {
+        pauseSeedingButton.disabled = true;
+    }
+    
+    if (stopSeedingButton) {
+        stopSeedingButton.disabled = true;
+    }
+    
+    // Show a toast or notification
+    showNotification('Seeding stopped. Points claimed!', 'success');
 }

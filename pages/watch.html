@@ -103,6 +103,9 @@
                             <button id="btn-continue-seeding" class="continue-seeding" disabled>
                                 <i class="fas fa-pause"></i> Pause Seeding
                             </button>
+                            <button id="btn-stop-seeding" class="stop-seeding" disabled>
+                                <i class="fas fa-stop"></i> Stop Seeding
+                            </button>
                             <button id="btn-view-stats" class="secondary">
                                 <i class="fas fa-chart-line"></i> View Rewards
                             </button>
@@ -337,6 +340,21 @@
             </div>
         </div>
     </div>
+
+    <!-- Stop Seeding Confirmation Modal -->
+    <div id="stop-seeding-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Stop Seeding</h2>
+                <p class="modal-subtitle">Your seeding session will end and your points for this session will be claimed.</p>
+            </div>
+            <div class="modal-actions">
+                <button id="confirm-stop-seeding" class="modal-btn primary">Stop Seeding</button>
+                <button id="cancel-stop-seeding" class="modal-btn secondary">Continue Seeding</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Include API service script -->
     <script src="../js/api-service.js"></script>
     <!-- Include player and watch scripts -->
