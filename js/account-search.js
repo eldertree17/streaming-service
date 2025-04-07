@@ -602,37 +602,33 @@ function sendReferralToUser(user) {
     // Check if Telegram WebApp is available
     if (window.Telegram && window.Telegram.WebApp) {
         try {
-            // Use Telegram's openTelegramLink to open a conversation with the user
+            // Use Telegram's openLink to open a conversation with the user if available
             const username = user.username;
-            if (username) {
-                // Generate referral link with UTM parameters to track the source
+            if (username && typeof window.Telegram.WebApp.openLink === 'function') {
+                // Generate referral link with message
                 const referralMessage = encodeURIComponent(CONFIG.REFERRAL_MESSAGE);
-                const telegramLink = `https://t.me/${username}?text=${referralMessage}`;
+                const telegramLink = `https://t.me/${username}?start=invite`;
                 
-                window.Telegram.WebApp.openTelegramLink(telegramLink);
+                window.Telegram.WebApp.openLink(telegramLink);
                 
                 // Show success message
-                showSuccessToast(`Opening chat with ${user.firstName} to send an invitation`);
-            } else {
-                // No username, use the share API instead
-                window.Telegram.WebApp.showPopup({
-                    title: "Send Invitation",
-                    message: `Would you like to invite ${user.firstName} ${user.lastName} to join?`,
-                    buttons: [
-                        {type: "cancel", text: "Cancel"},
-                        {type: "default", text: "Send Invitation"}
-                    ]
-                }, (buttonId) => {
-                    if (buttonId === 1) { // "Send Invitation" button
-                        // Could use Telegram Bot API methods here via your backend
-                        window.Telegram.WebApp.switchInlineQuery(CONFIG.REFERRAL_MESSAGE, [user.id]);
-                        showSuccessToast(`Invitation sent to ${user.firstName} ${user.lastName}`);
-                    }
-                });
+                showSuccessToast(`Opening chat with ${user.firstName}`);
+                return;
             }
+            
+            // Fallback to switchInlineQuery if available
+            if (typeof window.Telegram.WebApp.switchInlineQuery === 'function') {
+                window.Telegram.WebApp.switchInlineQuery(CONFIG.REFERRAL_MESSAGE, [user.username]);
+                showSuccessToast(`Ready to send invitation to ${user.firstName}`);
+                return;
+            }
+            
+            // Ultimate fallback
+            showSuccessToast(`To invite ${user.firstName}, send them this link: t.me/block_stream_bot`);
+            
         } catch (error) {
             console.error('Error sending referral:', error);
-            alert(`Couldn't send a referral to ${user.firstName}. Please try again later.`);
+            showSuccessToast(`Copy this link to invite: t.me/block_stream_bot`);
         }
     } else {
         // Fallback for testing outside Telegram
@@ -717,49 +713,27 @@ function performTelegramSearch(query) {
     
     if (window.Telegram && window.Telegram.WebApp) {
         try {
-            // Method 1: Use requestContact to add a user by phone number
-            // This works if the query looks like a phone number
-            if (/^[0-9+\s()-]{6,}$/.test(query)) {
-                console.log('Query appears to be a phone number, using requestContact');
-                window.Telegram.WebApp.requestContact((result) => {
-                    if (result) {
-                        console.log('Contact selected:', result);
-                    }
-                });
+            // Check if we can use openLink (available in most versions)
+            if (typeof window.Telegram.WebApp.openLink === 'function') {
+                // Use direct Telegram search URL
+                const searchUrl = `https://t.me/search?query=${encodeURIComponent(query)}`;
+                window.Telegram.WebApp.openLink(searchUrl);
                 return;
             }
             
-            // Method 2: Use requestWriteAccess to prompt for contact access
-            // This at least gets the user to their contacts list
-            console.log('Using requestWriteAccess as fallback');
-            window.Telegram.WebApp.requestWriteAccess((result) => {
-                if (result) {
-                    // Show a popup with instructions
-                    window.Telegram.WebApp.showPopup({
-                        title: "Search for Telegram Users",
-                        message: `To find "${query}", please use Telegram's main search feature after closing this mini app.`,
-                        buttons: [
-                            {type: "default", text: "Got it"}
-                        ]
-                    });
-                }
-            });
+            // If openLink is not available, try switchInlineQuery
+            if (typeof window.Telegram.WebApp.switchInlineQuery === 'function') {
+                window.Telegram.WebApp.switchInlineQuery(query);
+                return;
+            }
+            
+            // Ultimate fallback - at least show a toast
+            showSuccessToast(`To find "${query}", use Telegram's main search feature`);
+            
         } catch (error) {
             console.error('Error with Telegram search:', error);
-            
-            // Fallback to simple popup with instructions
-            try {
-                window.Telegram.WebApp.showPopup({
-                    title: "Search Telegram Users",
-                    message: `To find "${query}", please use Telegram's search after closing this mini app.`,
-                    buttons: [
-                        {type: "default", text: "OK"}
-                    ]
-                });
-            } catch (popupError) {
-                // Ultimate fallback - simple alert
-                alert(`To find "${query}", please use Telegram's main search feature.`);
-            }
+            // Fallback to a simple message
+            showSuccessToast(`To find "${query}", please use Telegram's main search`);
         }
     } else {
         // Not running in Telegram
