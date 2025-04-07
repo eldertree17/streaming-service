@@ -24,8 +24,12 @@ function setupBackButton() {
   
   if (backButton) {
       backButton.addEventListener('click', function() {
-          // Navigate back to home page
-          window.location.href = '../index.html';
+          // Navigate back to home page using URL normalizer if available
+          if (window.getAssetUrl) {
+              window.location.href = window.getAssetUrl('index.html');
+          } else {
+              window.location.href = '/streaming-service/index.html';
+          }
       });
   }
 }
@@ -140,6 +144,19 @@ function populateSearchCarousels() {
               </div>
           `;
           
+          // Add click event handler for content cards
+          card.addEventListener('click', function() {
+              // Navigate to the watch page with the movie title
+              const encodedTitle = encodeURIComponent(content.title);
+              
+              // Use URL normalizer if available
+              if (window.getAssetUrl) {
+                  window.location.href = window.getAssetUrl(`pages/watch.html?title=${encodedTitle}`);
+              } else {
+                  window.location.href = `/streaming-service/pages/watch.html?title=${encodedTitle}`;
+              }
+          });
+          
           row.appendChild(card);
       }
   });
@@ -225,6 +242,19 @@ function generateSearchResults(query) {
           <img src="${content.img}?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="${content.title}">
           <div class="title">${content.title}</div>
       `;
+      
+      // Add click event handler for cards
+      card.addEventListener('click', function() {
+          // Navigate to the watch page with the movie title
+          const encodedTitle = encodeURIComponent(content.title);
+          
+          // Use URL normalizer if available
+          if (window.getAssetUrl) {
+              window.location.href = window.getAssetUrl(`pages/watch.html?title=${encodedTitle}`);
+          } else {
+              window.location.href = `/streaming-service/pages/watch.html?title=${encodedTitle}`;
+          }
+      });
       
       searchResults.appendChild(card);
   });

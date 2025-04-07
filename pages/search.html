@@ -7,6 +7,33 @@
     <link rel="stylesheet" href="../css/main.css">
     <link rel="stylesheet" href="../css/search.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- URL Normalizer - ensures consistent behavior between URLs -->
+    <script>
+        // URL Normalizer for GitHub Pages
+        (function() {
+            // Get the repository name from current URL or use default
+            var repoName = '/streaming-service';
+            var baseUrl = window.location.origin + repoName;
+            
+            // Create a global function to get proper URLs
+            window.getAssetUrl = function(path) {
+                // Remove leading slash if present
+                if (path.startsWith('/')) {
+                    path = path.substring(1);
+                }
+                
+                // Return full URL with repository name
+                return baseUrl + '/' + path;
+            };
+            
+            // Create a global function to navigate to URLs
+            window.navigateTo = function(path) {
+                window.location.href = window.getAssetUrl(path);
+            };
+            
+            console.log('URL Normalizer initialized');
+        })();
+    </script>
 </head>
 <body>
     <div class="app-container">
@@ -59,18 +86,24 @@
         
         <!-- Navigation Bar -->
         <div class="nav-bar">
-            <a href="../index.html" class="nav-item active">
-                <i class="fas fa-home"></i>
-                <p>Home</p>
-            </a>
-            <a href="activity.html" class="nav-item">
-                <i class="fas fa-compact-disc"></i>
-                <p>Activity</p>
-            </a>
-            <a href="account.html" class="nav-item">
-                <i class="fas fa-user"></i>
-                <p>Account</p>
-            </a>
+            <div class="nav-item active">
+                <a href="/streaming-service/index.html">
+                    <i class="fas fa-home"></i>
+                    <p>Home</p>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="/streaming-service/pages/activity.html">
+                    <i class="fas fa-chart-line"></i>
+                    <p>Activity</p>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="/streaming-service/pages/account.html">
+                    <i class="fas fa-user"></i>
+                    <p>Account</p>
+                </a>
+            </div>
         </div>
     </div>
     

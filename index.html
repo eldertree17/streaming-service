@@ -598,24 +598,40 @@
             
             // Make the entire search field clickable
             searchField.addEventListener('click', function() {
-                window.location.href = "pages/search";
+                if (window.getAssetUrl) {
+                    window.location.href = window.getAssetUrl('pages/search.html');
+                } else {
+                    window.location.href = "/streaming-service/pages/search.html";
+                }
             });
             
             // Make search input focus also redirect to search page
             searchInput.addEventListener('focus', function() {
-                window.location.href = "pages/search";
+                if (window.getAssetUrl) {
+                    window.location.href = window.getAssetUrl('pages/search.html');
+                } else {
+                    window.location.href = "/streaming-service/pages/search.html";
+                }
             });
             
             // Handle input clicks - no need to stop propagation anymore since we want the same behavior
             searchInput.addEventListener('click', function() {
-                window.location.href = "pages/search";
+                if (window.getAssetUrl) {
+                    window.location.href = window.getAssetUrl('pages/search.html');
+                } else {
+                    window.location.href = "/streaming-service/pages/search.html";
+                }
             });
             
             // Handle enter key just in case
             searchInput.addEventListener('keyup', function(e) {
                 if (e.key === 'Enter') {
                     const query = searchInput.value.trim();
-                    window.location.href = `pages/search?query=${encodeURIComponent(query)}`;
+                    if (window.getAssetUrl) {
+                        window.location.href = window.getAssetUrl(`pages/search.html?query=${encodeURIComponent(query)}`);
+                    } else {
+                        window.location.href = `/streaming-service/pages/search.html?query=${encodeURIComponent(query)}`;
+                    }
                 }
             });
             
