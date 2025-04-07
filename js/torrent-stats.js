@@ -263,10 +263,7 @@ function updateSeedingDuration() {
     
     const now = Date.now();
     const seedingDuration = now - window.seedingStartTime;
-    
-    // Calculate minutes and seconds
-    const minutes = Math.floor(seedingDuration / (1000 * 60));
-    const seconds = Math.floor((seedingDuration % (1000 * 60)) / 1000);
+    const seedingSeconds = seedingDuration / 1000; // Convert to seconds
     
     // Get upload amount from current torrent
     let uploadedFormatted = '0 B';
@@ -274,11 +271,19 @@ function updateSeedingDuration() {
         uploadedFormatted = formatBytes(window.currentTorrent.uploaded);
     }
     
-    // Create formatted time string
-    const formatted = `${minutes}m ${seconds}s`;
+    // Format time using AwardsModule formatSeedingTime if available
+    let timeFormatted;
+    if (window.AwardsModule && typeof window.AwardsModule.formatSeedingTime === 'function') {
+        timeFormatted = window.AwardsModule.formatSeedingTime(seedingSeconds);
+    } else {
+        // Fallback to simple format
+        const minutes = Math.floor(seedingDuration / (1000 * 60));
+        const seconds = Math.floor((seedingDuration % (1000 * 60)) / 1000);
+        timeFormatted = `${minutes}m ${seconds}s`;
+    }
     
     // Update the label with formatted time and upload amount
-    progressLabel.textContent = `Seeding time: ${formatted} | Total Upload: ${uploadedFormatted}`;
+    progressLabel.textContent = `Seeding time: ${timeFormatted} | Total Upload: ${uploadedFormatted}`;
 }
 
 /**
@@ -402,6 +407,13 @@ function addPersistentSeedingIndicator() {
         }
         
         // Add click handler
+        indicator.addEventListener('click', function() {
+            // Toggle seeding pause state
+            if (window.isSeedingPaused) {
+                resumeSeeding();
+            } else {
+                pauseSeeding();
+            }
         });
         
         // Add the pulse animation if it doesn't exist
