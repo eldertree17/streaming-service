@@ -62,14 +62,17 @@ function loadUserData() {
       const telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
       
       if (telegramUser) {
+          // Get stored follow counts from localStorage
+          const storedCounts = getStoredFollowCounts(telegramUser.id);
+          
           // Use Telegram user data
           const userData = {
               name: telegramUser.first_name + (telegramUser.last_name ? ' ' + telegramUser.last_name : ''),
               username: telegramUser.username || 'No username',
               bio: "Telegram user", // Telegram doesn't provide bio, so use a default
               dvds: 120, // Default value since Telegram doesn't provide this
-              followers: 1200, // Default value
-              following: 340, // Default value
+              followers: storedCounts.followers, // Start with 0 by default from localStorage
+              following: storedCounts.following, // Start with 0 by default from localStorage
               profileImage: telegramUser.photo_url || "https://images.unsplash.com/photo-1494790108377-be9c29b29330" // Fallback image if no photo
           };
           
@@ -82,7 +85,7 @@ function loadUserData() {
               document.querySelector('.profile-image img').src = userData.profileImage;
           }
           
-          // Update stats (using default values since Telegram doesn't provide these)
+          // Update stats
           const statNumbers = document.querySelectorAll('.stat-number');
           statNumbers[0].textContent = userData.dvds;
           statNumbers[1].textContent = userData.followers > 999 ? (userData.followers / 1000).toFixed(1) + 'K' : userData.followers;
@@ -95,12 +98,16 @@ function loadUserData() {
   
   // Fallback to demo data if not in Telegram or no user data available
   console.log("Using demo data (not in Telegram or no user data)");
+  
+  // Get stored follow counts for demo user
+  const storedCounts = getStoredFollowCounts('demo_user');
+  
   const userData = {
       name: "Evelyn Hawthorne",
       bio: "Movie enthusiast and collector.",
       dvds: 120,
-      followers: 1200,
-      following: 340,
+      followers: storedCounts.followers, // Start with 0 by default from localStorage
+      following: storedCounts.following, // Start with 0 by default from localStorage
       profileImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330"
   };
   
@@ -114,6 +121,31 @@ function loadUserData() {
   statNumbers[0].textContent = userData.dvds;
   statNumbers[1].textContent = userData.followers > 999 ? (userData.followers / 1000).toFixed(1) + 'K' : userData.followers;
   statNumbers[2].textContent = userData.following;
+}
+
+// Function to get stored follow counts from localStorage
+function getStoredFollowCounts(userId) {
+  const key = `user_follow_stats_${userId}`;
+  const storedData = localStorage.getItem(key);
+  
+  if (storedData) {
+    try {
+      return JSON.parse(storedData);
+    } catch (e) {
+      console.error('Error parsing stored follow counts:', e);
+    }
+  }
+  
+  // Default to 0 if no data is stored
+  return { followers: 0, following: 0 };
+}
+
+// Function to update stored follow counts in localStorage
+function updateStoredFollowCounts(userId, followers, following) {
+  const key = `user_follow_stats_${userId}`;
+  const data = { followers, following };
+  
+  localStorage.setItem(key, JSON.stringify(data));
 }
 
 // Function to load collection data
@@ -251,31 +283,133 @@ function setupFollowButton() {
       if (isOwnProfile) {
           followButton.style.display = 'none';
       } else {
+          // Get profile user ID from URL
+          const urlParams = new URLSearchParams(window.location.search);
+          const profileUserId = urlParams.get('user_id') || 'demo_profile_user';
+          
+          // Get current user ID (for tracking who they follow)
+          const currentUserId = getCurrentUserId();
+          
+          // Check if user is already following this profile
+          const isFollowing = checkIfFollowing(currentUserId, profileUserId);
+          
+          // Set initial button state
+          if (isFollowing) {
+              followButton.textContent = 'Following';
+              followButton.style.backgroundColor = '#555';
+          }
+          
           // Only add event listener if it's not the user's profile
           followButton.addEventListener('click', function() {
               // Toggle follow state
               if (this.textContent === 'Follow') {
+                  // User is following this profile
                   this.textContent = 'Following';
                   this.style.backgroundColor = '#555';
                   
-                  // Update follower count (in a real app, this would call an API)
+                  // Update follower count on profile
                   const followerCount = document.querySelectorAll('.stat-number')[1];
-                  let count = parseInt(followerCount.textContent.replace('K', '')) * 1000;
+                  let count = parseInt(followerCount.textContent.replace('K', '')) || 0;
+                  if (count.toString().includes('.')) {
+                      count = parseFloat(count) * 1000;
+                  }
                   count += 1;
-                  followerCount.textContent = (count / 1000).toFixed(1) + 'K';
+                  followerCount.textContent = count > 999 ? (count / 1000).toFixed(1) + 'K' : count;
+                  
+                  // Store that current user is following this profile
+                  toggleFollowStatus(currentUserId, profileUserId, true);
+                  
+                  // Update following count for current user (not visible on this page)
+                  const currentUserStats = getStoredFollowCounts(currentUserId);
+                  updateStoredFollowCounts(currentUserId, currentUserStats.followers, currentUserStats.following + 1);
+                  
+                  // Update followers count for profile user
+                  const profileUserStats = getStoredFollowCounts(profileUserId);
+                  updateStoredFollowCounts(profileUserId, profileUserStats.followers + 1, profileUserStats.following);
               } else {
+                  // User is unfollowing this profile
                   this.textContent = 'Follow';
                   this.style.backgroundColor = '#ff6347';
                   
                   // Update follower count
                   const followerCount = document.querySelectorAll('.stat-number')[1];
-                  let count = parseFloat(followerCount.textContent.replace('K', '')) * 1000;
-                  count -= 1;
-                  followerCount.textContent = (count / 1000).toFixed(1) + 'K';
+                  let count = followerCount.textContent;
+                  if (count.includes('K')) {
+                      count = parseFloat(count.replace('K', '')) * 1000;
+                  } else {
+                      count = parseInt(count);
+                  }
+                  count = Math.max(0, count - 1); // Ensure count doesn't go below 0
+                  followerCount.textContent = count > 999 ? (count / 1000).toFixed(1) + 'K' : count;
+                  
+                  // Store that current user is no longer following this profile
+                  toggleFollowStatus(currentUserId, profileUserId, false);
+                  
+                  // Update following count for current user (not visible on this page)
+                  const currentUserStats = getStoredFollowCounts(currentUserId);
+                  updateStoredFollowCounts(currentUserId, currentUserStats.followers, Math.max(0, currentUserStats.following - 1));
+                  
+                  // Update followers count for profile user
+                  const profileUserStats = getStoredFollowCounts(profileUserId);
+                  updateStoredFollowCounts(profileUserId, Math.max(0, profileUserStats.followers - 1), profileUserStats.following);
               }
           });
       }
   }
+}
+
+// Function to get current user ID
+function getCurrentUserId() {
+  if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+      return window.Telegram.WebApp.initDataUnsafe.user.id.toString();
+  }
+  return 'demo_current_user';
+}
+
+// Function to check if a user is following another user
+function checkIfFollowing(followerId, followeeId) {
+  const key = `following_${followerId}`;
+  const following = localStorage.getItem(key);
+  
+  if (following) {
+    try {
+      const followingList = JSON.parse(following);
+      return followingList.includes(followeeId);
+    } catch (e) {
+      console.error('Error parsing following list:', e);
+    }
+  }
+  
+  return false;
+}
+
+// Function to toggle follow status
+function toggleFollowStatus(followerId, followeeId, isFollowing) {
+  const key = `following_${followerId}`;
+  let followingList = [];
+  
+  // Get existing following list
+  const following = localStorage.getItem(key);
+  if (following) {
+    try {
+      followingList = JSON.parse(following);
+    } catch (e) {
+      console.error('Error parsing following list:', e);
+    }
+  }
+  
+  if (isFollowing) {
+    // Add to following list if not already there
+    if (!followingList.includes(followeeId)) {
+      followingList.push(followeeId);
+    }
+  } else {
+    // Remove from following list
+    followingList = followingList.filter(id => id !== followeeId);
+  }
+  
+  // Save updated following list
+  localStorage.setItem(key, JSON.stringify(followingList));
 }
 
 // Function to determine if the current profile belongs to the logged-in user
