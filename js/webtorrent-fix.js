@@ -247,45 +247,23 @@
       const urlParams = new URLSearchParams(window.location.search);
       const contentId = urlParams.get('id') || 'sample-video-1';
       
-      // Prepare payload
-      const metricsData = {
-        contentId: contentId,
-        uploadSpeed: uploadSpeed / 1024, // Convert to KB/s
-        peersConnected: numPeers,
-        seedingTime: 2, // Report in 2 second increments
-        timestamp: new Date().toISOString()
-      };
+      // Update points using the points system
+      if (window.pointsSystem) {
+        window.pointsSystem.addPoints(uploadSpeed, numPeers);
+      }
       
-      // Use the API_URL constant if defined
-      const apiUrl = typeof API_URL !== 'undefined' ? API_URL : 'http://localhost:5003/api';
+      // Update UI with current upload speed
+      const earningRate = document.getElementById('earning-rate');
+      if (earningRate) {
+        // Show upload speed in KB/s
+        const uploadSpeedKB = Math.floor(uploadSpeed / 1024);
+        earningRate.textContent = window.pointsSystem ? window.pointsSystem.getPoints() : uploadSpeedKB;
+      }
       
-      // Send metrics to server
-      fetch(`${apiUrl}/metrics/seeding`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(metricsData)
-      })
-      .then(response => response.json())
-      .then(data => {
-        // Update tokens earned
-        if (data.tokensEarned) {
-          window.totalTokensEarned += data.tokensEarned;
-          
-          // Update UI
-          const earningRate = document.getElementById('earning-rate');
-          if (earningRate) {
-            earningRate.textContent = Math.round(window.totalTokensEarned);
-          }
-        }
-      })
-      .catch(err => {
-        console.error('Error reporting metrics:', err);
-      });
-      
+      window.isReportingMetrics = false;
     } catch (error) {
-      console.error('Error in reportMetrics:', error);
+      console.error('Error reporting metrics:', error);
+      window.isReportingMetrics = false;
     }
   }
   
