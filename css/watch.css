@@ -1194,6 +1194,9 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+  padding: 2px 8px;
+  border-radius: 5px;
+  color: white;
 }
 
 .rank-label {
@@ -1427,27 +1430,34 @@ html, body {
   color: white;
 }
 
-.starter-rank {
+/* Make sure these are applied to both .user-rank and .rank-name */
+.user-rank.starter-rank,
+.rank-name.starter-rank {
   background: linear-gradient(135deg, #607d8b, #455a64);
 }
 
-.bronze-rank {
+.user-rank.bronze-rank,
+.rank-name.bronze-rank {
   background: linear-gradient(135deg, #cd7f32, #a56324);
 }
 
-.silver-rank {
+.user-rank.silver-rank,
+.rank-name.silver-rank {
   background: linear-gradient(135deg, #c0c0c0, #a8a8a8);
 }
 
-.gold-rank {
+.user-rank.gold-rank,
+.rank-name.gold-rank {
   background: linear-gradient(135deg, #ffd700, #ffc400);
 }
 
-.platinum-rank {
+.user-rank.platinum-rank,
+.rank-name.platinum-rank {
   background: linear-gradient(135deg, #e5e4e2, #b5b4b2);
 }
 
-.diamond-rank {
+.user-rank.diamond-rank,
+.rank-name.diamond-rank {
   background: linear-gradient(135deg, #b9f2ff, #70d7f7);
 }
 
