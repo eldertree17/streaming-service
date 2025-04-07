@@ -1109,6 +1109,17 @@ function updateProgressBar(progress) {
     }
 }
 
+/**
+ * Update the progress summary display
+ * @param {number} progress - Progress value between 0 and 100
+ */
+function updateProgressSummary(progress) {
+    const summaryProgress = document.getElementById('torrent-progress-summary');
+    if (summaryProgress) {
+        summaryProgress.textContent = Math.round(progress) + '%';
+    }
+}
+
 // Export torrent stats functions
 window.TorrentStats = {
     updateTorrentStats,
