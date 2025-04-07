@@ -120,6 +120,11 @@ function initTorrentStats() {
     setupSeedingDurationUpdate();
 }
 
+// Make initTorrentStats accessible globally through the TorrentStats object
+// so it can be called from watch.js and other modules
+window.TorrentStats = window.TorrentStats || {};
+window.TorrentStats.initTorrentStats = initTorrentStats;
+
 // Initialize torrent stats when the document is ready
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Initializing torrent stats module');
