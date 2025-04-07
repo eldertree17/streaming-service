@@ -13,12 +13,37 @@
             var origin = window.location.origin;
             var search = window.location.search || '';
             var destUrl = '';
+            var isTelegram = window.Telegram && window.Telegram.WebApp;
             
             // Log the current path for debugging
-            console.log('404 page - redirecting path:', path, 'with query:', search);
+            console.log('404 page - redirecting path:', path, 'with query:', search, 'isTelegram:', isTelegram);
             
             // Check for debug mode
             var isDebug = search.includes('debug=true');
+            
+            // Special case for Telegram Mini App with empty path
+            if (isTelegram && (path === '/' || path === '/streaming-service/' || path === '/streaming-service')) {
+                console.log('Root path in Telegram Mini App, redirecting to index');
+                destUrl = origin + '/streaming-service/index.html' + search;
+                window.location.href = destUrl;
+                return;
+            }
+            
+            // Handle direct account links in Telegram
+            if (isTelegram && (path.endsWith('/account') || path.includes('/account/'))) {
+                console.log('Account path in Telegram Mini App, redirecting to account.html');
+                destUrl = origin + '/streaming-service/pages/account.html' + search;
+                window.location.href = destUrl;
+                return;
+            }
+            
+            // Handle direct activity links in Telegram
+            if (isTelegram && (path.endsWith('/activity') || path.includes('/activity/'))) {
+                console.log('Activity path in Telegram Mini App, redirecting to activity.html');
+                destUrl = origin + '/streaming-service/pages/activity.html' + search;
+                window.location.href = destUrl;
+                return;
+            }
             
             // Special handling for watch.html - serve the actual file directly
             if (path.includes('/pages/watch.html') || path.includes('/pages/watch')) {
