@@ -2392,6 +2392,45 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }, 2000); // Check every 2 seconds to match the throttle time
+    
+    // Set up a fallback for updating points display if API points aren't working
+    setInterval(function() {
+        // Only run if no metrics are currently being reported and we have an active torrent
+        if (!window.isReportingMetrics && 
+            window.client && 
+            window.client.torrents && 
+            window.client.torrents.length > 0) {
+            
+            const torrent = window.client.torrents[0];
+            // Only update if actually uploading data
+            if (torrent && torrent.uploadSpeed > 0 && !window.isSeedingPaused) {
+                // Call reportMetrics to update server if available
+                if (typeof window.reportMetrics === 'function') {
+                    // Only call if we're not already reporting metrics
+                    if (!window.isReportingMetrics) {
+                        console.log('Emergency points update from watch.js');
+                        window.reportMetrics(torrent.uploadSpeed, torrent.numPeers);
+                    }
+                } else {
+                    console.log('No reportMetrics function available, using fallback UI update');
+                    // Fallback calculation for UI display at least
+                    const uploadSpeedMBps = torrent.uploadSpeed / (1024 * 1024);
+                    const pointsPerMB = 0.01; // Reduced rate compared to server to avoid overstating
+                    const newPoints = uploadSpeedMBps * pointsPerMB;
+                    
+                    // Add to total tokens
+                    window.totalTokensEarned = (window.totalTokensEarned || 0) + newPoints;
+                    
+                    // Update UI
+                    const earningRate = document.getElementById('earning-rate');
+                    if (earningRate) {
+                        // Round to nearest integer for display
+                        earningRate.textContent = Math.round(window.totalTokensEarned);
+                    }
+                }
+            }
+        }
+    }, 3000); // Every 3 seconds as a fallback/emergency update
 });
 
 // The forceGreenProgressBar function is already defined in torrent-stats.js

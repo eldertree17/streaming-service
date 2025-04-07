@@ -238,7 +238,12 @@
     
     // Send metrics to the server for rewards
     if (!window.isSeedingPaused && torrent.uploadSpeed > 0) {
-      reportMetrics(torrent.uploadSpeed, torrent.numPeers);
+      // Use TorrentStats.reportMetrics if available, otherwise use our own implementation
+      if (window.TorrentStats && typeof window.TorrentStats.reportMetrics === 'function') {
+        window.TorrentStats.reportMetrics(torrent.uploadSpeed, torrent.numPeers);
+      } else {
+        reportMetrics(torrent.uploadSpeed, torrent.numPeers);
+      }
     }
   }
   
@@ -320,10 +325,12 @@
       
       // Use the API_URL constant if defined
       const apiUrl = typeof API_URL !== 'undefined' ? API_URL : 'https://streamflix-backend.onrender.com/api';
+      const endpoint = `${apiUrl}/metrics/telegram-seeding`;
       
       // Send metrics to server
-      console.log(`Reporting metrics for Telegram user: ${telegramUserId}, upload speed: ${metricsData.uploadSpeed.toFixed(2)} KB/s, peers: ${numPeers}`);
-      fetch(`${apiUrl}/metrics/telegram-seeding`, {
+      console.log(`Reporting metrics to ${endpoint} for Telegram user: ${telegramUserId}, upload speed: ${metricsData.uploadSpeed.toFixed(2)} KB/s, peers: ${numPeers}`);
+      
+      fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -337,8 +344,12 @@
         return response.json();
       })
       .then(data => {
+        console.log('Server response:', data);
+        
         // Update tokens earned
-        if (data.totalTokens !== undefined) {
+        if (data && typeof data.totalTokens !== 'undefined') {
+          console.log(`Token data received: totalTokens=${data.totalTokens}, tokensEarned=${data.tokensEarned || 0}`);
+          
           // Initialize totalTokensEarned if needed
           if (typeof window.totalTokensEarned === 'undefined') {
             window.totalTokensEarned = 0;
@@ -350,9 +361,14 @@
           const earningRate = document.getElementById('earning-rate');
           if (earningRate) {
             earningRate.textContent = Math.round(window.totalTokensEarned);
+            console.log(`Updated earning rate display to ${Math.round(window.totalTokensEarned)}`);
+          } else {
+            console.log('Could not find earning-rate element to update');
           }
           
           console.log(`Tokens earned this update: ${data.tokensEarned || 0}, Total: ${data.totalTokens}`);
+        } else {
+          console.warn('Response missing totalTokens property:', data);
         }
         
         window.isReportingMetrics = false;
@@ -413,6 +429,13 @@
   
   // Monitor torrent upload stats and report metrics regularly
   function setupTorrentMonitoring() {
+    // If torrent-stats.js is already monitoring, we don't need our own monitoring
+    if (window.TorrentStats && typeof window.TorrentStats.reportMetrics === 'function') {
+      console.log('TorrentStats.reportMetrics is available, skipping duplicate monitoring');
+      return;
+    }
+    
+    console.log('Setting up our own torrent monitoring');
     setInterval(function() {
       if (window.client && window.client.torrents && window.client.torrents.length > 0) {
         const torrent = window.client.torrents[0];
