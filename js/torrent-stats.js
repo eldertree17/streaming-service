@@ -11,6 +11,115 @@
 // Global variables for torrent stats functionality
 window.isSeedingPaused = false; // Global flag to track pause state
 
+/**
+ * Initialize torrent stats module with direct button handlers
+ * This ensures the pause and stop seeding buttons work correctly
+ * regardless of how they are activated
+ */
+function initTorrentStats() {
+    console.log('Initializing torrent stats with direct button handlers');
+    
+    // Set up direct event handler for continue/pause seeding button
+    const continueButton = document.getElementById('btn-continue-seeding');
+    if (continueButton && !continueButton.hasAttribute('data-direct-handler')) {
+        console.log('Adding direct handler to pause seeding button');
+        
+        // Mark the button to avoid double binding
+        continueButton.setAttribute('data-direct-handler', 'true');
+        
+        continueButton.addEventListener('click', function() {
+            console.log('Continue/Pause button clicked (direct handler)');
+            
+            // Toggle button state and global pause flag
+            const isPaused = continueButton.classList.toggle('active');
+            window.isSeedingPaused = isPaused;
+            
+            if (isPaused) {
+                // Pause seeding logic
+                continueButton.innerHTML = '<i class="fas fa-seedling"></i> Continue Seeding';
+                
+                // Stop metrics reporting intervals
+                if (window.metricsInterval) {
+                    clearInterval(window.metricsInterval);
+                    window.metricsInterval = null;
+                }
+            } else {
+                // Resume seeding logic
+                continueButton.innerHTML = '<i class="fas fa-pause"></i> Pause Seeding';
+                
+                // Restart metrics if we have a torrent
+                if (window.currentTorrent && !window.metricsInterval) {
+                    window.metricsInterval = setInterval(() => {
+                        if (!window.isSeedingPaused && window.currentTorrent) {
+                            if (typeof window.reportMetrics === 'function') {
+                                window.reportMetrics(
+                                    window.currentTorrent.uploadSpeed,
+                                    window.currentTorrent.numPeers
+                                );
+                            }
+                        }
+                    }, 2000);
+                }
+            }
+        });
+    }
+    
+    // Set up direct event handler for stop seeding button
+    const stopSeedingButton = document.getElementById('btn-stop-seeding');
+    const stopSeedingModal = document.getElementById('stop-seeding-modal');
+    const confirmStopButton = document.getElementById('confirm-stop-seeding');
+    const cancelStopButton = document.getElementById('cancel-stop-seeding');
+    
+    if (stopSeedingButton && !stopSeedingButton.hasAttribute('data-direct-handler')) {
+        console.log('Adding direct handler to stop seeding button');
+        
+        // Mark the button to avoid double binding
+        stopSeedingButton.setAttribute('data-direct-handler', 'true');
+        
+        stopSeedingButton.addEventListener('click', function() {
+            console.log('Stop seeding button clicked (direct handler)');
+            
+            // Show confirmation modal
+            if (stopSeedingModal) {
+                stopSeedingModal.style.display = 'flex';
+            }
+        });
+    }
+    
+    // Set up confirm and cancel buttons for stop seeding modal
+    if (confirmStopButton && !confirmStopButton.hasAttribute('data-direct-handler')) {
+        confirmStopButton.setAttribute('data-direct-handler', 'true');
+        
+        confirmStopButton.addEventListener('click', function() {
+            console.log('Confirm stop seeding clicked (direct handler)');
+            
+            // Close modal
+            if (stopSeedingModal) {
+                stopSeedingModal.style.display = 'none';
+            }
+            
+            // Call the stop seeding function
+            if (typeof window.stopSeedingAndClaimPoints === 'function') {
+                window.stopSeedingAndClaimPoints();
+            }
+        });
+    }
+    
+    if (cancelStopButton && !cancelStopButton.hasAttribute('data-direct-handler')) {
+        cancelStopButton.setAttribute('data-direct-handler', 'true');
+        
+        cancelStopButton.addEventListener('click', function() {
+            // Just close the modal
+            if (stopSeedingModal) {
+                stopSeedingModal.style.display = 'none';
+            }
+        });
+    }
+    
+    // Also set up the seeding duration update
+    setupSeedingDurationUpdate();
+}
+
 // Initialize torrent stats when the document is ready
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Initializing torrent stats module');
@@ -252,37 +361,48 @@ function updateTorrentStats(stats) {
 }
 
 /**
- * Updates the seeding duration display
+ * Setup the seeding duration update functionality
+ * This updates the display showing how long the user has been seeding
+ */
+function setupSeedingDurationUpdate() {
+    console.log('Setting up seeding duration update');
+    
+    // Initialize the seeding start time if not already set
+    if (!window.seedingStartTime) {
+        window.seedingStartTime = Date.now();
+    }
+    
+    // Set up interval to update the seeding duration display
+    if (!window.seedingDurationInterval) {
+        window.seedingDurationInterval = setInterval(function() {
+            // Only update if seeding is active
+            if (!window.isSeedingPaused && window.currentTorrent) {
+                updateSeedingDuration();
+            }
+        }, 1000);
+    }
+}
+
+/**
+ * Update the seeding duration display with current time
  */
 function updateSeedingDuration() {
-    if (!window.seedingStartTime) return;
+    const currentTime = Date.now();
+    const seedingTime = (currentTime - window.seedingStartTime) / 1000; // in seconds
     
+    const formattedTime = formatDuration(seedingTime * 1000);
+    
+    // Update the display
     const progressLabel = document.querySelector('.progress-label');
-    if (!progressLabel) return;
-    
-    const now = Date.now();
-    const seedingDuration = now - window.seedingStartTime;
-    const seedingSeconds = seedingDuration / 1000; // Convert to seconds
-    
-    // Get upload amount from current torrent
-    let uploadedFormatted = '0 B';
-    if (window.currentTorrent) {
-        uploadedFormatted = formatBytes(window.currentTorrent.uploaded);
+    if (progressLabel) {
+        // Include uploaded amount if available
+        let uploadText = '';
+        if (window.currentTorrent) {
+            uploadText = ` | Total Upload: ${formatBytes(window.currentTorrent.uploaded)}`;
+        }
+        
+        progressLabel.textContent = `Seeding Time: ${formattedTime}${uploadText}`;
     }
-    
-    // Format time using AwardsModule formatSeedingTime if available
-    let timeFormatted;
-    if (window.AwardsModule && typeof window.AwardsModule.formatSeedingTime === 'function') {
-        timeFormatted = window.AwardsModule.formatSeedingTime(seedingSeconds);
-    } else {
-        // Fallback to simple format
-        const minutes = Math.floor(seedingDuration / (1000 * 60));
-        const seconds = Math.floor((seedingDuration % (1000 * 60)) / 1000);
-        timeFormatted = `${minutes}m ${seconds}s`;
-    }
-    
-    // Update the label with formatted time and upload amount
-    progressLabel.textContent = `Seeding time: ${timeFormatted} | Total Upload: ${uploadedFormatted}`;
 }
 
 /**
