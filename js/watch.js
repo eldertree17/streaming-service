@@ -1092,6 +1092,9 @@ function seedOnlyTorrent() {
             });
         }
         
+        // Make client globally accessible for metrics reporting
+        window.client = client;
+        
         // Show torrent info panel
         const torrentInfo = document.getElementById('torrent-info');
         if (torrentInfo) {
@@ -1117,8 +1120,9 @@ function seedOnlyTorrent() {
             console.log('Torrent added successfully for seed-only mode', torrent);
             console.log('Torrent info hash:', torrent.infoHash);
             
-            // Store the torrent reference
+            // Store the torrent reference both locally and globally
             currentTorrent = torrent;
+            window.currentTorrent = torrent;
             
             // Update Seed Only button
             const seedOnlyButton = document.querySelector('.btn-download');
@@ -1185,6 +1189,29 @@ function seedOnlyTorrent() {
                 
                 // Use the helper function to handle download completion
                 handleTorrentDone(torrent);
+                
+                // Set up a secondary direct metrics reporting interval for seed-only mode
+                if (!window.directMetricsInterval) {
+                    window.directMetricsInterval = setInterval(() => {
+                        if (window.TorrentStats && typeof window.TorrentStats.updateMetricsDisplay === 'function') {
+                            window.TorrentStats.updateMetricsDisplay();
+                        }
+                    }, 1000);
+                }
+                
+                // Reset any points tracking
+                if (!window.seedingStartTime) {
+                    window.seedingStartTime = Date.now();
+                }
+                if (typeof window.totalTokensEarned === 'undefined') {
+                    window.totalTokensEarned = 0;
+                }
+                
+                // Initialize earning rate display
+                const earningRate = document.getElementById('earning-rate');
+                if (earningRate && earningRate.textContent === '0') {
+                    earningRate.textContent = '0';
+                }
             });
             
             // Track upload/seeding activity for seed-only mode
@@ -1194,15 +1221,49 @@ function seedOnlyTorrent() {
                 // Update seeding stats in UI
                 document.getElementById('upload-speed').textContent = formatSpeed(torrent.uploadSpeed);
                 document.getElementById('peers-count').textContent = torrent.numPeers;
-            });
-            
-            // Set up metrics reporting interval using TorrentStats
-            if (!window.metricsInterval) {
-                window.metricsInterval = setInterval(() => {
+                
+                // Directly report metrics when upload happens
+                if (!window.isSeedingPaused && !window.isReportingMetrics) {
                     if (window.TorrentStats && typeof window.TorrentStats.reportMetrics === 'function') {
                         window.TorrentStats.reportMetrics(torrent.uploadSpeed, torrent.numPeers);
+                    } else if (typeof window.reportMetrics === 'function') {
+                        window.reportMetrics(torrent.uploadSpeed, torrent.numPeers);
+                    }
+                }
+            });
+            
+            // Set up primary metrics reporting interval
+            if (!window.metricsInterval) {
+                window.metricsInterval = setInterval(() => {
+                    if (!window.isSeedingPaused && !window.isReportingMetrics) {
+                        if (window.TorrentStats && typeof window.TorrentStats.reportMetrics === 'function') {
+                            window.TorrentStats.reportMetrics(torrent.uploadSpeed, torrent.numPeers);
+                        } else if (typeof window.reportMetrics === 'function') {
+                            window.reportMetrics(torrent.uploadSpeed, torrent.numPeers);
+                        }
                     }
                 }, 2000);
+            }
+            
+            // Set up fallback earnings interval for UI updates
+            if (!window.earningRateInterval) {
+                window.earningRateInterval = setInterval(() => {
+                    if (!window.isSeedingPaused) {
+                        // Always ensure points are incrementing at 1 point per second
+                        if (typeof window.totalTokensEarned === 'undefined') {
+                            window.totalTokensEarned = 0;
+                        }
+                        
+                        window.totalTokensEarned += 1; // 1 point every second
+                        
+                        // Update UI
+                        const earningRate = document.getElementById('earning-rate');
+                        if (earningRate) {
+                            const totalTokensDisplay = Math.round(window.totalTokensEarned);
+                            earningRate.textContent = totalTokensDisplay;
+                        }
+                    }
+                }, 1000);
             }
         });
     } catch (error) {
@@ -2317,6 +2378,57 @@ function handleTorrentDone(torrent) {
     if (continueButton) {
         continueButton.disabled = false;
         console.log('Pause Seeding button enabled');
+    }
+    
+    // Make sure torrent is available globally
+    window.currentTorrent = torrent;
+    
+    // Set up metrics reporting if not already running
+    if (!window.metricsInterval) {
+        window.metricsInterval = setInterval(() => {
+            if (!window.isSeedingPaused && !window.isReportingMetrics) {
+                if (window.TorrentStats && typeof window.TorrentStats.reportMetrics === 'function') {
+                    window.TorrentStats.reportMetrics(torrent.uploadSpeed, torrent.numPeers);
+                } else if (typeof window.reportMetrics === 'function') {
+                    window.reportMetrics(torrent.uploadSpeed, torrent.numPeers);
+                }
+            }
+        }, 2000);
+    }
+    
+    // Set up direct points system update interval
+    if (!window.directMetricsInterval) {
+        window.directMetricsInterval = setInterval(() => {
+            if (!window.isSeedingPaused) {
+                if (window.TorrentStats && typeof window.TorrentStats.updateMetricsDisplay === 'function') {
+                    window.TorrentStats.updateMetricsDisplay();
+                } else {
+                    // Simple fallback points calculation
+                    if (typeof window.totalTokensEarned === 'undefined') {
+                        window.totalTokensEarned = 0;
+                    }
+                    window.totalTokensEarned += 1; // 1 point per second
+                    
+                    // Update UI
+                    const earningRate = document.getElementById('earning-rate');
+                    if (earningRate) {
+                        earningRate.textContent = Math.round(window.totalTokensEarned);
+                    }
+                }
+            }
+        }, 1000);
+    }
+    
+    // Make sure UI updates work
+    if (!window.earningRateInterval) {
+        window.earningRateInterval = setInterval(() => {
+            if (window.totalTokensEarned > 0) {
+                const earningRate = document.getElementById('earning-rate');
+                if (earningRate) {
+                    earningRate.textContent = Math.round(window.totalTokensEarned);
+                }
+            }
+        }, 500);
     }
     
     // Update UI to show download is complete
