@@ -571,19 +571,19 @@
         
         <!-- Navigation Bar -->
         <nav class="nav-bar">
-            <div class="nav-item active" id="nav-home">
+            <div class="nav-item active">
                 <a href="/streaming-service/index.html">
                     <i class="fas fa-home"></i>
                     <p>Home</p>
                 </a>
             </div>
-            <div class="nav-item" id="nav-activity">
+            <div class="nav-item">
                 <a href="/streaming-service/pages/activity.html">
                     <i class="fas fa-compact-disc"></i>
                     <p>Activity</p>
                 </a>
             </div>
-            <div class="nav-item" id="nav-account">
+            <div class="nav-item">
                 <a href="/streaming-service/pages/account.html">
                     <i class="fas fa-user"></i>
                     <p>Account</p>
@@ -610,12 +610,14 @@
                 item.classList.remove('active');
             });
             
+            // Updated to use index-based selection instead of IDs
+            const navItems = document.querySelectorAll('.nav-bar .nav-item');
             if (path === '/') {
-                document.getElementById('nav-home').classList.add('active');
+                navItems[0].classList.add('active');
             } else if (path === '/activity') {
-                document.getElementById('nav-activity').classList.add('active');
+                navItems[1].classList.add('active');
             } else if (path === '/account') {
-                document.getElementById('nav-account').classList.add('active');
+                navItems[2].classList.add('active');
             }
         }
         
