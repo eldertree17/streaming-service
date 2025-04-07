@@ -1365,9 +1365,12 @@ function updateSeedOnlyUI() {
 // Seeding Persistence API
 // ========================
 
+// Add constants at the top of the file, right after any imports
 // Constants for localStorage keys
 const SEEDING_STATE_KEY = 'streaming_service_seeding_state';
 const LAST_UPDATE_KEY = 'streaming_service_last_update';
+const USER_METRICS_KEY = 'user_metrics';
+const TELEGRAM_USER_KEY = 'telegram_user';
 
 /**
  * Save the current seeding state to localStorage
@@ -1418,7 +1421,7 @@ function saveSeedingState() {
         };
         
         // Get any previous metrics to preserve history
-        const previousMetricsStr = localStorage.getItem('user_metrics');
+        const previousMetricsStr = localStorage.getItem(USER_METRICS_KEY);
         if (previousMetricsStr) {
             try {
                 const previousMetrics = JSON.parse(previousMetricsStr);
@@ -1431,7 +1434,7 @@ function saveSeedingState() {
         }
         
         // Save updated metrics
-        localStorage.setItem('user_metrics', JSON.stringify(currentMetrics));
+        localStorage.setItem(USER_METRICS_KEY, JSON.stringify(currentMetrics));
         
         console.log('Saved seeding state:', seedingState);
         
@@ -1444,7 +1447,7 @@ function saveSeedingState() {
                 firstName: telegramUser.first_name || '',
                 lastName: telegramUser.last_name || ''
             };
-            localStorage.setItem('telegram_user', JSON.stringify(userInfo));
+            localStorage.setItem(TELEGRAM_USER_KEY, JSON.stringify(userInfo));
         }
     } catch (error) {
         console.error('Failed to save seeding state:', error);
