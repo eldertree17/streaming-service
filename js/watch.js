@@ -2723,6 +2723,17 @@ function setupBuyButton() {
     const buyButton = document.querySelector('.btn-buy');
     
     if (buyButton) {
+        // Get current movie title for checking if already purchased
+        const movieTitle = document.getElementById('movie-title').textContent;
+        
+        // Check if this movie is already purchased
+        if (isContentPurchased(movieTitle)) {
+            // Update button to show purchased state
+            buyButton.innerHTML = '<i class="fas fa-check"></i> Bought';
+            buyButton.style.backgroundColor = '#4CAF50';
+            buyButton.disabled = true;
+        }
+        
         buyButton.addEventListener('click', function() {
             // Get current movie data
             const movieTitle = document.getElementById('movie-title').textContent;
@@ -2749,6 +2760,11 @@ function setupBuyButton() {
             // Save to user's collection in localStorage
             saveToUserCollection(movieData, contentType);
             
+            // Update button to "Bought"
+            this.innerHTML = '<i class="fas fa-check"></i> Bought';
+            this.style.backgroundColor = '#4CAF50';
+            this.disabled = true;
+            
             // Show success notification
             if (typeof showNotification === 'function') {
                 showNotification('Added to your collection!', 'success');
@@ -2756,6 +2772,39 @@ function setupBuyButton() {
                 alert('Added to your collection!');
             }
         });
+    }
+}
+
+// Function to check if content is already purchased
+function isContentPurchased(title) {
+    // Get user ID (from Telegram or fallback to demo)
+    let userId = 'demo_user';
+    
+    // Try to get from Telegram
+    if (window.Telegram && window.Telegram.WebApp && 
+        window.Telegram.WebApp.initDataUnsafe && 
+        window.Telegram.WebApp.initDataUnsafe.user) {
+        userId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
+    }
+    
+    // Key for user's collection in localStorage
+    const collectionKey = `user_collection_${userId}`;
+    
+    // Get existing collection
+    const storedCollection = localStorage.getItem(collectionKey);
+    if (!storedCollection) return false;
+    
+    try {
+        const userCollection = JSON.parse(storedCollection);
+        
+        // Check if the title exists in movies or TV shows
+        return (
+            (userCollection.movies && userCollection.movies.some(item => item.title === title)) ||
+            (userCollection.tvShows && userCollection.tvShows.some(item => item.title === title))
+        );
+    } catch (e) {
+        console.error('Error checking if content is purchased:', e);
+        return false;
     }
 }
 
