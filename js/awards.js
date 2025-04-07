@@ -489,7 +489,7 @@ function updateRewardsUI(metrics) {
 /**
  * Formats seeding time in seconds to a conventional time format
  * @param {number} seconds - Total seeding time in seconds
- * @returns {string} Formatted time string (e.g., "2d 5h 30m 15s" or "1h 20m 45s" or "5m 30s")
+ * @returns {string} Formatted time string (e.g., "2d 5h" or "1h 20m" or "5m 30s")
  */
 function formatSeedingTime(seconds) {
     if (!seconds || isNaN(seconds) || seconds < 0) {
@@ -504,13 +504,13 @@ function formatSeedingTime(seconds) {
     
     // Format based on duration
     if (days > 0) {
-        // If days exist, show the full format
-        return `${days}d ${hours}h ${minutes}m ${secs}s`;
+        // If days exist, show only days and hours
+        return `${days}d ${hours}h`;
     } else if (hours > 0) {
-        // If no days but hours exist
-        return `${hours}h ${minutes}m ${secs}s`;
+        // If no days but hours exist, show hours and minutes
+        return `${hours}h ${minutes}m`;
     } else {
-        // If less than an hour
+        // If less than an hour, show minutes and seconds
         return `${minutes}m ${secs}s`;
     }
 }
