@@ -232,15 +232,11 @@ function populateCollectionGrid(gridId, items) {
 
 // Function to set up search functionality
 function setupSearch() {
-  const searchInput = document.querySelector('.search-field input');
+  // This function is now handled by account-search.js
+  console.log('Search functionality handled by account-search.js');
   
-  if (searchInput) {
-      searchInput.addEventListener('focus', function() {
-          // In a real app, this would navigate to a search page
-          console.log('Search focused - would navigate to search page');
-          // window.location.href = 'search.html';
-      });
-  }
+  // Avoid adding any event listeners here that might conflict
+  // with the implementation in account-search.js
 }
 
 // Function to set up follow button
