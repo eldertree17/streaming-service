@@ -2319,3 +2319,72 @@ function initSeedingPersistence() {
     // Execute the check for existing seeding state to restore
     checkForExistingSeedingState();
 }
+
+/**
+ * Check for existing seeding state and restore it if found
+ * This is called when the page loads to resume previous seeding sessions
+ */
+function checkForExistingSeedingState() {
+    try {
+        console.log('Checking for existing seeding state...');
+        
+        // Load user metrics first if available
+        const metricsJson = localStorage.getItem('user_metrics');
+        if (metricsJson) {
+            const metrics = JSON.parse(metricsJson);
+            console.log('Found saved user metrics:', metrics);
+            
+            // Store tokens from previous session
+            if (metrics.tokens && !isNaN(metrics.tokens)) {
+                window.totalTokensEarned = metrics.tokens;
+                console.log('Restored totalTokensEarned:', window.totalTokensEarned);
+                
+                // Update the UI to display the tokens
+                const earningRate = document.getElementById('earning-rate');
+                if (earningRate) {
+                    earningRate.textContent = Math.round(window.totalTokensEarned);
+                }
+            }
+            
+            // If there's no active torrent but we have the rewards UI available, update it
+            if (window.AwardsModule && typeof window.AwardsModule.updateRewardsUI === 'function') {
+                window.AwardsModule.updateRewardsUI(metrics);
+            }
+        }
+        
+        // Then check for active seeding state
+        const stateJson = localStorage.getItem(SEEDING_STATE_KEY);
+        if (stateJson) {
+            const state = JSON.parse(stateJson);
+            console.log('Found saved seeding state:', state);
+            
+            // Store tokens from state (this data might be more recent than metrics)
+            if (state.totalTokensEarned && !isNaN(state.totalTokensEarned)) {
+                window.totalTokensEarned = state.totalTokensEarned;
+                console.log('Using more recent totalTokensEarned from state:', window.totalTokensEarned);
+                
+                // Update the UI to display the tokens
+                const earningRate = document.getElementById('earning-rate');
+                if (earningRate) {
+                    earningRate.textContent = Math.round(window.totalTokensEarned);
+                }
+            }
+            
+            // Restore the seeding state if possible
+            if (state.magnetURI && window.client) {
+                console.log('Attempting to restore active seeding session...');
+                
+                // Restore seeding session if the appropriate function is available
+                if (typeof window.TorrentStats?.restoreSeedingSession === 'function') {
+                    window.TorrentStats.restoreSeedingSession(state);
+                } else if (typeof restoreSeedingSession === 'function') {
+                    restoreSeedingSession(state);
+                } else {
+                    console.warn('No restoreSeedingSession function available');
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error checking for existing seeding state:', error);
+    }
+}

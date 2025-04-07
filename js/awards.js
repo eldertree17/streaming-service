@@ -14,6 +14,38 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Initializing awards module');
     populateAwardsCarousel();
     setupAwardsHandlers();
+    
+    // Load saved metrics immediately to display tokens/stats
+    try {
+        const metricsJson = localStorage.getItem('user_metrics');
+        if (metricsJson) {
+            const metrics = JSON.parse(metricsJson);
+            console.log('Found saved user metrics on page load:', metrics);
+            
+            // Store tokens from previous session
+            if (metrics.tokens && !isNaN(metrics.tokens)) {
+                window.totalTokensEarned = metrics.tokens;
+                console.log('Initialized totalTokensEarned from stored metrics:', window.totalTokensEarned);
+                
+                // Update the UI to display the tokens
+                const earningRate = document.getElementById('earning-rate');
+                if (earningRate) {
+                    earningRate.textContent = Math.round(window.totalTokensEarned);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error loading saved metrics on initialization:', error);
+    }
+    
+    // Then fetch fresh metrics from the server
+    fetchUserMetrics().then(metrics => {
+        updateRewardsUI(metrics);
+    }).catch(error => {
+        console.error('Error fetching user metrics:', error);
+    });
+    
+    setupViewStatsButton();
 });
 
 /**
