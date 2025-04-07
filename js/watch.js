@@ -1330,6 +1330,12 @@ function saveSeedingState() {
 
     const currentTorrent = window.client.torrents[0];
     
+    // Calculate total seeding time
+    let seedingTime = 0;
+    if (window.seedingStartTime) {
+        seedingTime = (Date.now() - window.seedingStartTime) / 1000; // in seconds
+    }
+    
     // Create state object with all necessary information to resume seeding
     const seedingState = {
         infoHash: currentTorrent.infoHash,
@@ -1341,627 +1347,77 @@ function saveSeedingState() {
         totalTokensEarned: window.totalTokensEarned || 0,
         title: currentTorrent.name || 'Unknown',
         lastActiveTime: new Date().toISOString(),
-        contentId: currentTorrent.infoHash || 'sample-video-1'
+        contentId: currentTorrent.infoHash || 'sample-video-1',
+        // Add comprehensive stats for history and calculations
+        stats: {
+            peersConnected: currentTorrent.numPeers || 0,
+            uploadSpeed: currentTorrent.uploadSpeed || 0,
+            downloadSpeed: currentTorrent.downloadSpeed || 0,
+            ratio: currentTorrent.ratio || 0,
+            seedingTime: seedingTime,
+            // Add timestamps for accurate time calculations
+            startTime: window.seedingStartTime ? new Date(window.seedingStartTime).toISOString() : new Date().toISOString(),
+            lastUpdateTime: new Date().toISOString()
+        },
+        // Store Telegram user information if available
+        telegramData: window.Telegram?.WebApp?.initDataUnsafe?.user ? {
+            telegramId: window.Telegram.WebApp.initDataUnsafe.user.id,
+            telegramUsername: window.Telegram.WebApp.initDataUnsafe.user.username || '',
+            firstName: window.Telegram.WebApp.initDataUnsafe.user.first_name || '',
+            lastName: window.Telegram.WebApp.initDataUnsafe.user.last_name || ''
+        } : null
     };
     
     // Save to localStorage
     try {
         localStorage.setItem(SEEDING_STATE_KEY, JSON.stringify(seedingState));
         localStorage.setItem(LAST_UPDATE_KEY, new Date().toISOString());
-        console.log('Saved seeding state:', seedingState);
-        } catch (error) {
+        
+        // Also save a metrics object for the rewards modal
+        const metrics = {
+            tokens: window.totalTokensEarned || 0,
+            seedingRank: calculateSeedingRank(window.totalTokensEarned || 0),
+            seedingStats: {
+                totalBytesUploaded: currentTorrent.uploaded || 0,
+                totalSeedingTime: seedingTime || 0,
+                contentSeeded: 1,
+                totalPeersServed: currentTorrent.numPeers || 0
+            },
+            recentHistory: [{
+                title: currentTorrent.name || 'Current Video',
+                startTime: window.seedingStartTime ? new Date(window.seedingStartTime).toISOString() : new Date().toISOString(),
+                endTime: new Date().toISOString(),
+                bytesUploaded: currentTorrent.uploaded || 0,
+                duration: seedingTime,
+                peers: currentTorrent.numPeers || 0
+            }],
+            telegramData: window.Telegram?.WebApp?.initDataUnsafe?.user ? {
+                telegramId: window.Telegram.WebApp.initDataUnsafe.user.id,
+                telegramUsername: window.Telegram.WebApp.initDataUnsafe.user.username || '',
+                telegramHandle: window.Telegram.WebApp.initDataUnsafe.user.username || ''
+            } : null
+        };
+        
+        localStorage.setItem('user_metrics', JSON.stringify(metrics));
+        
+        console.log('Saved seeding state and metrics:', seedingState);
+    } catch (error) {
         console.error('Failed to save seeding state:', error);
     }
 }
 
 /**
- * Load the seeding state from localStorage
- * @returns {Object|null} The saved seeding state or null if none exists
+ * Calculate seeding rank based on tokens earned
+ * @param {number} tokens - Total tokens earned by the user
+ * @returns {string} The seeding rank (Starter, Bronze, Silver, Gold, etc)
  */
-function loadSeedingState() {
-    try {
-        const stateJson = localStorage.getItem(SEEDING_STATE_KEY);
-        if (!stateJson) return null;
-        
-        const state = JSON.parse(stateJson);
-        console.log('Loaded seeding state:', state);
-        return state;
-    } catch (error) {
-        console.error('Failed to load seeding state:', error);
-        return null;
-    }
-}
-
-/**
- * Clear the saved seeding state
- * Call this when seeding is intentionally stopped
- */
-function clearSeedingState() {
-    try {
-        localStorage.removeItem(SEEDING_STATE_KEY);
-        localStorage.removeItem(LAST_UPDATE_KEY);
-        console.log('Cleared seeding state');
-        } catch (error) {
-        console.error('Failed to clear seeding state:', error);
-    }
-}
-
-/**
- * Check if there's a valid seeding state to resume
- * @returns {boolean} True if there's a valid state, false otherwise
- */
-function hasSeedingState() {
-    const state = loadSeedingState();
-    if (!state) return false;
-    
-    // Check if the state is recent enough (within last 24 hours)
-    try {
-        const lastUpdateStr = localStorage.getItem(LAST_UPDATE_KEY);
-        if (lastUpdateStr) {
-            const lastUpdate = new Date(lastUpdateStr).getTime();
-            const now = new Date().getTime();
-            const hoursDiff = (now - lastUpdate) / (1000 * 60 * 60);
-            
-            // If the state is too old, clear it and return false
-            if (hoursDiff > 24) {
-                clearSeedingState();
-                return false;
-            }
-        }
-    } catch (error) {
-        console.error('Error checking seeding state age:', error);
-    }
-    
-    return true;
-}
-
-// Export functions to make them available in the browser console for testing
-window.seedingPersistence = {
-    save: saveSeedingState,
-    load: loadSeedingState,
-    clear: clearSeedingState,
-    hasState: hasSeedingState
-};
-
-// ========================
-// Step 2: Capture Seeding State
-// ========================
-
-/**
- * Initialize seeding persistence by adding event listeners
- * This sets up all the mechanisms to save state and restore on page load
- */
-function initSeedingPersistence() {
-    console.log('Initializing seeding persistence');
-    
-    // Add beforeunload event listener to save state when user leaves or refreshes
-    window.addEventListener('beforeunload', function(event) {
-        console.log('Page unloading - saving seeding state');
-        saveSeedingState();
-    });
-    
-    // Set up periodic state saving (every 30 seconds)
-    window.seedingStateSaveInterval = setInterval(function() {
-        console.log('Periodic save of seeding state');
-        saveSeedingState();
-    }, 30000);
-    
-    // Add listeners to existing torrent events (without modifying them)
-    document.addEventListener('torrentStateChanged', function(e) {
-        console.log('Torrent state changed - saving state');
-        saveSeedingState();
-    });
-    
-    // Save state when pause/resume button is clicked
-    const continueButton = document.getElementById('btn-continue-seeding');
-    if (continueButton) {
-        continueButton.addEventListener('click', function() {
-            // This is an additional listener that doesn't modify the existing functionality
-            setTimeout(function() {
-                console.log('Pause/Resume clicked - saving seeding state');
-                saveSeedingState();
-            }, 100); // Small delay to ensure the state has been updated
-        });
-    }
-    
-    // We'll create a MutationObserver to watch for changes to the earning-rate element
-    // This way we can save state when points change without modifying the existing code
-    const earningRateElement = document.getElementById('earning-rate');
-    if (earningRateElement) {
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.type === 'characterData' || mutation.type === 'childList') {
-                    console.log('Earning rate changed - saving seeding state');
-                    saveSeedingState();
-      }
-    });
-  });
-  
-        observer.observe(earningRateElement, { 
-            characterData: true, 
-            childList: true,
-            subtree: true 
-        });
-    }
-    
-    // Execute the check for existing seeding state to restore
-    checkForExistingSeedingState();
-}
-
-/**
- * Check if there's an existing seeding state to restore on page load
- */
-function checkForExistingSeedingState() {
-    // Only check if we have a valid state
-    if (hasSeedingState()) {
-        const state = loadSeedingState();
-        console.log('Found existing seeding state:', state);
-        
-        // Create a custom event to notify the page that we have a seeding state to restore
-        const event = new CustomEvent('seedingStateAvailable', { detail: state });
-        document.dispatchEvent(event);
-        
-        // Add a restore banner to the page
-        showRestoreBanner(state);
-        } else {
-        console.log('No valid seeding state found to restore');
-    }
-}
-
-/**
- * Show a banner offering to restore previous seeding session
- */
-function showRestoreBanner(state) {
-    // Check if banner already exists
-    if (document.getElementById('seeding-restore-banner')) return;
-    
-    // Create the restore banner
-    const banner = document.createElement('div');
-    banner.id = 'seeding-restore-banner';
-    banner.style.position = 'fixed';
-    banner.style.top = '0';
-    banner.style.left = '0';
-    banner.style.right = '0';
-    banner.style.backgroundColor = 'rgba(0, 150, 136, 0.9)';
-    banner.style.color = 'white';
-    banner.style.padding = '10px';
-    banner.style.textAlign = 'center';
-    banner.style.zIndex = '10000';
-    banner.style.display = 'flex';
-    banner.style.justifyContent = 'center';
-    banner.style.alignItems = 'center';
-    
-    // Format the content
-    const formattedTokens = Math.round(state.totalTokensEarned);
-    banner.innerHTML = `
-        <div style="flex: 1;">Previous seeding session found (${formattedTokens} tokens earned). Would you like to resume?</div>
-        <button id="restore-seeding-btn" style="background: white; color: #009688; border: none; padding: 5px 15px; margin: 0 10px; border-radius: 4px; cursor: pointer;">Resume Seeding</button>
-        <button id="discard-seeding-btn" style="background: transparent; color: white; border: 1px solid white; padding: 5px 15px; margin: 0 10px; border-radius: 4px; cursor: pointer;">Discard</button>
-    `;
-    
-    // Add the banner to the page
-    document.body.appendChild(banner);
-    
-    // Add event listeners for the buttons
-    document.getElementById('restore-seeding-btn').addEventListener('click', function() {
-        console.log('User chose to restore seeding session');
-        restoreSeedingSession(state);
-        banner.remove();
-    });
-    
-    document.getElementById('discard-seeding-btn').addEventListener('click', function() {
-        console.log('User chose to discard seeding session');
-        clearSeedingState();
-        banner.remove();
-    });
-}
-
-/**
- * Restore a saved seeding session
- * This function uses the UI buttons (rather than direct WebTorrent API calls)
- * to start the seeding process using the existing infrastructure
- */
-function restoreSeedingSession(state) {
-    console.log('Restoring seeding session from saved state:', state);
-    
-    // We'll use the existing UI buttons to trigger the seeding
-    // This avoids modifying any WebTorrent code
-    const seedOnlyButton = document.querySelector('.btn-download');
-    if (seedOnlyButton) {
-        console.log('Clicking Seed Only button to start seeding');
-        seedOnlyButton.click();
-        
-        // Wait for the torrent to be added and then restore the tokens earned
-        const checkInterval = setInterval(function() {
-            if (window.currentTorrent && window.currentTorrent.infoHash) {
-                clearInterval(checkInterval);
-                
-                // Restore the tokens earned
-                if (state.totalTokensEarned > 0) {
-                    console.log('Restoring total tokens earned:', state.totalTokensEarned);
-                    window.totalTokensEarned = state.totalTokensEarned;
-                    
-                    // Update the UI to show the restored tokens
-                    const earningRateElement = document.getElementById('earning-rate');
-                    if (earningRateElement) {
-                        earningRateElement.textContent = Math.round(state.totalTokensEarned);
-                    }
-                }
-                
-                // If the state was paused, also click the pause button
-                if (state.paused) {
-                    console.log('Previous state was paused, pausing seeding');
-                    
-                    // Wait for the continue button to be enabled
-                    const pauseCheckInterval = setInterval(function() {
-                        const continueButton = document.getElementById('btn-continue-seeding');
-                        if (continueButton && !continueButton.disabled) {
-                            clearInterval(pauseCheckInterval);
-                            continueButton.click();
-                        }
-                    }, 1000);
-                }
-            }
-        }, 1000);
-    } else {
-        console.log('Seed Only button not found, cannot restore session');
-    }
-}
-
-// Update the restoreSeedingSession function to use TorrentStats for showing the status section
-const existingRestoreSeedingSession = restoreSeedingSession;
-restoreSeedingSession = function(state) {
-    // Call the original function
-    existingRestoreSeedingSession(state);
-    
-    // After a short delay, use TorrentStats to show the status section if available
-    setTimeout(function() {
-        if (window.TorrentStats && typeof window.TorrentStats.forceShowSeedingUI === 'function') {
-            window.TorrentStats.forceShowSeedingUI();
-        }
-    }, 2000);
-};
-
-// Call this after the DOM has loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize the persistence system
-    setTimeout(initSeedingPersistence, 1000); // Add slight delay to ensure all elements are loaded
-});
-
-// ========================
-// Step 3: Resume Logic on Page Load
-// ========================
-
-/**
- * Handle the case when a user chooses auto-resume
- * This avoids showing the banner and automatically resumes seeding
- */
-function autoResumeSeedingSession() {
-    if (hasSeedingState()) {
-        const state = loadSeedingState();
-        console.log('Auto-resuming seeding session:', state);
-        
-        // Add a small notification instead of the full banner
-        showAutoResumeNotification(state);
-        
-        // Start the restoration process
-        restoreSeedingSession(state);
-        return true;
-    }
-    return false;
-}
-
-/**
- * Show a temporary notification that seeding was auto-resumed
- */
-function showAutoResumeNotification(state) {
-    const notification = document.createElement('div');
-    notification.id = 'auto-resume-notification';
-    notification.style.position = 'fixed';
-    notification.style.bottom = '20px';
-    notification.style.right = '20px';
-    notification.style.backgroundColor = 'rgba(0, 150, 136, 0.9)';
-    notification.style.color = 'white';
-    notification.style.padding = '10px 15px';
-    notification.style.borderRadius = '4px';
-    notification.style.zIndex = '10000';
-    notification.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-    notification.style.transition = 'opacity 0.5s ease-in-out';
-    
-    // Format the content
-    const formattedTokens = Math.round(state.totalTokensEarned);
-    notification.innerHTML = `
-        <div style="display: flex; align-items: center;">
-            <i class="fas fa-seedling" style="margin-right: 10px;"></i>
-            <div>Seeding automatically resumed (${formattedTokens} tokens)</div>
-            <button id="dismiss-notification" style="background: transparent; border: none; color: white; margin-left: 10px; cursor: pointer;">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-    `;
-    
-    // Add to the page
-    document.body.appendChild(notification);
-    
-    // Auto-dismiss after 5 seconds
-    setTimeout(function() {
-        if (notification.parentNode) {
-            notification.style.opacity = '0';
-            setTimeout(function() {
-                if (notification.parentNode) {
-                    notification.remove();
-                }
-            }, 500);
-        }
-    }, 5000);
-    
-    // Add dismiss button functionality
-    document.getElementById('dismiss-notification').addEventListener('click', function() {
-        notification.remove();
-    });
-}
-
-/**
- * Add auto-resume preference toggle to allow users to control behavior
- */
-function addAutoResumeToggle() {
-    // Check if the preference section already exists
-    let preferencesSection = document.getElementById('seeding-preferences');
-    
-    // If not, create it
-    if (!preferencesSection) {
-        preferencesSection = document.createElement('div');
-        preferencesSection.id = 'seeding-preferences';
-        preferencesSection.style.margin = '20px 0';
-        preferencesSection.style.padding = '15px';
-        preferencesSection.style.backgroundColor = '#f5f5f5';
-        preferencesSection.style.borderRadius = '4px';
-        
-        // Add a header
-        const header = document.createElement('h3');
-        header.textContent = 'Seeding Preferences';
-        header.style.margin = '0 0 10px 0';
-        header.style.fontSize = '16px';
-        header.style.fontWeight = 'bold';
-        preferencesSection.appendChild(header);
-        
-        // Find a good location to insert it
-        const infoSection = document.querySelector('.info-section');
-        if (infoSection) {
-            infoSection.parentNode.insertBefore(preferencesSection, infoSection.nextSibling);
-  } else {
-            // Fallback to appending to the content container
-            const contentContainer = document.querySelector('.content-container');
-            if (contentContainer) {
-                contentContainer.appendChild(preferencesSection);
-            }
-        }
-    }
-    
-    // Create the auto-resume toggle
-    const toggleContainer = document.createElement('div');
-    toggleContainer.style.display = 'flex';
-    toggleContainer.style.alignItems = 'center';
-    toggleContainer.style.justifyContent = 'space-between';
-    toggleContainer.style.marginBottom = '10px';
-    
-    const toggleLabel = document.createElement('label');
-    toggleLabel.textContent = 'Auto-resume seeding when page loads';
-    toggleLabel.style.flex = '1';
-    
-    const toggleSwitch = document.createElement('div');
-    toggleSwitch.className = 'toggle-switch';
-    toggleSwitch.style.position = 'relative';
-    toggleSwitch.style.display = 'inline-block';
-    toggleSwitch.style.width = '50px';
-    toggleSwitch.style.height = '24px';
-    
-    const toggleInput = document.createElement('input');
-    toggleInput.type = 'checkbox';
-    toggleInput.id = 'auto-resume-toggle';
-    toggleInput.style.opacity = '0';
-    toggleInput.style.width = '0';
-    toggleInput.style.height = '0';
-    // Set the initial state based on localStorage
-    toggleInput.checked = localStorage.getItem('auto_resume_seeding') === 'true';
-    
-    const toggleSlider = document.createElement('span');
-    toggleSlider.className = 'toggle-slider';
-    toggleSlider.style.position = 'absolute';
-    toggleSlider.style.cursor = 'pointer';
-    toggleSlider.style.top = '0';
-    toggleSlider.style.left = '0';
-    toggleSlider.style.right = '0';
-    toggleSlider.style.bottom = '0';
-    toggleSlider.style.backgroundColor = toggleInput.checked ? '#009688' : '#ccc';
-    toggleSlider.style.transition = '.4s';
-    toggleSlider.style.borderRadius = '24px';
-    
-    // Create the circle
-    const toggleCircle = document.createElement('span');
-    toggleCircle.style.position = 'absolute';
-    toggleCircle.style.content = '""';
-    toggleCircle.style.height = '16px';
-    toggleCircle.style.width = '16px';
-    toggleCircle.style.left = toggleInput.checked ? '30px' : '4px';
-    toggleCircle.style.bottom = '4px';
-    toggleCircle.style.backgroundColor = 'white';
-    toggleCircle.style.transition = '.4s';
-    toggleCircle.style.borderRadius = '50%';
-    
-    toggleSwitch.appendChild(toggleInput);
-    toggleSwitch.appendChild(toggleSlider);
-    toggleSlider.appendChild(toggleCircle);
-    
-    toggleContainer.appendChild(toggleLabel);
-    toggleContainer.appendChild(toggleSwitch);
-    
-    preferencesSection.appendChild(toggleContainer);
-    
-    // Add event listener for the toggle
-    toggleInput.addEventListener('change', function() {
-        const isChecked = this.checked;
-        localStorage.setItem('auto_resume_seeding', isChecked);
-        console.log('Auto-resume preference updated:', isChecked);
-        
-        // Update the toggle appearance
-        toggleSlider.style.backgroundColor = isChecked ? '#009688' : '#ccc';
-        toggleCircle.style.left = isChecked ? '30px' : '4px';
-    });
-    
-    // Add help text below
-    const helpText = document.createElement('p');
-    helpText.style.fontSize = '12px';
-    helpText.style.color = '#666';
-    helpText.style.margin = '5px 0 0 0';
-    helpText.textContent = 'When enabled, seeding will automatically resume when you return to this page.';
-    toggleContainer.appendChild(helpText);
-}
-
-/**
- * Update the checkForExistingSeedingState function to respect auto-resume preference
- */
-const originalCheckForExistingSeedingState = checkForExistingSeedingState;
-checkForExistingSeedingState = function() {
-    // Only check if we have a valid state
-    if (hasSeedingState()) {
-        const state = loadSeedingState();
-        console.log('Found existing seeding state:', state);
-        
-        // Default to auto-resume unless explicitly disabled
-        // This changes the default behavior to auto-resume
-        if (localStorage.getItem('auto_resume_seeding') !== 'false') {
-            console.log('Auto-resuming by default');
-            autoResumeSeedingSession();
-    } else {
-            // Only show banner if auto-resume is explicitly disabled
-            console.log('Auto-resume disabled, showing banner');
-            const event = new CustomEvent('seedingStateAvailable', { detail: state });
-            document.dispatchEvent(event);
-            showRestoreBanner(state);
-    }
-  } else {
-        console.log('No valid seeding state found to restore');
-    }
-};
-
-// Update initialization to add the toggle
-const originalInitSeedingPersistence = initSeedingPersistence;
-initSeedingPersistence = function() {
-    // Call the original function
-    originalInitSeedingPersistence();
-    
-    // Add the auto-resume toggle
-    setTimeout(function() {
-        addAutoResumeToggle();
-    }, 2000); // Give the page some time to load first
-};
-
-// ========================
-// Step 4: Handle Page Navigation/Refresh Events
-// ========================
-
-/**
- * Enhanced page navigation event handling
- * Captures more events and improves reliability of state saving when leaving page
- */
-function setupEnhancedNavigationHandling() {
-    console.log('Setting up enhanced navigation event handling');
-    
-    // Store the original beforeunload handler to avoid duplicating logic
-    const originalBeforeUnloadHandler = window.onbeforeunload;
-    
-    // Enhanced beforeunload handler with prioritized state saving
-    window.onbeforeunload = function(event) {
-        console.log('Enhanced beforeunload triggered - saving state with high priority');
-        
-        // Force immediate state saving
-        try {
-            // Only save if we have an active torrent and aren't in the middle of starting up
-            if (window.client && 
-                window.client.torrents && 
-                window.client.torrents.length > 0 &&
-                window.currentTorrent) {
-                
-                // Create a special flag indicating this was saved during page unload
-                // This can be used to prioritize restoration on next load
-                const currentTorrent = window.client.torrents[0];
-                
-                // Create state object with all necessary information to resume seeding
-                const seedingState = {
-                    infoHash: currentTorrent.infoHash,
-                    magnetURI: currentTorrent.magnetURI,
-                    downloaded: currentTorrent.downloaded,
-                    uploaded: currentTorrent.uploaded,
-                    progress: currentTorrent.progress,
-                    paused: window.isSeedingPaused === true,
-                    totalTokensEarned: window.totalTokensEarned || 0,
-                    title: currentTorrent.name || 'Unknown',
-                    lastActiveTime: new Date().toISOString(),
-                    contentId: currentTorrent.infoHash || 'sample-video-1',
-                    exitVia: 'pageUnload', // Special marker for unload events
-                    wasSeeding: true
-                };
-                
-                // Use synchronous localStorage to ensure it completes
-                try {
-                    localStorage.setItem(SEEDING_STATE_KEY, JSON.stringify(seedingState));
-                    localStorage.setItem(LAST_UPDATE_KEY, new Date().toISOString());
-                    console.log('Successfully saved state during page unload');
-                } catch (error) {
-                    console.error('Failed to save state during page unload:', error);
-                }
-            }
-        } catch (error) {
-            console.error('Error in enhanced beforeunload handler:', error);
-        }
-        
-        // Call the original handler if it existed
-        if (typeof originalBeforeUnloadHandler === 'function') {
-            return originalBeforeUnloadHandler(event);
-        }
-    };
-    
-    // Track visibility changes to handle tab switching
-    document.addEventListener('visibilitychange', function() {
-        if (document.visibilityState === 'hidden') {
-            console.log('Page visibility changed to hidden - saving state');
-            saveSeedingState();
-        } else if (document.visibilityState === 'visible') {
-            console.log('Page visibility changed to visible - checking for state changes');
-            // When returning to the tab, check if we need to update our state
-            checkForStateUpdatesFromOtherTabs();
-        }
-    });
-    
-    // Handle page show/hide events (especially useful for mobile)
-    window.addEventListener('pagehide', function() {
-        console.log('Page hide event - saving state');
-        saveSeedingState();
-    });
-    
-    window.addEventListener('pageshow', function(event) {
-        console.log('Page show event, persisted:', event.persisted);
-        // If the page was loaded from the back-forward cache
-        if (event.persisted) {
-            console.log('Page restored from back-forward cache - checking state');
-            checkForStateUpdatesFromOtherTabs();
-        }
-    });
-    
-    // Use the browser's Navigation API when available (modern browsers)
-    if ('navigation' in window) {
-        window.navigation.addEventListener('navigate', function(event) {
-            console.log('Navigation event detected, type:', event.type);
-            saveSeedingState();
-        });
-    }
-    
-    // Track network changes to save state when going offline
-    window.addEventListener('offline', function() {
-        console.log('Network went offline - saving current state');
-        saveSeedingState();
-    });
+function calculateSeedingRank(tokens) {
+    if (tokens < 10) return "Starter";
+    if (tokens < 50) return "Bronze";
+    if (tokens < 100) return "Silver";
+    if (tokens < 250) return "Gold";
+    if (tokens < 500) return "Platinum";
+    return "Diamond";
 }
 
 /**
@@ -2463,9 +1919,69 @@ function handleTorrentDone(torrent) {
         }, 500);
     }
     
+    // Setup the view stats button to correctly update metrics when clicked
+    setupViewStatsButton();
+    
     // Update UI to show download is complete
     updateDownloadCompleteUI();
 }
+
+/**
+ * Set up the view stats button to show the rewards modal with accurate stats
+ */
+function setupViewStatsButton() {
+    const viewStatsBtn = document.getElementById('btn-view-stats');
+    if (!viewStatsBtn || viewStatsBtn.hasAttribute('data-listener-attached')) {
+        return; // Button not found or already set up
+    }
+    
+    // Mark button as having listener attached
+    viewStatsBtn.setAttribute('data-listener-attached', 'true');
+    
+    viewStatsBtn.addEventListener('click', function() {
+        // Save the current state before showing the modal to ensure latest data
+        saveSeedingState();
+        
+        // Show the rewards modal
+        const rewardsModal = document.getElementById('rewards-modal');
+        if (rewardsModal) {
+            rewardsModal.style.display = 'flex';
+            
+            // Ensure the modal shows real data
+            if (typeof window.updateRewardsModal === 'function') {
+                window.updateRewardsModal();
+            } else if (window.TorrentStats && typeof window.TorrentStats.updateRewardsModal === 'function') {
+                window.TorrentStats.updateRewardsModal();
+            } else if (window.AwardsModule && typeof window.AwardsModule.fetchUserMetrics === 'function') {
+                window.AwardsModule.fetchUserMetrics().then(metrics => {
+                    if (window.AwardsModule.updateRewardsUI) {
+                        window.AwardsModule.updateRewardsUI(metrics);
+                    }
+                });
+            }
+        }
+    });
+}
+
+// Set up the button to close the rewards modal properly
+document.addEventListener('DOMContentLoaded', function() {
+    // Set up close button for rewards modal
+    const rewardsModal = document.getElementById('rewards-modal');
+    if (rewardsModal) {
+        const closeBtn = rewardsModal.querySelector('.close-modal');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function() {
+                rewardsModal.style.display = 'none';
+                
+                // Save state when modal is closed
+                saveSeedingState();
+            });
+        }
+    }
+    
+    // Initialize the view stats button
+    setupViewStatsButton();
+});
 
 /**
  * Ensure the Pause Seeding button works by attaching necessary event listeners
@@ -2670,3 +2186,136 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // The forceGreenProgressBar function is already defined in torrent-stats.js
 // and called through window.TorrentStats.forceGreenProgressBar()
+
+// ========================
+// Step 2: Capture Seeding State
+// ========================
+
+/**
+ * Initialize seeding persistence by adding event listeners
+ * This sets up all the mechanisms to save state and restore on page load
+ */
+function initSeedingPersistence() {
+    console.log('Initializing seeding persistence');
+    
+    // Add beforeunload event listener to save state when user leaves or refreshes
+    window.addEventListener('beforeunload', function(event) {
+        console.log('Page unloading - saving seeding state');
+        saveSeedingState();
+    });
+    
+    // Set up periodic state saving (every 30 seconds)
+    window.seedingStateSaveInterval = setInterval(function() {
+        console.log('Periodic save of seeding state');
+        saveSeedingState();
+    }, 30000);
+    
+    // Add listeners to existing torrent events (without modifying them)
+    document.addEventListener('torrentStateChanged', function(e) {
+        console.log('Torrent state changed - saving state');
+        saveSeedingState();
+    });
+    
+    // Save state when pause/resume button is clicked
+    const continueButton = document.getElementById('btn-continue-seeding');
+    if (continueButton) {
+        continueButton.addEventListener('click', function() {
+            // This is an additional listener that doesn't modify the existing functionality
+            setTimeout(function() {
+                console.log('Pause/Resume clicked - saving seeding state');
+                saveSeedingState();
+            }, 100); // Small delay to ensure the state has been updated
+        });
+    }
+    
+    // Track visibility changes to handle tab switching
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'hidden') {
+            console.log('Page visibility changed to hidden - saving state');
+            saveSeedingState();
+        } else if (document.visibilityState === 'visible') {
+            console.log('Page visibility changed to visible - refreshing state');
+            // Force metrics update when page becomes visible again
+            if (window.client && window.client.torrents && window.client.torrents.length > 0) {
+                const torrent = window.client.torrents[0];
+                if (torrent && typeof window.TorrentStats?.reportMetrics === 'function') {
+                    window.TorrentStats.reportMetrics(torrent.uploadSpeed, torrent.numPeers);
+                }
+            }
+        }
+    });
+    
+    // Handle mobile-specific lifecycle events
+    window.addEventListener('pagehide', function() {
+        console.log('Page hide event - saving state');
+        saveSeedingState();
+    });
+    
+    window.addEventListener('pageshow', function() {
+        console.log('Page show event - refreshing state');
+        if (window.client && window.client.torrents && window.client.torrents.length > 0) {
+            const torrent = window.client.torrents[0];
+            if (torrent && typeof window.TorrentStats?.reportMetrics === 'function') {
+                window.TorrentStats.reportMetrics(torrent.uploadSpeed, torrent.numPeers);
+            }
+        }
+    });
+    
+    // Track network changes to save state when going offline
+    window.addEventListener('offline', function() {
+        console.log('Network went offline - saving current state');
+        saveSeedingState();
+    });
+    
+    // Telegram Mini App specific handlers
+    if (window.Telegram && window.Telegram.WebApp) {
+        // Save state when Telegram app is about to close
+        window.Telegram.WebApp.onEvent('viewportChanged', function() {
+            console.log('Telegram viewport changed - saving state');
+            saveSeedingState();
+        });
+        
+        // Save state when back button is pressed in Telegram
+        window.Telegram.WebApp.BackButton.onClick(function() {
+            console.log('Telegram back button pressed - saving state');
+            saveSeedingState();
+        });
+        
+        // Try to save state when the app is closing
+        window.Telegram.WebApp.onEvent('popupClosed', function() {
+            console.log('Telegram popup closed - saving state');
+            saveSeedingState();
+        });
+        
+        // Setup main button handler if applicable
+        if (window.Telegram.WebApp.MainButton) {
+            window.Telegram.WebApp.MainButton.onClick(function() {
+                console.log('Telegram main button clicked - saving state');
+                saveSeedingState();
+            });
+        }
+    }
+    
+    // We'll create a MutationObserver to watch for changes to the earning-rate element
+    // This way we can save state when points change without modifying the existing code
+    const earningRateElement = document.getElementById('earning-rate');
+    if (earningRateElement) {
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'characterData' || mutation.type === 'childList') {
+                    console.log('Earning rate changed - saving seeding state');
+                    saveSeedingState();
+                }
+            });
+        });
+        
+        observer.observe(earningRateElement, { 
+            characterData: true, 
+            childList: true,
+            subtree: true 
+        });
+    }
+    
+    // Execute the check for existing seeding state to restore
+    checkForExistingSeedingState();
+}

@@ -456,12 +456,153 @@
   
   // Update rewards modal with user points
   function updateRewardsModal() {
-    if (window.totalTokensEarned) {
-      const tokenBalance = document.getElementById('token-balance');
-      if (tokenBalance) {
-        tokenBalance.textContent = Math.round(window.totalTokensEarned);
+    // First check if we have cached metrics in localStorage
+    try {
+      const cachedMetrics = localStorage.getItem('user_metrics');
+      
+      if (cachedMetrics) {
+        const metrics = JSON.parse(cachedMetrics);
+        console.log('Using cached metrics for rewards modal:', metrics);
+        
+        // Update token balance
+        const tokenBalance = document.getElementById('token-balance');
+        if (tokenBalance) {
+          // Override with current session tokens if available
+          if (typeof window.totalTokensEarned !== 'undefined' && window.totalTokensEarned > 0) {
+            tokenBalance.textContent = Math.round(window.totalTokensEarned);
+          } else {
+            tokenBalance.textContent = Math.round(metrics.tokens);
+          }
+        }
+        
+        // Update rank based on current tokens
+        const currentTokens = window.totalTokensEarned || metrics.tokens;
+        const rankName = document.getElementById('rank-name');
+        if (rankName) {
+          const rank = calculateRank(currentTokens);
+          rankName.textContent = rank;
+          rankName.className = ''; // Reset classes
+          rankName.classList.add('rank-name', `${rank.toLowerCase()}-rank`);
+        }
+        
+        // Update stats with current torrent data
+        if (window.currentTorrent) {
+          const totalUploaded = document.getElementById('total-uploaded');
+          if (totalUploaded) {
+            // Add current torrent's uploaded bytes to total
+            const uploadedBytes = metrics.seedingStats.totalBytesUploaded + (window.currentTorrent.uploaded || 0);
+            totalUploaded.textContent = formatBytes(uploadedBytes);
+          }
+          
+          const totalPeers = document.getElementById('peers-served');
+          if (totalPeers) {
+            // Add current peers to total
+            const peersServed = metrics.seedingStats.totalPeersServed + (window.currentTorrent.numPeers || 0);
+            totalPeers.textContent = peersServed;
+          }
+          
+          // Calculate and update seeding time
+          const totalSeedingTime = document.getElementById('total-seeding-time');
+          if (totalSeedingTime && window.seedingStartTime) {
+            const currentSeedingTime = (Date.now() - window.seedingStartTime) / 1000; // in seconds
+            const totalTime = metrics.seedingStats.totalSeedingTime + currentSeedingTime;
+            const seedingHours = totalTime / 3600;
+            
+            totalSeedingTime.textContent = seedingHours < 1 
+              ? `${Math.round(seedingHours * 60)} mins` 
+              : `${seedingHours.toFixed(1)} hrs`;
+          }
+          
+          // Update content seeded count
+          const contentSeeded = document.getElementById('content-seeded');
+          if (contentSeeded) {
+            // Ensure we count at least the current item
+            contentSeeded.textContent = Math.max(1, metrics.seedingStats.contentSeeded);
+          }
+        }
+      } else if (window.totalTokensEarned) {
+        // If no cached metrics but we have current session tokens, at least update those
+        const tokenBalance = document.getElementById('token-balance');
+        if (tokenBalance) {
+          tokenBalance.textContent = Math.round(window.totalTokensEarned);
+        }
+        
+        // Set rank based on current tokens
+        const rankName = document.getElementById('rank-name');
+        if (rankName) {
+          const rank = calculateRank(window.totalTokensEarned);
+          rankName.textContent = rank;
+          rankName.className = ''; // Reset classes
+          rankName.classList.add('rank-name', `${rank.toLowerCase()}-rank`);
+        }
+        
+        // Update current torrent stats if available
+        if (window.currentTorrent) {
+          const totalUploaded = document.getElementById('total-uploaded');
+          if (totalUploaded) {
+            totalUploaded.textContent = formatBytes(window.currentTorrent.uploaded || 0);
+          }
+          
+          const totalPeers = document.getElementById('peers-served');
+          if (totalPeers) {
+            totalPeers.textContent = window.currentTorrent.numPeers || 0;
+          }
+          
+          const contentSeeded = document.getElementById('content-seeded');
+          if (contentSeeded) {
+            contentSeeded.textContent = '1'; // At least the current content
+          }
+          
+          // Calculate and update seeding time
+          const totalSeedingTime = document.getElementById('total-seeding-time');
+          if (totalSeedingTime && window.seedingStartTime) {
+            const currentSeedingTime = (Date.now() - window.seedingStartTime) / 1000; // in seconds
+            const seedingHours = currentSeedingTime / 3600;
+            
+            totalSeedingTime.textContent = seedingHours < 1 
+              ? `${Math.round(seedingHours * 60)} mins` 
+              : `${seedingHours.toFixed(1)} hrs`;
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error updating rewards modal:', error);
+      
+      // Fallback to just showing current session tokens
+      if (window.totalTokensEarned) {
+        const tokenBalance = document.getElementById('token-balance');
+        if (tokenBalance) {
+          tokenBalance.textContent = Math.round(window.totalTokensEarned);
+        }
       }
     }
+  }
+  
+  /**
+   * Calculate rank based on tokens earned
+   */
+  function calculateRank(tokens) {
+    if (tokens < 10) return "Starter";
+    if (tokens < 50) return "Bronze";
+    if (tokens < 100) return "Silver";
+    if (tokens < 250) return "Gold";
+    if (tokens < 500) return "Platinum";
+    return "Diamond";
+  }
+  
+  /**
+   * Format bytes to human-readable string
+   */
+  function formatBytes(bytes, decimals = 1) {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB'];
+    
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   }
   
   // Initialize WebTorrent

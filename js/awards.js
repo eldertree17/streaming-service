@@ -307,27 +307,77 @@ function showNotification(message) {
 }
 
 /**
- * Fetches user metrics from the API
+ * Fetches user metrics from the API or localStorage
  */
 async function fetchUserMetrics() {
     try {
         console.log('Fetching user metrics...');
-        const response = await fetch('http://localhost:5003/api/metrics/user', {
-            headers: {
-                'x-demo-user': 'demo123' // For development/demo purposes
-            }
-        });
+        
+        // Try to use the API_URL variable if it exists
+        const baseUrl = typeof API_URL !== 'undefined' ? API_URL : 'https://streamflix-backend.onrender.com/api';
+        const endpoint = `${baseUrl}/metrics/user-points`;
+        
+        // Check if we're in Telegram Mini App
+        let telegramUserId = '';
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+            telegramUserId = window.Telegram.WebApp.initDataUnsafe.user.id;
+            console.log('Fetching metrics for Telegram user:', telegramUserId);
+        }
+        
+        // Build fetch URL with Telegram user ID if available
+        const fetchUrl = telegramUserId ? 
+            `${endpoint}?telegramUserId=${telegramUserId}` : 
+            endpoint;
+        
+        const response = await fetch(fetchUrl);
         
         if (!response.ok) {
             throw new Error(`Failed to fetch metrics: ${response.status}`);
         }
         
         const data = await response.json();
-        console.log('Received metrics:', data);
+        console.log('Received metrics data:', data);
+        
+        // Add current session tokens to the metrics
+        if (typeof window.totalTokensEarned !== 'undefined' && window.totalTokensEarned > 0) {
+            data.tokens = window.totalTokensEarned;
+        }
+        
+        // Update UI with fetched metrics
+        updateRewardsUI(data);
         return data;
     } catch (error) {
-        console.error('Error fetching user metrics:', error);
-        return getDemoMetrics();
+        console.warn('Error fetching metrics from API, using local storage or demo data:', error);
+        
+        // Try to use cached metrics from localStorage
+        try {
+            const cachedMetrics = localStorage.getItem('user_metrics');
+            if (cachedMetrics) {
+                const metrics = JSON.parse(cachedMetrics);
+                console.log('Using cached metrics from localStorage:', metrics);
+                
+                // Add current session tokens to the cached metrics
+                if (typeof window.totalTokensEarned !== 'undefined' && window.totalTokensEarned > 0) {
+                    metrics.tokens = window.totalTokensEarned;
+                }
+                
+                updateRewardsUI(metrics);
+                return metrics;
+            }
+        } catch (storageError) {
+            console.error('Error reading cached metrics:', storageError);
+        }
+        
+        // Fallback to demo metrics if nothing else is available
+        const demoMetrics = getDemoMetrics();
+        
+        // Add current session tokens to the demo metrics
+        if (typeof window.totalTokensEarned !== 'undefined' && window.totalTokensEarned > 0) {
+            demoMetrics.tokens = window.totalTokensEarned;
+        }
+        
+        updateRewardsUI(demoMetrics);
+        return demoMetrics;
     }
 }
 
@@ -335,8 +385,15 @@ async function fetchUserMetrics() {
  * Updates the rewards UI with the fetched metrics
  */
 function updateRewardsUI(metrics) {
+    // First, check if we have local earned tokens that should override API values
+    // This ensures we show tokens earned in the current session
+    if (typeof window.totalTokensEarned !== 'undefined' && window.totalTokensEarned > 0) {
+        metrics.tokens = window.totalTokensEarned;
+        console.log('Using locally tracked tokens for UI update:', metrics.tokens);
+    }
+    
     // Update token balance
-    document.getElementById('token-balance').textContent = metrics.tokens.toFixed(2);
+    document.getElementById('token-balance').textContent = Math.round(metrics.tokens);
     
     // Update rank badge
     const rankName = document.getElementById('rank-name');
@@ -344,7 +401,30 @@ function updateRewardsUI(metrics) {
     rankName.className = ''; // Reset classes
     rankName.classList.add('rank-name', `${metrics.seedingRank.toLowerCase()}-rank`);
     
-    // Update stats
+    // Get current torrent stats for accurate display
+    let currentUploaded = 0;
+    let currentPeers = 0;
+    let currentSeedingTime = 0;
+    
+    if (window.currentTorrent) {
+        // Get live stats from the current torrent
+        currentUploaded = window.currentTorrent.uploaded || 0;
+        currentPeers = window.currentTorrent.numPeers || 0;
+        
+        // Add current torrent's uploaded bytes to total
+        metrics.seedingStats.totalBytesUploaded += currentUploaded;
+        
+        // Add current peers to total peers served
+        metrics.seedingStats.totalPeersServed += currentPeers;
+        
+        // Calculate current seeding time
+        if (window.seedingStartTime) {
+            currentSeedingTime = (Date.now() - window.seedingStartTime) / 1000; // in seconds
+            metrics.seedingStats.totalSeedingTime += currentSeedingTime;
+        }
+    }
+    
+    // Update stats display with combined values
     document.getElementById('total-uploaded').textContent = formatBytes(metrics.seedingStats.totalBytesUploaded);
     
     const seedingHours = metrics.seedingStats.totalSeedingTime / 3600;
@@ -352,6 +432,11 @@ function updateRewardsUI(metrics) {
         seedingHours < 1 
             ? `${Math.round(seedingHours * 60)} mins` 
             : `${seedingHours.toFixed(1)} hrs`;
+    
+    // Ensure we have at least 1 content item seeded if user is currently seeding
+    if (window.currentTorrent && metrics.seedingStats.contentSeeded === 0) {
+        metrics.seedingStats.contentSeeded = 1;
+    }
     
     document.getElementById('content-seeded').textContent = metrics.seedingStats.contentSeeded;
     document.getElementById('peers-served').textContent = metrics.seedingStats.totalPeersServed;
@@ -368,11 +453,39 @@ function updateRewardsUI(metrics) {
         if (telegramElement) {
             telegramElement.textContent = `@${metrics.telegramData.telegramUsername}`;
         }
+    } else if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+        // If we're in Telegram but didn't get user data from the API, use the WebApp data
+        const telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
+        
+        // Add telegram info to UI if there's a place for it
+        const telegramElement = document.getElementById('telegram-username');
+        if (telegramElement && telegramUser.username) {
+            telegramElement.textContent = `@${telegramUser.username}`;
+        }
     }
     
     // Update activity list
     if (metrics.recentHistory && metrics.recentHistory.length > 0) {
         updateActivityList(metrics.recentHistory);
+    } else if (window.currentTorrent) {
+        // Create a simple activity entry for the current seeding session
+        const currentActivity = [{
+            title: window.currentTorrent.name || 'Current Video',
+            startTime: new Date(window.seedingStartTime || Date.now()).toISOString(),
+            endTime: new Date().toISOString(),
+            bytesUploaded: currentUploaded,
+            duration: currentSeedingTime,
+            peers: currentPeers
+        }];
+        updateActivityList(currentActivity);
+    }
+    
+    // Save metrics to localStorage for persistence
+    try {
+        localStorage.setItem('user_metrics', JSON.stringify(metrics));
+        console.log('Saved user metrics to localStorage');
+    } catch (error) {
+        console.error('Failed to save metrics to localStorage:', error);
     }
 }
 
@@ -544,16 +657,54 @@ function showRewardInfo() {
  * Returns demo metrics data
  */
 function getDemoMetrics() {
+    // Use the real token count if available
+    const tokens = window.totalTokensEarned || 0;
+    
+    // Get actual torrent data if available
+    let uploaded = 0;
+    let peers = 0;
+    let seedingTime = 0;
+    let contentName = 'Big Buck Bunny';
+    
+    if (window.currentTorrent) {
+        uploaded = window.currentTorrent.uploaded || 0;
+        peers = window.currentTorrent.numPeers || 0;
+        contentName = window.currentTorrent.name || contentName;
+    }
+    
+    if (window.seedingStartTime) {
+        seedingTime = (Date.now() - window.seedingStartTime) / 1000; // in seconds
+    }
+    
+    // Current date for recent activity
+    const now = new Date();
+    const oneMinuteAgo = new Date(now.getTime() - 60000);
+    const fiveMinutesAgo = new Date(now.getTime() - 300000);
+    
     return {
-        tokens: parseFloat(localStorage.getItem('demoTokens') || '0'),
-        seedingRank: localStorage.getItem('demoRank') || 'Starter',
+        tokens: tokens,
+        seedingRank: tokens < 10 ? "Starter" : tokens < 50 ? "Bronze" : tokens < 100 ? "Silver" : "Gold",
         seedingStats: {
-            totalBytesUploaded: parseInt(localStorage.getItem('demoUploaded') || '0'),
-            totalSeedingTime: parseInt(localStorage.getItem('demoSeedingTime') || '0'),
-            contentSeeded: parseInt(localStorage.getItem('demoContentSeeded') || '0'),
-            totalPeersServed: parseInt(localStorage.getItem('demoPeersServed') || '0')
+            totalBytesUploaded: uploaded || 1024 * 1024 * 5, // 5MB or actual uploaded
+            totalSeedingTime: seedingTime || 120, // 2 minutes or actual time
+            contentSeeded: 1,
+            totalPeersServed: peers || 2
         },
-        recentHistory: []
+        recentHistory: [
+            {
+                title: contentName,
+                startTime: fiveMinutesAgo.toISOString(),
+                endTime: oneMinuteAgo.toISOString(),
+                bytesUploaded: uploaded || 1024 * 1024 * 2,
+                duration: seedingTime || 240,
+                peers: peers || 2
+            }
+        ],
+        telegramData: window.Telegram?.WebApp?.initDataUnsafe?.user ? {
+            telegramId: window.Telegram.WebApp.initDataUnsafe.user.id,
+            telegramUsername: window.Telegram.WebApp.initDataUnsafe.user.username || 'telegram_user',
+            telegramHandle: window.Telegram.WebApp.initDataUnsafe.user.username || 'telegram_user'
+        } : null
     };
 }
 
