@@ -24,6 +24,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Set up settings icon
   setupSettingsIcon();
+
+  // Initialize Telegram App
+  initTelegramApp();
+  
+  // Display user points if available
+  displayUserPoints();
 });
 
 // Function to set up settings icon
@@ -32,10 +38,14 @@ function setupSettingsIcon() {
     
     if (settingsIcon) {
         settingsIcon.addEventListener('click', function() {
-            // Navigate to account settings page using URL normalizer if available
+            console.log('Settings icon clicked');
+            
+            // Check if getAssetUrl is available (URL normalizer)
             if (window.getAssetUrl) {
-                window.location.href = window.getAssetUrl('pages/account-settings.html');
+                // Navigate to account settings page using the URL normalizer
+                window.location.href = window.getAssetUrl('account-settings.html');
             } else {
+                // Fallback to direct link
                 window.location.href = 'account-settings.html';
             }
         });
@@ -261,4 +271,78 @@ function setupFollowButton() {
           }
       });
   }
+}
+
+// Initialize Telegram App
+function initTelegramApp() {
+    console.log('Initializing Telegram App from account.js');
+    
+    // Check if we already have the telegramApp global
+    if (window.telegramApp) {
+        console.log('Telegram App already initialized');
+        return;
+    }
+    
+    // Check if Telegram SDK is loaded
+    if (typeof TelegramApp === 'function') {
+        try {
+            window.telegramApp = new TelegramApp();
+            console.log('Telegram App initialized successfully');
+            
+            // Update UI with user data
+            if (window.telegramApp.user) {
+                updateUserProfileWithTelegramData(window.telegramApp.user);
+            }
+        } catch (e) {
+            console.error('Failed to initialize Telegram App:', e);
+        }
+    } else {
+        console.log('Telegram App constructor not available');
+    }
+}
+
+// Display user points in the UI
+function displayUserPoints() {
+    // Check if user has points from Telegram
+    if (window.telegramApp && typeof window.telegramApp.getPoints === 'function') {
+        const userPoints = window.telegramApp.getPoints();
+        
+        if (userPoints > 0) {
+            // Create or update points display
+            let pointsDisplay = document.querySelector('.user-points');
+            
+            if (!pointsDisplay) {
+                pointsDisplay = document.createElement('div');
+                pointsDisplay.className = 'user-points';
+                pointsDisplay.style.backgroundColor = 'rgba(76, 175, 80, 0.2)';
+                pointsDisplay.style.color = '#4CAF50';
+                pointsDisplay.style.padding = '8px 12px';
+                pointsDisplay.style.borderRadius = '20px';
+                pointsDisplay.style.fontWeight = 'bold';
+                pointsDisplay.style.display = 'flex';
+                pointsDisplay.style.alignItems = 'center';
+                pointsDisplay.style.marginTop = '10px';
+                
+                // Add to profile info
+                const profileInfoDiv = document.querySelector('.profile-info');
+                if (profileInfoDiv) {
+                    profileInfoDiv.appendChild(pointsDisplay);
+                }
+            }
+            
+            // Update the points display
+            pointsDisplay.innerHTML = `<i class="fas fa-coins" style="margin-right: 6px;"></i> ${Math.round(userPoints)} points`;
+        }
+    }
+}
+
+// Update user profile with Telegram data
+function updateUserProfileWithTelegramData(user) {
+    if (!user) return;
+    
+    // Update username
+    const usernameElement = document.querySelector('.username');
+    if (usernameElement && user.first_name) {
+        usernameElement.textContent = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+    }
 }

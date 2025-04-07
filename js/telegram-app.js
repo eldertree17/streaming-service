@@ -6,6 +6,7 @@ class TelegramApp {
         // Use the already initialized WebApp from the initialization script
         this.webApp = window.Telegram?.WebApp;
         this.user = null;
+        this.userPoints = 0; // Initialize user points
         
         // Check if Telegram WebApp is available and initialized
         if (this.webApp) {
@@ -19,6 +20,9 @@ class TelegramApp {
             try {
                 this.user = this.webApp.initDataUnsafe?.user || null;
                 console.log('User data retrieved:', this.user);
+                
+                // Load user points from local storage if available
+                this.loadUserPoints();
             } catch (e) {
                 console.error('Error retrieving user data:', e);
             }
@@ -26,6 +30,9 @@ class TelegramApp {
             console.log('Telegram WebApp not available, running in browser mode');
             // Create fallback for browser testing
             this.simulateTelegramApp();
+            
+            // Load points for simulated user
+            this.loadUserPoints();
         }
         
         try {
@@ -158,6 +165,108 @@ class TelegramApp {
             }
         } catch (e) {
             console.error('Error updating UI:', e);
+        }
+    }
+    
+    // Add points to user's account
+    addPoints(points) {
+        console.log(`Adding ${points} points to user ${this.user?.id || 'unknown'}`);
+        
+        if (!points || isNaN(points) || points <= 0) {
+            console.warn('Invalid points value:', points);
+            return 0;
+        }
+        
+        // Add points to user's total
+        this.userPoints += points;
+        
+        // Save updated points to storage
+        this.saveUserPoints();
+        
+        // Notify Telegram about points update (if connected)
+        this.notifyTelegramPointsUpdate();
+        
+        console.log(`User now has ${this.userPoints} total points`);
+        return this.userPoints;
+    }
+    
+    // Get user's current points
+    getPoints() {
+        return this.userPoints;
+    }
+    
+    // Save user points to local storage
+    saveUserPoints() {
+        try {
+            const userId = this.user?.id || 'browser-test-user';
+            const storageKey = `streamflix_points_${userId}`;
+            localStorage.setItem(storageKey, this.userPoints.toString());
+            console.log(`Saved ${this.userPoints} points for user ${userId}`);
+        } catch (e) {
+            console.error('Error saving user points:', e);
+        }
+    }
+    
+    // Load user points from local storage
+    loadUserPoints() {
+        try {
+            const userId = this.user?.id || 'browser-test-user';
+            const storageKey = `streamflix_points_${userId}`;
+            const storedPoints = localStorage.getItem(storageKey);
+            
+            if (storedPoints !== null) {
+                this.userPoints = parseInt(storedPoints, 10);
+                console.log(`Loaded ${this.userPoints} points for user ${userId}`);
+            } else {
+                console.log(`No stored points found for user ${userId}`);
+                this.userPoints = 0;
+            }
+        } catch (e) {
+            console.error('Error loading user points:', e);
+            this.userPoints = 0;
+        }
+    }
+    
+    // Notify Telegram about points update
+    notifyTelegramPointsUpdate() {
+        if (!this.webApp) {
+            console.log('Telegram WebApp not available, skipping points notification');
+            return;
+        }
+        
+        try {
+            // Use Telegram's CloudStorage if available to store points
+            if (this.webApp.CloudStorage) {
+                const userData = {
+                    points: this.userPoints,
+                    lastUpdated: new Date().toISOString()
+                };
+                
+                this.webApp.CloudStorage.setItem('user_points', JSON.stringify(userData), (error, success) => {
+                    if (error) {
+                        console.error('Error storing points in Telegram Cloud:', error);
+                    } else {
+                        console.log('Points successfully stored in Telegram Cloud');
+                    }
+                });
+            } else {
+                console.log('Telegram CloudStorage not available');
+            }
+            
+            // Send data back to Telegram Bot
+            if (this.webApp.sendData) {
+                const data = JSON.stringify({
+                    action: 'update_points',
+                    points: this.userPoints,
+                    userId: this.user?.id,
+                    timestamp: new Date().toISOString()
+                });
+                
+                console.log('Sending points data to Telegram:', data);
+                this.webApp.sendData(data);
+            }
+        } catch (e) {
+            console.error('Error notifying Telegram about points update:', e);
         }
     }
 }

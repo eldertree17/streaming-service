@@ -1,6 +1,55 @@
 // Magnet URI for sample content (Big Buck Bunny)
 const SAMPLE_MAGNET_URI = 'magnet:?xt=urn:btih:dd8255ecdc7ca55fb0bbf81323d87062db1f6d1c&dn=Big+Buck+Bunny&tr=udp%3A%2F%2Fexplodie.org%3A6969&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.empire-js.us%3A1337&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337&tr=wss%3A%2F%2Ftracker.btorrent.xyz&tr=wss%3A%2F%2Ftracker.fastcast.nz&tr=wss%3A%2F%2Ftracker.openwebtorrent.com&ws=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2F&xs=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2Fbig-buck-bunny.torrent';
 
+// Initialize Telegram WebApp if available
+function initTelegramWebApp() {
+    console.log('Initializing Telegram WebApp from watch.js');
+    
+    // Check if we already have a Telegram app instance
+    if (window.telegramApp) {
+        console.log('TelegramApp already initialized');
+        return;
+    }
+    
+    // Check if the TelegramApp constructor is available
+    if (typeof TelegramApp === 'function') {
+        try {
+            // Create a new instance
+            window.telegramApp = new TelegramApp();
+            console.log('TelegramApp initialized successfully');
+            
+            // Show current user points if available
+            if (window.telegramApp.getPoints) {
+                const userPoints = window.telegramApp.getPoints();
+                console.log(`User has ${userPoints} points in Telegram`);
+                
+                // If we have points stored in Telegram, use those as the starting value
+                if (userPoints > 0) {
+                    // Initialize totalTokensEarned if needed
+                    if (typeof window.totalTokensEarned === 'undefined') {
+                        window.totalTokensEarned = 0;
+                    }
+                    
+                    // Add Telegram points to the display (but only if we don't already have points)
+                    if (window.totalTokensEarned === 0) {
+                        window.totalTokensEarned = userPoints;
+                        
+                        // Update the display
+                        const earningRateElement = document.getElementById('earning-rate');
+                        if (earningRateElement) {
+                            earningRateElement.textContent = Math.round(userPoints);
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error initializing TelegramApp:', error);
+        }
+    } else {
+        console.log('TelegramApp constructor not available');
+    }
+}
+
 // Ensure WebTorrent is properly loaded
 console.log('Checking WebTorrent availability in watch.js');
 if (typeof WebTorrent === 'undefined') {
@@ -451,109 +500,140 @@ let currentTorrent;
 
 // Function to set up play button
 function setupPlayButton() {
-    console.log('Setting up original play button in watch.js');
-    
-    // Don't delegate to WatchPlayer here - we want to make sure the torrent functionality works
-    // We'll let WatchPlayer add its event handlers later in initWatchPage
-    
     const playButton = document.getElementById('play-button');
-    const videoThumbnail = document.querySelector('.video-thumbnail');
     const videoPlayer = document.getElementById('video-player');
+    const videoThumbnail = document.querySelector('.video-thumbnail');
     const loadingIndicator = document.getElementById('loading-indicator');
     const torrentInfo = document.getElementById('torrent-info');
-    const loadingProgress = document.getElementById('loading-progress');
-    const videoContainer = document.querySelector('.video-player');
     
-    if (playButton) {
-        // Log URL parameters when the page loads
-        console.log('Play button ready, URL:', window.location.href);
+    if (!playButton) return;
+
+    // Show user points when the play button is hovered if Telegram is connected
+    playButton.addEventListener('mouseover', function() {
+        if (window.telegramApp && typeof window.telegramApp.getPoints === 'function') {
+            const userPoints = window.telegramApp.getPoints();
+            if (userPoints > 0) {
+                // Create or update a tooltip showing user points
+                let tooltipElem = document.getElementById('points-tooltip');
+                if (!tooltipElem) {
+                    tooltipElem = document.createElement('div');
+                    tooltipElem.id = 'points-tooltip';
+                    tooltipElem.style.position = 'absolute';
+                    tooltipElem.style.bottom = 'calc(100% + 10px)';
+                    tooltipElem.style.left = '50%';
+                    tooltipElem.style.transform = 'translateX(-50%)';
+                    tooltipElem.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+                    tooltipElem.style.color = 'white';
+                    tooltipElem.style.padding = '5px 10px';
+                    tooltipElem.style.borderRadius = '4px';
+                    tooltipElem.style.fontSize = '12px';
+                    tooltipElem.style.zIndex = '1000';
+                    tooltipElem.style.pointerEvents = 'none';
+                    playButton.appendChild(tooltipElem);
+                }
+                
+                tooltipElem.textContent = `You have ${Math.round(userPoints)} points`;
+                tooltipElem.style.display = 'block';
+            }
+        }
+    });
+
+    // Hide the tooltip when mouse leaves
+    playButton.addEventListener('mouseout', function() {
+        const tooltipElem = document.getElementById('points-tooltip');
+        if (tooltipElem) {
+            tooltipElem.style.display = 'none';
+        }
+    });
+    
+    playButton.addEventListener('click', function() {
+        // Show loading indicator
+        if (loadingIndicator) {
+            loadingIndicator.style.display = 'flex';
+        }
         
-        // Remove any existing click handlers to avoid duplicates
-        const newPlayButton = playButton.cloneNode(true);
-        playButton.parentNode.replaceChild(newPlayButton, playButton);
+        // Hide play button
+        playButton.style.display = 'none';
         
-        newPlayButton.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('Play button clicked in watch.js - starting torrent download');
-            
-            // Show loading indicator and hide play button
-            newPlayButton.style.display = 'none';
-            newPlayButton.style.visibility = 'hidden';
-            newPlayButton.style.opacity = '0';
-            newPlayButton.style.pointerEvents = 'none';
-            
-            // Add loading-active class to video container
-            if (videoContainer) {
-                videoContainer.classList.add('loading-active');
+        // Update UI elements for video playback
+        if (videoPlayer) {
+            videoPlayer.style.visibility = 'visible';
+            videoPlayer.style.display = 'block';
+        }
+        
+        if (videoThumbnail) {
+            videoThumbnail.style.display = 'none';
+        }
+        
+        // Set up mock movie data for the sample video
+        document.querySelector('h1').textContent = "Big Buck Bunny";
+        document.querySelector('.year').textContent = "2008";
+        document.querySelector('.rating').textContent = "G";
+        document.querySelector('.duration').textContent = "10m";
+        document.querySelector('.quality').textContent = "HD";
+        
+        // Reset points earned display
+        const earningRateElement = document.getElementById('earning-rate');
+        if (earningRateElement) {
+            // Check for Telegram points first
+            let startingPoints = 0;
+            if (window.telegramApp && typeof window.telegramApp.getPoints === 'function') {
+                startingPoints = window.telegramApp.getPoints();
             }
             
-            // Display loading indicator
-            if (loadingIndicator) {
-                loadingIndicator.style.display = 'flex';
-                loadingIndicator.style.opacity = '1';
-            }
+            // Display either the Telegram points or 0
+            earningRateElement.textContent = startingPoints > 0 ? Math.round(startingPoints) : '0';
             
-            // Update movie data for Big Buck Bunny
-            document.getElementById('movie-title').textContent = "Big Buck Bunny";
-            document.querySelector('.year').textContent = "2008";
-            document.querySelector('.rating').textContent = "G";
-            document.querySelector('.duration').textContent = "10m";
-            document.querySelector('.quality').textContent = "HD";
-            
-            // Reset points earned display
-            const earningRateElement = document.getElementById('earning-rate');
-            if (earningRateElement) {
-                earningRateElement.textContent = '0';
-            }
-            
-            // Clear and populate genres
-            const genreTags = document.querySelector('.genre-tags');
-            genreTags.innerHTML = '';
-            
-            ['Animation', 'Short', 'Comedy'].forEach(genre => {
-                const genreTag = document.createElement('span');
-                genreTag.className = 'genre-tag';
-                genreTag.textContent = genre;
-                genreTags.appendChild(genreTag);
-            });
-            
-            // Update description
-            document.querySelector('.movie-description p').textContent = 
-                "Three rodents amuse themselves by harassing creatures of the forest. However, the fly can take care of itself.";
-            
-            // Update director
-            document.getElementById('director-info').textContent = 'Sacha Goedegebure';
-            
-            // Make the torrent info visible
-            torrentInfo.style.display = 'block';
-            
-            // Get the contentId from URL if available
-            const urlParams = new URLSearchParams(window.location.search);
-            const movieId = urlParams.get('id');
-            
-            console.log('Movie ID from URL:', movieId);
-            
-            if (movieId) {
-                // Fetch movie data from API if we have an ID
-                fetchMovieData(movieId).then(movie => {
-                    if (movie) {
-                        streamTorrent(movie.magnetUri);
-                    } else {
-                        // Fallback to sample torrent
-                        streamTorrent(SAMPLE_MAGNET_URI);
-                    }
-                }).catch(err => {
-                    console.error('Error fetching movie data:', err);
+            // Initialize the total tokens with the Telegram points
+            window.totalTokensEarned = startingPoints;
+        }
+        
+        // Clear and populate genres
+        const genreTags = document.querySelector('.genre-tags');
+        genreTags.innerHTML = '';
+        
+        ['Animation', 'Short', 'Comedy'].forEach(genre => {
+            const genreTag = document.createElement('span');
+            genreTag.className = 'genre-tag';
+            genreTag.textContent = genre;
+            genreTags.appendChild(genreTag);
+        });
+        
+        // Update description
+        document.querySelector('.movie-description p').textContent = 
+            "Three rodents amuse themselves by harassing creatures of the forest. However, the fly can take care of itself.";
+        
+        // Update director
+        document.getElementById('director-info').textContent = 'Sacha Goedegebure';
+        
+        // Make the torrent info visible
+        torrentInfo.style.display = 'block';
+        
+        // Get the contentId from URL if available
+        const urlParams = new URLSearchParams(window.location.search);
+        const movieId = urlParams.get('id');
+        
+        console.log('Movie ID from URL:', movieId);
+        
+        if (movieId) {
+            // Fetch movie data from API if we have an ID
+            fetchMovieData(movieId).then(movie => {
+                if (movie) {
+                    streamTorrent(movie.magnetUri);
+                } else {
                     // Fallback to sample torrent
                     streamTorrent(SAMPLE_MAGNET_URI);
-                });
-            } else {
-                // Use the sample magnet URI if no ID provided
+                }
+            }).catch(err => {
+                console.error('Error fetching movie data:', err);
+                // Fallback to sample torrent
                 streamTorrent(SAMPLE_MAGNET_URI);
-            }
-        });
-    }
+            });
+        } else {
+            // Use the sample magnet URI if no ID provided
+            streamTorrent(SAMPLE_MAGNET_URI);
+        }
+    });
 }
 
 // Function to stream using WebTorrent

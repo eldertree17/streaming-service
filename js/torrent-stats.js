@@ -758,38 +758,62 @@ async function reportMetrics(uploadSpeed, numPeers) {
             timestamp: new Date().toISOString()
         };
 
-        // Send metrics to backend - updating port to 5003
-        const response = await fetch('http://localhost:5003/api/metrics/seeding', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-demo-user': 'demo123' // For development/demo purposes
-            },
-            body: JSON.stringify(currentMetrics)
-        });
+        // Try to send metrics to backend - but don't block points for failure
+        let apiTokensEarned = 0;
+        try {
+            const response = await fetch('http://localhost:5003/api/metrics/seeding', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-demo-user': 'demo123' // For development/demo purposes
+                },
+                body: JSON.stringify(currentMetrics)
+            });
 
-        if (response.ok) {
-            const data = await response.json();
-            
-            // Update the cumulative total of tokens earned
-            if (data.tokensEarned > 0) {
-                // Add the newly earned tokens to the total
-                if (typeof window.totalTokensEarned === 'undefined') {
-                    window.totalTokensEarned = 0;
-                }
-                window.totalTokensEarned += data.tokensEarned;
-                
-                // Update the reward badge to show the total tokens earned
-                const rewardBadge = document.querySelector('.reward-badge');
-                const rewardAmount = rewardBadge?.querySelector('.reward-amount');
-                if (rewardAmount) {
-                    // Round to nearest integer and display total tokens
-                    const totalTokensDisplay = Math.round(window.totalTokensEarned);
-                    rewardAmount.textContent = totalTokensDisplay;
-                }
-                
-                console.log(`Metrics Update - Upload Speed: ${uploadSpeedMbps.toFixed(2)} Mbps, Peers: ${numPeers}, Tokens Earned: ${data.tokensEarned}, Total: ${window.totalTokensEarned}`);
+            if (response.ok) {
+                const data = await response.json();
+                apiTokensEarned = data.tokensEarned || 0;
             }
+        } catch (apiError) {
+            console.log('API metrics reporting failed, continuing with local points:', apiError);
+            // We'll still award points below even if API fails
+        }
+        
+        // If API didn't return tokens, calculate them locally
+        let tokensEarned = apiTokensEarned;
+        if (tokensEarned <= 0) {
+            // Generate some points based on upload speed
+            tokensEarned = uploadSpeedMbps * 0.1; // 0.1 tokens per Mbps
+        }
+        
+        // Add the newly earned tokens to the total
+        if (typeof window.totalTokensEarned === 'undefined') {
+            window.totalTokensEarned = 0;
+        }
+        
+        // Add the points
+        window.totalTokensEarned += tokensEarned;
+        
+        // Update the reward badge to show the total tokens earned
+        const rewardBadge = document.querySelector('.reward-badge');
+        const rewardAmount = rewardBadge?.querySelector('.reward-amount');
+        if (rewardAmount) {
+            // Round to nearest integer and display total tokens
+            const totalTokensDisplay = Math.round(window.totalTokensEarned);
+            rewardAmount.textContent = totalTokensDisplay;
+        }
+        
+        console.log(`Metrics Update - Upload Speed: ${uploadSpeedMbps.toFixed(2)} Mbps, Peers: ${numPeers}, Tokens Earned: ${tokensEarned}, Total: ${window.totalTokensEarned}`);
+        
+        // Send points earned to Telegram if TelegramApp is available
+        if (window.telegramApp && typeof window.telegramApp.addPoints === 'function') {
+            const roundedTokens = Math.round(tokensEarned);
+            if (roundedTokens > 0) {
+                console.log(`Adding ${roundedTokens} points to Telegram user account`);
+                window.telegramApp.addPoints(roundedTokens);
+            }
+        } else {
+            console.log('TelegramApp not available, points stored locally only');
         }
     } catch (error) {
         console.error('Error reporting metrics:', error);
