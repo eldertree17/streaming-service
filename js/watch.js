@@ -1067,12 +1067,12 @@ function setupSeedOnlyButton() {
 function handleSeedOnlyClick() {
     console.log('Seed Only button clicked');
     const button = this;
-    // Disable the button to prevent multiple clicks
+        // Disable the button to prevent multiple clicks
     button.disabled = true;
     button.innerHTML = '<i class="fas fa-sync fa-spin"></i> Preparing...';
-    
-    // Start the seeding-only process
-    seedOnlyTorrent();
+        
+        // Start the seeding-only process
+        seedOnlyTorrent();
 }
 
 // Function to seed a torrent without playing the video
@@ -1888,6 +1888,12 @@ function handleTorrentDone(torrent) {
     
     // Make sure torrent is available globally
     window.currentTorrent = torrent;
+    
+    // Initialize the torrent stats buttons to ensure they work
+    if (window.TorrentStats && typeof window.TorrentStats.initTorrentStats === 'function') {
+        console.log('Initializing torrent stats after download completion');
+        window.TorrentStats.initTorrentStats();
+    }
     
     // Set up metrics reporting if not already running
     if (!window.metricsInterval) {
