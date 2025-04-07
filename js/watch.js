@@ -150,29 +150,8 @@ async function initWatchPage() {
         console.warn('WatchPlayer module not found, using standard setup');
     }
     
-    // Make sure the original watch.js setupPlayButton gets called
-    // This is crucial for the torrent functionality to work
-    setupPlayButton();
-    
-    // Only after the original setup is done, add the WatchPlayer's additional handlers
-    // This ensures we don't interfere with the core torrent functionality
-    if (window.WatchPlayer && typeof window.WatchPlayer.setupPlayButton === 'function') {
-        console.log('Adding WatchPlayer additional play button functionality');
-        window.WatchPlayer.setupPlayButton();
-    }
-    
-    // Initialize the TorrentStats module if available
-    if (window.TorrentStats) {
-        console.log('Initializing TorrentStats module');
-        // No explicit initialization needed as it's handled by the module itself
-    } else {
-        console.warn('TorrentStats module not found');
-    }
-    
     // Setup UI elements
     setupBackButton();
-    setupSeedOnlyButton(); 
-    setupStopSeedingButton(); // Add setup for Stop Seeding button
     setupModals();
     setupCommentInput();
     setupCommentActions();
@@ -211,10 +190,18 @@ async function initWatchPage() {
     // Add debug button for video troubleshooting
     addDebugButton();
 
-    // Set up buttons
+    // Set up all interactive buttons after content is loaded
+    // This ensures they have access to the content data
     setupPlayButton();
     setupSeedOnlyButton();
+    setupStopSeedingButton();
     setupBuyButton();
+    
+    // Initialize Telegram-specific functionality if we're in the mini app
+    if (window.Telegram && window.Telegram.WebApp) {
+        console.log('Initializing Telegram mini app specific features');
+        setupTelegramForm();
+    }
 }
 
 // Function to load movie data
@@ -2720,58 +2707,91 @@ function resetPlayerUI() {
 
 // Function to set up the Buy button
 function setupBuyButton() {
+    console.log('Setting up Buy button');
     const buyButton = document.querySelector('.btn-buy');
     
     if (buyButton) {
         // Get current movie title for checking if already purchased
-        const movieTitle = document.getElementById('movie-title').textContent;
+        const movieTitle = document.getElementById('movie-title')?.textContent;
+        
+        if (!movieTitle) {
+            console.warn('Movie title not found, cannot check purchase status');
+            return;
+        }
+        
+        console.log('Checking purchase status for:', movieTitle);
         
         // Check if this movie is already purchased
         if (isContentPurchased(movieTitle)) {
+            console.log('Content already purchased, updating button');
             // Update button to show purchased state
             buyButton.innerHTML = '<i class="fas fa-check"></i> Bought';
             buyButton.style.backgroundColor = '#4CAF50';
             buyButton.disabled = true;
+        } else {
+            console.log('Content not purchased, setting up click handler');
+            // Ensure the button shows the correct initial state
+            buyButton.innerHTML = '<i class="fas fa-shopping-cart"></i> Buy';
+            buyButton.style.backgroundColor = '#FF4500';
+            buyButton.disabled = false;
         }
         
-        buyButton.addEventListener('click', function() {
-            // Get current movie data
-            const movieTitle = document.getElementById('movie-title').textContent;
-            const description = document.querySelector('.movie-description p').textContent;
-            const year = document.querySelector('.year').textContent;
-            const rating = document.querySelector('.rating').textContent;
-            
-            // Get movie image (use a default if not available)
-            const defaultImage = "https://images.unsplash.com/photo-1542204165-65bf26472b9b";
-            
-            // Determine if this is a movie or TV show based on content type or URL parameters
-            const urlParams = new URLSearchParams(window.location.search);
-            const contentType = urlParams.get('type') || 'movie'; // Default to movie
-            
-            // Create movie object
-            const movieData = {
-                title: movieTitle,
-                description: description,
-                rating: parseInt(rating) || 5,
-                image: defaultImage,
-                purchaseDate: new Date().toISOString()
-            };
-            
-            // Save to user's collection in localStorage
-            saveToUserCollection(movieData, contentType);
-            
-            // Update button to "Bought"
-            this.innerHTML = '<i class="fas fa-check"></i> Bought';
-            this.style.backgroundColor = '#4CAF50';
-            this.disabled = true;
-            
-            // Show success notification
-            if (typeof showNotification === 'function') {
-                showNotification('Added to your collection!', 'success');
-            } else {
-                alert('Added to your collection!');
-            }
-        });
+        // Remove any existing click listeners to prevent duplicates
+        buyButton.removeEventListener('click', handleBuyButtonClick);
+        
+        // Add click handler
+        buyButton.addEventListener('click', handleBuyButtonClick);
+    } else {
+        console.warn('Buy button not found in the DOM');
+    }
+}
+
+// Separate the button click handler for cleaner code
+function handleBuyButtonClick() {
+    console.log('Buy button clicked');
+    // Get current movie data
+    const movieTitle = document.getElementById('movie-title').textContent;
+    const description = document.querySelector('.movie-description p')?.textContent || '';
+    const year = document.querySelector('.year')?.textContent || '';
+    const rating = document.querySelector('.rating')?.textContent || '';
+    
+    // Get movie image (use a default if not available)
+    const defaultImage = "https://images.unsplash.com/photo-1542204165-65bf26472b9b";
+    
+    // Determine if this is a movie or TV show based on content type or URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const contentType = urlParams.get('type') || 'movie'; // Default to movie
+    
+    // Create movie object
+    const movieData = {
+        title: movieTitle,
+        description: description,
+        rating: parseInt(rating) || 5,
+        image: defaultImage,
+        purchaseDate: new Date().toISOString()
+    };
+    
+    // Save to user's collection in localStorage
+    saveToUserCollection(movieData, contentType);
+    
+    // Update button to "Bought"
+    this.innerHTML = '<i class="fas fa-check"></i> Bought';
+    this.style.backgroundColor = '#4CAF50';
+    this.disabled = true;
+    
+    // Show success notification
+    if (typeof showNotification === 'function') {
+        showNotification('Added to your collection!', 'success');
+    } else {
+        alert('Added to your collection!');
+    }
+    
+    // If we're in Telegram Mini App, ensure Telegram knows about the state change
+    if (window.Telegram && window.Telegram.WebApp) {
+        console.log('Notifying Telegram of purchase');
+        // Force a data update event
+        window.Telegram.WebApp.MainButton.isVisible = false;
+        window.Telegram.WebApp.MainButton.isVisible = true;
     }
 }
 
