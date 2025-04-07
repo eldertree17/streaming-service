@@ -2538,17 +2538,19 @@ function stopSeedingAndClaimPoints() {
         try {
             window.client.destroy(function() {
                 console.log('WebTorrent client destroyed successfully');
-                // Reinitialize the client after a short delay
-                setTimeout(function() {
-                    window.client = new WebTorrent();
-                    console.log('WebTorrent client reinitialized for new seeding session');
-                }, 500);
+                // Create new client immediately instead of using setTimeout
+                window.client = new WebTorrent();
+                console.log('WebTorrent client reinitialized for new seeding session');
             });
         } catch (error) {
             console.error('Error destroying WebTorrent client:', error);
             // Force reinitialize the client
             window.client = new WebTorrent();
         }
+    } else {
+        // Create a new client if none exists
+        window.client = new WebTorrent();
+        console.log('Created new WebTorrent client');
     }
     
     // Show a toast or notification
