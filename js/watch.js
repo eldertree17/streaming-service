@@ -2489,6 +2489,91 @@ function stopSeedingAndClaimPoints() {
         stopSeedingButton.disabled = true;
     }
     
+    // Reset the video player and UI
+    resetPlayerUI();
+    
+    // Clear all intervals to prevent points from continuing to accumulate
+    if (window.metricsInterval) {
+        clearInterval(window.metricsInterval);
+        window.metricsInterval = null;
+    }
+    
+    if (window.earningRateInterval) {
+        clearInterval(window.earningRateInterval);
+        window.earningRateInterval = null;
+    }
+    
+    if (window.directMetricsInterval) {
+        clearInterval(window.directMetricsInterval);
+        window.directMetricsInterval = null;
+    }
+    
+    if (window.seedingDurationInterval) {
+        clearInterval(window.seedingDurationInterval);
+        window.seedingDurationInterval = null;
+    }
+    
     // Show a toast or notification
     showNotification('Seeding stopped. Points claimed!', 'success');
+}
+
+// Function to reset the player UI to its default state
+function resetPlayerUI() {
+    // Reset the video player if it exists
+    const videoPlayer = document.getElementById('video-player');
+    if (videoPlayer) {
+        videoPlayer.pause();
+        videoPlayer.src = '';
+        videoPlayer.style.display = 'none';
+    }
+    
+    // Show the video thumbnail if it exists
+    const videoThumbnail = document.querySelector('.video-thumbnail');
+    if (videoThumbnail) {
+        videoThumbnail.style.display = '';
+    }
+    
+    // Show the play button
+    const playButton = document.getElementById('play-button');
+    if (playButton) {
+        playButton.style.display = '';
+        playButton.classList.remove('force-hide');
+    }
+    
+    // Hide the torrent info section
+    const torrentInfo = document.getElementById('torrent-info');
+    if (torrentInfo) {
+        torrentInfo.style.display = 'none';
+    }
+    
+    // Reset progress bar
+    const progressBar = document.getElementById('progress-bar');
+    if (progressBar) {
+        progressBar.style.width = '0%';
+        progressBar.classList.remove('completed');
+    }
+    
+    // Reset progress value
+    const torrentProgress = document.getElementById('torrent-progress');
+    if (torrentProgress) {
+        torrentProgress.textContent = '0%';
+        torrentProgress.classList.remove('completed');
+    }
+    
+    // Reset torrent stats
+    const downloadSpeed = document.getElementById('download-speed');
+    const uploadSpeed = document.getElementById('upload-speed');
+    const peersCount = document.getElementById('peers-count');
+    
+    if (downloadSpeed) downloadSpeed.textContent = '0 KB/s';
+    if (uploadSpeed) uploadSpeed.textContent = '0 KB/s';
+    if (peersCount) peersCount.textContent = '0';
+    
+    // Reset Seed Only button
+    const seedOnlyButton = document.querySelector('.btn-download');
+    if (seedOnlyButton) {
+        seedOnlyButton.disabled = false;
+        seedOnlyButton.innerHTML = '<i class="fas fa-compact-disc"></i> Seed Only';
+        seedOnlyButton.classList.remove('seeding-active');
+    }
 }

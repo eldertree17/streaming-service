@@ -957,6 +957,12 @@ html, body {
   line-height: 1.5;
 }
 
+.modal-subtitle.warning {
+  color: #dc3545;
+  font-weight: 500;
+  margin-top: 10px;
+}
+
 .modal-actions {
   display: flex;
   gap: 15px;
