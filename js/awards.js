@@ -427,11 +427,8 @@ function updateRewardsUI(metrics) {
     // Update stats display with combined values
     document.getElementById('total-uploaded').textContent = formatBytes(metrics.seedingStats.totalBytesUploaded);
     
-    const seedingHours = metrics.seedingStats.totalSeedingTime / 3600;
-    document.getElementById('total-seeding-time').textContent = 
-        seedingHours < 1 
-            ? `${Math.round(seedingHours * 60)} mins` 
-            : `${seedingHours.toFixed(1)} hrs`;
+    // Format seeding time using the new formatter
+    document.getElementById('total-seeding-time').textContent = formatSeedingTime(metrics.seedingStats.totalSeedingTime);
     
     // Ensure we have at least 1 content item seeded if user is currently seeding
     if (window.currentTorrent && metrics.seedingStats.contentSeeded === 0) {
@@ -486,6 +483,35 @@ function updateRewardsUI(metrics) {
         console.log('Saved user metrics to localStorage');
     } catch (error) {
         console.error('Failed to save metrics to localStorage:', error);
+    }
+}
+
+/**
+ * Formats seeding time in seconds to a conventional time format
+ * @param {number} seconds - Total seeding time in seconds
+ * @returns {string} Formatted time string (e.g., "2d 5h 30m 15s" or "1h 20m 45s" or "5m 30s")
+ */
+function formatSeedingTime(seconds) {
+    if (!seconds || isNaN(seconds) || seconds < 0) {
+        return '0m 0s';
+    }
+    
+    // Calculate days, hours, minutes, seconds
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    // Format based on duration
+    if (days > 0) {
+        // If days exist, show the full format
+        return `${days}d ${hours}h ${minutes}m ${secs}s`;
+    } else if (hours > 0) {
+        // If no days but hours exist
+        return `${hours}h ${minutes}m ${secs}s`;
+    } else {
+        // If less than an hour
+        return `${minutes}m ${secs}s`;
     }
 }
 
