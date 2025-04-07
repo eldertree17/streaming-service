@@ -20,6 +20,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set up QR code modal
     setupQRModal();
+    
+    // Load total contribution stats
+    loadTotalContributionStats();
 });
 
 // Function to initialize Telegram WebApp
@@ -783,3 +786,79 @@ function checkForPairingCode() {
 
 // Call this function on page load to check for pairing codes
 checkForPairingCode();
+
+/**
+ * Load and display the total contribution stats from localStorage
+ */
+function loadTotalContributionStats() {
+    try {
+        // Try to get metrics from localStorage
+        const metricsJson = localStorage.getItem('user_metrics');
+        if (metricsJson) {
+            const metrics = JSON.parse(metricsJson);
+            console.log('Found saved user metrics for contribution stats:', metrics);
+            
+            // Update total uploaded
+            const totalUploaded = document.getElementById('total-contribution-uploaded');
+            if (totalUploaded && metrics.seedingStats && metrics.seedingStats.totalBytesUploaded) {
+                totalUploaded.textContent = formatBytes(metrics.seedingStats.totalBytesUploaded);
+            }
+            
+            // Update total seeding time
+            const totalSeedingTime = document.getElementById('total-contribution-time');
+            if (totalSeedingTime && metrics.seedingStats && metrics.seedingStats.totalSeedingTime) {
+                // Use the formatSeedingTime function if available, otherwise use our formatTime
+                if (window.AwardsModule && typeof window.AwardsModule.formatSeedingTime === 'function') {
+                    totalSeedingTime.textContent = window.AwardsModule.formatSeedingTime(metrics.seedingStats.totalSeedingTime);
+                } else {
+                    totalSeedingTime.textContent = formatTime(metrics.seedingStats.totalSeedingTime);
+                }
+            }
+            
+            // Update content items seeded
+            const contentSeeded = document.getElementById('total-contribution-content');
+            if (contentSeeded && metrics.seedingStats && metrics.seedingStats.contentSeeded) {
+                contentSeeded.textContent = metrics.seedingStats.contentSeeded;
+            }
+            
+            // Update peers served
+            const peersServed = document.getElementById('total-contribution-peers');
+            if (peersServed && metrics.seedingStats && metrics.seedingStats.totalPeersServed) {
+                peersServed.textContent = metrics.seedingStats.totalPeersServed;
+            }
+            
+            console.log('Updated contribution stats display with saved metrics');
+        } else {
+            console.log('No saved metrics found for contribution stats');
+            
+            // Check for session tokens in window object for current session
+            if (typeof window.totalTokensEarned !== 'undefined' && window.totalTokensEarned > 0) {
+                console.log('Found session tokens:', window.totalTokensEarned);
+                
+                // We have session data, update stats if available
+                if (window.currentTorrent) {
+                    const totalUploaded = document.getElementById('total-contribution-uploaded');
+                    if (totalUploaded) {
+                        totalUploaded.textContent = formatBytes(window.currentTorrent.uploaded || 0);
+                    }
+                    
+                    const peersServed = document.getElementById('total-contribution-peers');
+                    if (peersServed) {
+                        peersServed.textContent = window.currentTorrent.numPeers || 0;
+                    }
+                    
+                    // Calculate seeding time if possible
+                    if (window.seedingStartTime) {
+                        const seedingTime = (Date.now() - window.seedingStartTime) / 1000;
+                        const totalSeedingTime = document.getElementById('total-contribution-time');
+                        if (totalSeedingTime) {
+                            totalSeedingTime.textContent = formatTime(seedingTime);
+                        }
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error loading contribution stats:', error);
+    }
+}

@@ -420,55 +420,58 @@ function updateRewardsUI(metrics) {
     // First, check if we have local earned tokens that should override API values
     // This ensures we show tokens earned in the current session
     if (typeof window.totalTokensEarned !== 'undefined' && window.totalTokensEarned > 0) {
-        metrics.tokens = window.totalTokensEarned;
-        console.log('Using locally tracked tokens for UI update:', metrics.tokens);
+        // For the rewards modal (session data), we only show session tokens
+        // not total tokens from all time
+        const sessionTokens = window.totalTokensEarned;
+        console.log('Using session tokens for rewards UI update:', sessionTokens);
+        
+        // Update token balance for session
+        document.getElementById('token-balance').textContent = Math.round(sessionTokens);
+        
+        // Update rank badge for session
+        const rankName = document.getElementById('rank-name');
+        const sessionRank = calculateSeedingRank(sessionTokens);
+        rankName.textContent = sessionRank;
+        rankName.className = ''; // Reset classes
+        rankName.classList.add('rank-name', `${sessionRank.toLowerCase()}-rank`);
+    } else {
+        // No session data, use whatever we have from metrics (which could be 0)
+        document.getElementById('token-balance').textContent = Math.round(metrics.tokens || 0);
+        
+        // Update rank badge
+        const rankName = document.getElementById('rank-name');
+        rankName.textContent = metrics.seedingRank || "Starter";
+        rankName.className = ''; // Reset classes
+        rankName.classList.add('rank-name', `${(metrics.seedingRank || "Starter").toLowerCase()}-rank`);
     }
     
-    // Update token balance
-    document.getElementById('token-balance').textContent = Math.round(metrics.tokens);
-    
-    // Update rank badge
-    const rankName = document.getElementById('rank-name');
-    rankName.textContent = metrics.seedingRank;
-    rankName.className = ''; // Reset classes
-    rankName.classList.add('rank-name', `${metrics.seedingRank.toLowerCase()}-rank`);
-    
-    // Get current torrent stats for accurate display
+    // Get current torrent stats for accurate display of current session
     let currentUploaded = 0;
     let currentPeers = 0;
     let currentSeedingTime = 0;
     
     if (window.currentTorrent) {
-        // Get live stats from the current torrent
+        // Get live stats from the current torrent (session stats only)
         currentUploaded = window.currentTorrent.uploaded || 0;
         currentPeers = window.currentTorrent.numPeers || 0;
         
-        // Add current torrent's uploaded bytes to total
-        metrics.seedingStats.totalBytesUploaded += currentUploaded;
-        
-        // Add current peers to total peers served
-        metrics.seedingStats.totalPeersServed += currentPeers;
-        
-        // Calculate current seeding time
+        // Calculate current seeding time for this session
         if (window.seedingStartTime) {
             currentSeedingTime = (Date.now() - window.seedingStartTime) / 1000; // in seconds
-            metrics.seedingStats.totalSeedingTime += currentSeedingTime;
         }
     }
     
-    // Update stats display with combined values
-    document.getElementById('total-uploaded').textContent = formatBytes(metrics.seedingStats.totalBytesUploaded);
+    // Update stats display with session values only
+    document.getElementById('total-uploaded').textContent = formatBytes(currentUploaded);
     
-    // Format seeding time using the new formatter
-    document.getElementById('total-seeding-time').textContent = formatSeedingTime(metrics.seedingStats.totalSeedingTime);
+    // Format seeding time using the new formatter (session time only)
+    document.getElementById('total-seeding-time').textContent = formatSeedingTime(currentSeedingTime);
     
-    // Ensure we have at least 1 content item seeded if user is currently seeding
-    if (window.currentTorrent && metrics.seedingStats.contentSeeded === 0) {
-        metrics.seedingStats.contentSeeded = 1;
-    }
+    // Display session content count (1 if currently seeding)
+    document.getElementById('content-seeded').textContent = window.currentTorrent ? 1 : 0;
     
-    document.getElementById('content-seeded').textContent = metrics.seedingStats.contentSeeded;
-    document.getElementById('peers-served').textContent = metrics.seedingStats.totalPeersServed;
+    // Display session peers
+    document.getElementById('peers-served').textContent = currentPeers;
     
     // Display telegram info if available
     if (metrics.telegramData && metrics.telegramData.telegramUsername) {
@@ -493,10 +496,8 @@ function updateRewardsUI(metrics) {
         }
     }
     
-    // Update activity list
-    if (metrics.recentHistory && metrics.recentHistory.length > 0) {
-        updateActivityList(metrics.recentHistory);
-    } else if (window.currentTorrent) {
+    // Update activity list with current session only
+    if (window.currentTorrent) {
         // Create a simple activity entry for the current seeding session
         const currentActivity = [{
             title: window.currentTorrent.name || 'Current Video',
@@ -507,15 +508,13 @@ function updateRewardsUI(metrics) {
             peers: currentPeers
         }];
         updateActivityList(currentActivity);
+    } else if (metrics.recentHistory && metrics.recentHistory.length > 0) {
+        // No current torrent but we have history
+        updateActivityList(metrics.recentHistory);
     }
     
-    // Save metrics to localStorage for persistence
-    try {
-        localStorage.setItem('user_metrics', JSON.stringify(metrics));
-        console.log('Saved user metrics to localStorage');
-    } catch (error) {
-        console.error('Failed to save metrics to localStorage:', error);
-    }
+    // We don't save the session metrics to localStorage as that would overwrite total metrics
+    console.log('Updated rewards UI with session data');
 }
 
 /**
