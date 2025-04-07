@@ -51,7 +51,17 @@
                     console.log('404: Redirecting to home page');
                     destUrl = origin + '/streaming-service/index.html';
                 }
-            } else {
+            } 
+            // Handle direct routes like /account or /activity at the root
+            else if (path.includes('/account')) {
+                console.log('404: Redirecting to account page (root path)');
+                destUrl = origin + '/streaming-service/pages/account.html';
+            }
+            else if (path.includes('/activity')) {
+                console.log('404: Redirecting to activity page (root path)');
+                destUrl = origin + '/streaming-service/pages/activity.html';
+            }
+            else {
                 // For any other unknown path, redirect to index
                 destUrl = origin + '/streaming-service/index.html';
             }
