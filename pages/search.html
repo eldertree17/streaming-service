@@ -8,26 +8,8 @@
     <link rel="stylesheet" href="../css/search.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     
-    <!-- Hard stop for any redirects or reloads -->
-    <script>
-        // Immediately stop any history manipulation
-        history.pushState = function() {};
-        history.replaceState = function() {};
-        window.onpopstate = function() {};
-        
-        // Stop any reload attempts
-        window.stop = function() {
-            console.log("Reload attempt prevented");
-            return true;
-        };
-        
-        // Initialize Telegram WebApp immediately if available
-        if (window.Telegram && window.Telegram.WebApp) {
-            console.log("Initializing Telegram WebApp early");
-            window.Telegram.WebApp.ready();
-            window.Telegram.WebApp.expand();
-        }
-    </script>
+    <!-- Load Telegram WebApp SDK first -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
     <!-- URL Normalizer - ensures consistent behavior between URLs -->
     <script>

@@ -1,17 +1,8 @@
 // Search Page Functionality
 
-// Block all reload attempts directly
-window.onbeforeunload = function() {
-    console.log("Blocked reload attempt");
-    return false;
-};
-
 document.addEventListener('DOMContentLoaded', function() {
-    // If we came here via redirect, clear sessionStorage to prevent loops
-    if (sessionStorage.getItem('noRedirect')) {
-        console.log("Clearing redirect flag");
-        sessionStorage.removeItem('noRedirect');
-    }
+    // Clear any redirect flags
+    sessionStorage.removeItem('noRedirect');
     
     // Initialize Telegram WebApp if available
     if (window.Telegram && window.Telegram.WebApp) {
