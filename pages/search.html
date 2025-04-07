@@ -7,6 +7,23 @@
     <link rel="stylesheet" href="../css/main.css">
     <link rel="stylesheet" href="../css/search.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    
+    <!-- Prevent reloads by storing page state -->
+    <script>
+        // Check if this page was already loaded - helps prevent reload loops
+        if (sessionStorage.getItem('searchPageLoaded')) {
+            console.log("Search page was already loaded, preventing potential reload");
+        } else {
+            // Mark this page as loaded
+            sessionStorage.setItem('searchPageLoaded', 'true');
+            
+            // Clear the flag after a short delay to allow future fresh loads
+            setTimeout(function() {
+                sessionStorage.removeItem('searchPageLoaded');
+            }, 5000);
+        }
+    </script>
+    
     <!-- URL Normalizer - ensures consistent behavior between URLs -->
     <script>
         // URL Normalizer for GitHub Pages
