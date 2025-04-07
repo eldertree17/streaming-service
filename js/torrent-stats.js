@@ -613,6 +613,12 @@ function addSeedingStatusSection() {
 /**
  * Show a temporary message to the user
  */
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.padding = '15px 20px';
     notification.style.borderRadius = '4px';
     notification.style.color = 'white';
     notification.style.zIndex = '10000';
