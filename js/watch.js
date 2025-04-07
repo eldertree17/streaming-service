@@ -1064,15 +1064,15 @@ function setupSeedOnlyButton() {
 }
 
 // Handler function for Seed Only button to avoid event duplication
-function handleSeedOnlyClick(event) {
+function handleSeedOnlyClick() {
     console.log('Seed Only button clicked');
-    const button = document.querySelector('.btn-download');
-    // Disable the button to prevent multiple clicks
+    const button = this;
+        // Disable the button to prevent multiple clicks
     button.disabled = true;
     button.innerHTML = '<i class="fas fa-sync fa-spin"></i> Preparing...';
-    
-    // Start the seeding-only process
-    seedOnlyTorrent();
+        
+        // Start the seeding-only process
+        seedOnlyTorrent();
 }
 
 // Function to seed a torrent without playing the video
@@ -1168,15 +1168,50 @@ function seedOnlyTorrent() {
                 
                 // Update progress with TorrentStats
                 if (window.TorrentStats) {
-                    window.TorrentStats.updateProgressValue(progress);
-                    window.TorrentStats.updateProgressBar(progress);
+                    // Safely call functions with explicit checks
+                    if (typeof window.TorrentStats.updateProgressValue === 'function') {
+                        try {
+                            window.TorrentStats.updateProgressValue(progress);
+                        } catch (e) {
+                            console.warn('Error calling updateProgressValue:', e);
+                        }
+                    } else {
+                        // Direct fallback if function not available
+                        const progressValue = document.getElementById('torrent-progress');
+                        if (progressValue) {
+                            progressValue.textContent = progress + '%';
+                        }
+                    }
                     
-                    // Update summary progress if available in TorrentStats
+                    if (typeof window.TorrentStats.updateProgressBar === 'function') {
+                        try {
+                            window.TorrentStats.updateProgressBar(progress);
+                        } catch (e) {
+                            console.warn('Error calling updateProgressBar:', e);
+                        }
+                    } else {
+                        // Direct fallback
+                        const progressBar = document.getElementById('progress-bar');
+                        if (progressBar) {
+                            progressBar.style.width = progress + '%';
+                        }
+                    }
+                    
                     if (typeof window.TorrentStats.updateProgressSummary === 'function') {
-                        window.TorrentStats.updateProgressSummary(progress);
+                        try {
+                            window.TorrentStats.updateProgressSummary(progress);
+                        } catch (e) {
+                            console.warn('Error calling updateProgressSummary:', e);
+                        }
+                    } else {
+                        // Direct fallback
+                        const summaryProgress = document.getElementById('torrent-progress-summary');
+                        if (summaryProgress) {
+                            summaryProgress.textContent = progress + '%';
+                        }
                     }
                 } else {
-                    // Fallback if TorrentStats is not available - but avoid direct element manipulation if possible
+                    // Fallback if TorrentStats is not available
                     const progressBar = document.getElementById('progress-bar');
                     if (progressBar) {
                         progressBar.style.width = progress + '%';
@@ -1187,7 +1222,6 @@ function seedOnlyTorrent() {
                         progressValue.textContent = progress + '%';
                     }
                     
-                    // Update summary progress
                     const summaryProgress = document.getElementById('torrent-progress-summary');
                     if (summaryProgress) {
                         summaryProgress.textContent = progress + '%';
