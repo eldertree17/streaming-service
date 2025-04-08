@@ -2501,7 +2501,42 @@ function stopSeedingAndClaimPoints() {
     
     try {
         // Get current tokens before cleanup
-        const finalTokens = window.totalTokensEarned || 0;
+        const pointsEarned = window.totalTokensEarned || 0;
+        console.log(`Claiming ${pointsEarned} points earned this session`);
+        
+        // Credit points to user's total balance before resetting
+        if (pointsEarned > 0) {
+            // Get existing total from localStorage or default to 0
+            let totalUserPoints = 0;
+            
+            // Try to get user ID from Telegram if available
+            let userId = 'default_user';
+            if (window.Telegram && window.Telegram.WebApp && 
+                window.Telegram.WebApp.initDataUnsafe && 
+                window.Telegram.WebApp.initDataUnsafe.user) {
+                userId = window.Telegram.WebApp.initDataUnsafe.user.id.toString();
+            }
+            
+            // Key for user's total points
+            const userPointsKey = `user_total_points_${userId}`;
+            
+            // Get existing points
+            const existingPoints = localStorage.getItem(userPointsKey);
+            if (existingPoints) {
+                try {
+                    totalUserPoints = parseInt(existingPoints) || 0;
+                } catch (e) {
+                    console.error('Error parsing existing points:', e);
+                }
+            }
+            
+            // Add session points to total
+            totalUserPoints += pointsEarned;
+            
+            // Save updated total
+            localStorage.setItem(userPointsKey, totalUserPoints.toString());
+            console.log(`Updated total points for user: ${totalUserPoints}`);
+        }
         
         // Safely save the state before destroying anything, but don't break if it fails
         try {
@@ -2528,6 +2563,7 @@ function stopSeedingAndClaimPoints() {
             console.log('No active torrent to stop');
         }
         
+        // Continue with existing code...
         // Reset other relevant variables
         window.isReportingMetrics = false;
         window.isSeedingPaused = false;
