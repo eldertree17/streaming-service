@@ -2476,6 +2476,11 @@ function setupStopSeedingButton() {
             if (seedOnlyButton) {
                 seedOnlyButton.innerHTML = '<i class="fas fa-compact-disc"></i> Seed Only';
             }
+            
+            // Add a short delay before reloading the page
+            setTimeout(function() {
+                window.location.reload();
+            }, 500);
         });
     }
 
